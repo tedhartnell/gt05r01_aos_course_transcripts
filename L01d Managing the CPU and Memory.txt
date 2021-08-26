@@ -1,0 +1,313 @@
+## L01d Managing the CPU and Memory ##
+
+### All Links
+
+00. https://classroom.udacity.com/courses/ud189
+01. https://youtu.be/A8UFqyr8yIA
+02. https://youtu.be/ez5wa4HBQuM
+03. https://youtu.be/tfBd2zeM9pc
+04. https://youtu.be/iTAJXFnz8ik
+05. https://youtu.be/eIDPlwiaYnc
+06. https://youtu.be/jwRYO03pPTc
+07. https://youtu.be/PcB4yG-Szp8
+08. https://youtu.be/H2PAkWZQh-Q
+09. https://youtu.be/O3EyzlZxx3g
+10. https://youtu.be/UVW1FcTj904
+11. https://youtu.be/GeVo6m2C6Q4
+
+### Video 01
+https://youtu.be/A8UFqyr8yIA
+
+Think back to the beginning of this
+lesson. Where we considered a computer system that
+was displaying graphics for a video game.
+Playing music or browsing the web. Seemingly all
+of them at the same time. All of these applications need access to the physical
+hardware And they have to be made to
+share nicely. No hogging the CPU, no overwriting
+each other's coder data. This becomes then the
+job of the operating system, to protect these
+applications from one another, and to protect an
+application from itself. While getting out of the way
+as quickly as possible so that these applications
+can do what they need to do in order
+to get their jobs done. Now we will
+discuss the abstractions in an operating system. From managing
+the hardware safely and efficiently. Particularly we'll
+focus on the processor and the memory.
+
+### Video 02
+https://youtu.be/ez5wa4HBQuM
+
+Before we talk about the abstractions in
+an operating system for managing the processor and
+memory, I want to throw another fun quiz at
+you. Now in this quiz, I'm going to ask
+you the following question. The computer, regardless of
+which platform you're using, seemingly runs several programs
+in parallel. You may have an email program
+running, a browser you may have music playing,
+maybe you're watching a video clip and so
+on, but supposed it is, only one CPU inside.
+Let's assume, that your computer system has exactly
+one CPU inside. How is it possible that it
+is running several programs in parallel? I'm going to
+give you multiple choices. The first choice is, even
+though there is only one CPU, there are
+multiple cores within the CPU, and there's one core
+for each of the applications that you're running,
+and that's how we're able to run multiple applications
+in parallel. So that's your first choice. The second
+choice is, I'm trying to trick you, that this
+is a trick question, actually there's only one
+app that is running at a time and the
+premise of the question itself is wrong. So that's
+your second choice. The third choice says that there's
+only one CPU, there are multiple applications,
+but these applications share the CPU through
+the operating system so that for different
+time units, different applications are running on
+the CPU. So, for instance, in time unit t1 application one is running, time unit
+t2 application two is running, and so on. And this is what is
+making it appear as though there are several programs running on the CPU
+simultaneously. What is going on is that the operating system is multiplexing
+the CPU among these applications. So these are the choices I'm giving you,
+and I want you to pick what you think is the right choice.
+
+### Video 03
+https://youtu.be/tfBd2zeM9pc
+
+The right choice is the third one, as
+you may have guessed. The operating system is
+multiplexing the CPU among the competing applications. You
+may have multiple cores, but you don't have one
+core for every application that is currently running
+on the CPU. It may be that you've
+only have one core. Or, exactly one CPU.
+In which case, it is the operating system that
+is multiplexing these applications to run, at
+different points of time on the CPU.
+And that's what is giving you this
+appearance as though, there are multiple programs
+running concurrently on the processor. But they're
+not running concurrently. It is just that
+they're being multiplexed, so that its appearance
+as though, they're all running in parallel.
+
+### Video 04
+https://youtu.be/iTAJXFnz8ik
+
+The resource needs of the applications include
+time on the CPU, the memory that it
+needs for holding its instructions and data, and
+peripheral devices that it may have to access
+during the course of its execution and so
+on. Now, are the resource requirements of a
+program known to the operating system before you
+launch it? Well, yes and no. The operating
+system knows enough about the program, at the time of launch, so that from the
+disk, it can create a memory footprint
+for this application. So for instance, on your
+favorite platform, when you click on an icon, what is going on is, a piece
+of the operating system called the operating
+system loader is reading in the disk resident
+image off that application, and creating a memory
+resident image of that application. So this is
+what is called the memory footprint. And the
+memory footprint of the program contains the code that
+needs to get executed on the processor, global
+data that it might be accessing, the stack that
+is needed when the program is making procedure
+calls and the heap which is the dynamic memory
+that it might be needing during the course of
+its execution. So this is what is called the
+memory footprint of the program. Then that's what is
+created by the operating system loader at the point
+where you click on an icon. Once a program
+starts running, can the application ask for additional resources
+at run time? Of course. This is exactly the
+service that is provided by the operating system. For example,
+if the application needs more memory, it can make an operating system call
+and similarly if it needs to make a connection to access a web server it makes
+an operating system call. The operating system
+then performs the service on behalf of
+the application and the application can then
+continue with whatever it needs to get done.
+That's how an operating system caters
+to the resource requirements of applications. So
+in other words, in addition to catering
+to the initial requirements of an application
+at the point of launching it, the operating system is also the broker
+through which a running application can request
+and get additional resources during its execution.
+
+### Video 05
+https://youtu.be/eIDPlwiaYnc
+
+That brings up a question. If the operating system is a broker, is it
+taking precious resources, for example, CPU cycles
+or available physical memory, away from an application?
+And I'm giving you three choices here. Yes it is, taking resources away.
+No it's not. Maybe. So these are the three choices I'm giving you, and I want
+you think about what would be the right choice, and
+I think you will know what the right choice is.
+
+### Video 06
+https://youtu.be/jwRYO03pPTc
+
+As you may have guessed, the right choice is
+no. The operating system should not be taking precious
+resources away from an application. For example, if I'm
+running a program such as, computing the prime number up
+to a billion, it's going to need a lot of
+resources, CPU cycles in particular, and during that time
+I don't want the operating system stealing cycles away
+from me. So operating system is also a program and
+has to run on the CPU as we saw when we talked about how an operating
+system deals with external interrupts. So it is going to need some resources,
+CPU and memory cycles, to do it's work. But a good operating system will take
+the minimal amount of time and minimal amount of resources to do it's thing.
+So the right answer is no, as otherwise you will not use an operating system.
+It's sort of like when give to a charity.
+The first question you ask is, what percentage
+of the collection is used by the charity
+as administrative overhead? You don't want to give to
+a charity that spends more than a few
+percentage points of the collections on administrative overhead.
+Same thing with an operating system. Most of the time, the
+resources, CPU, memory and so on, is being used for running the
+applications. The operating system gets in the way as a broker, only
+for arbitrating and providing the resources needed by
+an application safely and securely, and then get's out of the way
+as quickly as possible. So the right answer is no.
+
+### Video 07
+https://youtu.be/PcB4yG-Szp8
+
+A modern operating system is a complex piece of software and lots going on, some
+of which may be completely outside the user's
+control. For example, a network message comes in,
+and your anti virus software goes into
+high gear checking for attacks. The normal behavior
+of a good operating system should provide an
+application with the resources is it asking for.
+For example, more memory or access to a file, and so on.
+And get out of the way, as quickly and quietly as possible.
+
+### Video 08
+https://youtu.be/H2PAkWZQh-Q
+
+Now, let's get familiar with some of
+the abstractions provided by an operating system. I'm
+sure that you may have heard several different
+terms used in the context of an operating
+system such as program or a process or a thread and task and so on. Let's
+understand these terms. A program is the memory
+footprint that is created when you click on
+an icon to launch an application on your favorite platform. So it is a static
+image of the program loaded into the memory. A process, on the other
+hand, is a program in execution. That is, the operating system, breathes life
+into the program, which is a static entity, by running the program on the CPU.
+That is, by scheduling the program to run on the processor, the operating system
+gives life to the program and the
+process is the program in execution. Therefore a
+process is the program plus the state of the running program. And yes, the state
+of the running program is not static.
+It is continuously evolving as the program executes.
+So these are the two important abstractions related to the process and program.
+Which is a static entity created by the operating system when
+you launch a program. And process is the program in execution.
+
+### Video 09
+https://youtu.be/O3EyzlZxx3g
+
+Now you've heard the term thread. Well, it's
+also used in the context of an operating
+system. What is the difference between a process
+and a thread? An analogy will help here. Let's
+say here is the morning newspaper. This morning
+newspaper lying on the dining table is like a
+program in memory. No life. I come to
+the dining table, pick up the newspaper, and particularly
+the sports section of the newspaper and start
+reading it. My starting to ready the sports section
+of the newspaper is akin to the operating system,
+giving life to the program by starting to execute
+it. So, now there is one life in the program. That is one line of control, that
+is coursing through the core and data structures of
+the program. This is what is called the thread
+of execution through the program. So we
+have one thread of control that is coursing
+through the program just as I am reading.
+A section of the newspaper. Now, my wife
+comes along, and being the more responsible one
+in the family picks up the business section
+and starts reading it. That's perfectly fine, depending
+on our interests, I'm reading the sports section.
+While wife is reading the business section, each is reading a different section
+of the same newspaper. similarly, we can
+have multiple lives, coursing through the program.
+Each blazing a completely different trail through the code and data structures
+of the program. Now each of this is a thread of control. Now could there
+be a conflict between these different threads
+of control? Sure. Both my wife and I
+may want to read the same section
+of the newspaper. That's a conflict. Similarly. The
+threads that are executig whitin the same
+program may wana read or update the same
+data structres. These are the issues that
+the operating system has to deal with, and
+this is what I meant when I said that te operating system is the
+orbiter for copleteing reqests for rescorces. Now
+generalizing it. A program can have several threads
+of control, and each thread of control
+maybe coursing through different sections of the
+program. And it could also be competing for the same section of the program as
+well as the same data structure in order to manipulate. Thus, a process. Is a
+program plus the state of all the
+threads that are executing within the program. Just
+as a single newspaper could be shared by me, my wife, and possibly my children.
+In a similar manner, a program may
+have multiple lives. That are coursing through it.
+And each is a bit of control, and the process is the program
+in execution, meaning it is the program plus the state of all the
+threads that are currently executing within this program. For example, if
+this program. Is a web browser. One thread in this
+program, could be fetching a page that I've requested from the
+remote server. And another thread could be painting the screen for me.
+
+### Video 10
+https://youtu.be/UVW1FcTj904
+
+How is one program, let's say an
+email, protected from the misbehavior of another program,
+say the web browser. This is where memory
+related operating system abstractions come into play. In
+particular, the operating system provides address space as
+an abstraction for each process that is distinct
+from one another. So the data and the
+code that corresponds to a particular program is
+contained in a container which is
+called the address space. That's the abstraction
+provided by the operating system. And
+this address space abstraction of the operating
+system is implemented by whatever hardware
+capabilities that the underlying processor architecture provides
+you. Processor and memory are the most
+precious resources. And, what we've done is
+a quick review to understand the abstractions
+in the operating system for managing these resources.
+
+### Video 11
+https://youtu.be/GeVo6m2C6Q4
+
+Until now, what we have seen in this lecture is a quick review of the concepts
+that you are most likely already familiar with. The next lesson will launch into
+the evolution of the operating system's structure.
+Before we get into that lesson, if you
+feel you could benefit from reviewing the basic
+concepts of an operating system. I strongly recommend
+that you review the basic subsystems of an operating system. CPU
+scheduling, memory management and the network protocol stack. To help you
+navigate this background material, my tall friend here, Charlie Brubaker has
+produced lecture materials that are available as part of this course offering.

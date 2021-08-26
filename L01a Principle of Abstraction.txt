@@ -1,0 +1,271 @@
+## L01a Principle of Abstraction ##
+
+### All Links
+
+00. https://classroom.udacity.com/courses/ud189
+01. https://youtu.be/GTObrKKbRww
+02. https://youtu.be/dCQEeUia9UI
+03. https://youtu.be/XzUVj3cPhxM
+04. https://youtu.be/1eKBaTxZ07Q
+05. https://youtu.be/Ccv9RgP6OJI
+06. https://youtu.be/J1Q6nFvda1s
+07. https://youtu.be/2Yvgph2Yo2c
+08. https://youtu.be/MQtXYUOIFy0
+09. https://youtu.be/Kf9bCdTAafo
+10. https://youtu.be/EpiKTuopxIE
+
+### Video 01
+https://youtu.be/GTObrKKbRww
+
+If you walk up to typical computer today, you're
+likely to find several applications open. One for listening
+to music. One for playing your video game. A
+web browser displaying information on some ancient culture from some
+remote corner of the world. And a messaging application
+for connecting with friends, and so on. How is it
+possible for a single device to do all these
+things, and moreover, do them all at the same time?
+How can all these diverse applications, written by
+different programmers who don't even know each other,
+coordinate? Who's in charge here? The answer of
+course is the operating system. Hello and welcome to
+CS6210 Advanced Operating Systems. My name is Kishore
+Ramachandran and I'll be taking you on a
+journey to understand the role played by the
+operating system in providing the rich user experience afforded
+to modern applications, the modern computers. And
+along the way, I'll highlight the symbiotic relationship
+between hardware and software that makes it
+possible for the computer and the operating system
+to provide the rich user experience to
+please you. Operating systems have evolved over time.
+In this course we will see all the advances that have been made in the
+operating system that has led to the
+state of the art in operating systems today.
+Covering a variety of platforms, from cell
+phones to multi-core, to parallel systems, to distributive
+computing and cloud computing. In part one
+of this introductory lesson, my goal is to
+primarily talk about the power of abstraction.
+That will lay the foundation for the rest
+of the introductory lesson, which will
+include an overview of the hardware resources
+managed by the operating system. The operating
+system functionality that is expected, and the
+abstractions in an operating system for
+managing the hardware resources. By the end
+of the lesson, we will be ready to discuss the structure of operating systems.
+
+### Video 02
+https://youtu.be/dCQEeUia9UI
+
+Much of the background that you'll need to
+know, is covered in this introductory lesson and
+the review lessons taught by Charlie Brubaker. However,
+to get the full benefit of this course, you
+should have a strong undergraduate background in computer
+systems and networks. With that in mind, let's
+get started with our review and load some
+of the operating systems basics into our collective memories.
+I've intentionally structured this lesson to be quiz-heavy, since most
+of the background material should be already familiar to you. And
+hopefully that format that I'm going to use, we'll find this
+to be a more fun way to jog our collective memories.
+
+### Video 03
+https://youtu.be/XzUVj3cPhxM
+
+Having promised you that, let's start with a quiz. Now this quiz is
+a fun quiz just to get you primed. Which of the following is an
+operating system? I'm sure that you've been using a lot of these things and
+heard these terminologies. Firefox? MacOS? Android? Which
+of the following is an operating system?
+
+### Video 04
+https://youtu.be/1eKBaTxZ07Q
+
+As computer scientists, one of the most
+powerful tools that's available to us, is
+the concept of an abstraction. And by an abstraction, we mean a well understood
+interface, that hides all the details within a subsystem. Let's see how, in a
+computer system, the hierarchy of abstractions works,
+and where operating system fits, within this hierarchy.
+
+### Video 05
+https://youtu.be/Ccv9RgP6OJI
+
+Again, I'll want to use a fun quiz
+to get you situated with respect to the concept
+of an abstraction. Now remember what I told
+you about an abstraction, that it's an interface that
+allows us to hide all the details. With that in mind, what I want you to do
+Is to think about the objects and the terms
+that I've laid out on this panel for you.
+And you may have come across many of them and from this set tell me which of
+these is not an abstraction. There may be more
+than one item in this set that I've shown
+you on this panel that may not be an
+abstraction and I want you to identify all of
+the items that you think is not an abstraction.
+The first choice I have is a door knob.
+The second choice I have for you is instruction set architecture. The
+third choice I have is the number of pins coming out of a chip, like a processor
+chip. And the next choice I have for you is a logic gate such as
+and gate that does the and function. And the next item I
+have for you is a transistor. And the next item I have for you is the
+INT data type in a programming language like C. And the last item I have for you
+is exact location of base pads in a
+baseball field. So these are the choices that I'm
+giving you and what I want you to
+do is think about these different items. Which you
+may have come across for sure in your every
+day experience, and tell me which one of these
+does not qualify as an abstraction. And as I've said, there
+could be more than one that does not qualify as an abstraction.
+
+### Video 06
+https://youtu.be/J1Q6nFvda1s
+
+Now, let's dig a little deeper into the power of abstraction as it applies to
+computer systems. Now, here I'm showing you
+a screenshot of the Google Earth application. Deep
+down in the silicon, you have electrons
+and holes. You may have heard about these
+terminologies or worked with them in a physics 101 course at some point of time.
+Let's say that in an application such as Google Earth, you move your mouse
+from Atlanta, Georgia to Chennai, India. When you do that, magic
+happens on the screen. Now, between a user action,
+such as moving the mouse from Atlanta, Georgia to Chennai,
+India, and the solid state electronics that
+is enshrined in your computer system, there is a whole series of abstractions.
+
+### Video 07
+https://youtu.be/2Yvgph2Yo2c
+
+Now, I want you to help me think about all the abstractions that sit between
+these two extremes, Google Earth application that makes
+magic happen on the screen and the solid-state
+physics the electrons and holes enshrine in
+your computer system. What are all the abstractions
+that sit between these two extremes? What I want you to do in this quiz is
+to name as many abstractions as you can between these two extremes
+that I am showing you. To make room for you, let me clear
+some space. I put a box now for your answer. To give you
+an idea of what is expected in this question,
+as an answer, let me start you off with naming the abstraction
+that sits right on top of the electrons and holes. This is of course your solid
+state physics. And you rain in all the
+randomness in the movement of the electrons and holes
+in the solid-state physics, with this abstraction called
+transistor. The transistor is akin to an on-off
+switch. Now, what I want you to do is fill the rest of the box with all
+the other abstractions that sits above transistors,
+all the way up to the application.
+
+### Video 08
+https://youtu.be/MQtXYUOIFy0
+
+You may have gotten a lot of these
+abstractions yourself, but let's walk through and think
+about all the abstractions that sit between the
+electrons and holes, and applications at the top. We've
+already talked about the transistor, we know at
+the lowest level of the hierarchy, the movement of
+the electrons in the holes. Are governed by
+the laws of physics. And as I mentioned earlier,
+transistor reigns in the randomness in the movement
+of electrons and holes, and gives us an
+abstraction of a switching device, which is the
+transistor. Using the switching device which is a transistor,
+we can implement. The next level up in
+the hierarchy which are logic gates. Here is where
+the and- gates and the or-gates and the
+not-gates come in, where we are implementing Boolean logic
+using transistor as a switching device. Sequential and combination logic
+elements are implemented using logic gates such as and, not and or. Logic
+elements. Sequential and combination logic elements are then organized into a
+data pack, depending on what hardware
+circuitry, or functionality we want to implement.
+The data pack establishes the communication paths
+we need between these combinational, and sequential
+logic elements. To realize whatever is the
+hardware device that we're trying to design, and
+the control part of it is a finite shaped machine that controls the data
+path, and implements the repertoire of the
+hardware device that we are trying to realize.
+And for instance, if. The intent is to implement a processor, then
+the instructions in the processor have to be implemented using the data pad, and
+controlled by the control logic. Next level up in this hierarchy is the
+instruction set architecture. This is the
+abstraction that is defined by a processor.
+When you hear the promo commercial, for instance, that says Intel Inside, it
+is the ISA, or the Instruction Set Architecture that is being talked about
+by the promo. Buried within. This term ISA,
+or the abstraction ISA, is all the details of how the
+ISA is actually implemented by the data path and
+the control logic. Now we come to software. Sitting on top of the
+Instruction Set Architecture, is the system software.
+Operating systems, compilers, run-time systems and so
+on, that exercise the instructions provided by
+the processor architecture. Finally, we have apps
+on top. This is where applications like Google Earth come in. Notice that the
+abstraction that is used by the
+applications themselves is the high level language
+in which these applications are written. The
+system software component such as the compiler,
+translate the high level language used.
+In writing these applications into the instructions
+that can be executed on the processor.
+Similarly, the operating system provides interface for
+the applications to request services of
+the operating system. For instance, to access
+specific devices. During the execution of
+the application, or for getting resources such
+as memory. On demand, those are the functions provided by the operating system
+as an abstraction. Thus, the instruction
+set is the meeting point between software.
+And hardware. It serves as the abstraction needed by the system software, for
+example, the compiler, to generate the code
+that corresponds to the high-level language constructs
+that are being used in coding up an application. The software, whether it is.
+At the system software level or at the application level does not care and
+does not know how this instruction set may
+actually be implemented down below. Meaning the implementation
+of the instruction set itself in terms of
+data path and control. The sequential logic, elements that
+sit below that, are the logic gates of
+the transistor, or finally the electrons and [INAUDIBLE],
+they don't care what programs are running on
+top of the processor. So the instruction said architecture
+is the meeting point between software and
+hardware. The hardware implementation simply fulfils the
+contract. Of realizing the instructions of architecture
+of the processor. Operation system is the
+abstraction level we will be focusing on in this course, which is a course
+on advanced operating systems. You will have
+the opportunity to learn about other levels.
+In this hierarchy, from other courses that are offered through this program.
+
+### Video 09
+https://youtu.be/Kf9bCdTAafo
+
+Now an application, such as Google Earth, sits at
+the top of the hierarchy. And it's code for
+tracking the mouse movement on the screen, written in
+whatever high level language is compiled into the instruction
+set and traverses the rest of the hierarchy and
+magic happens on the screen. Now within this hierarchy,
+the operating system acts as a broker between the
+application at the top. And the physical resources such
+as CPU, memory, and IO devices, can provide an app,
+with all it needs, for its successful and safe execution.
+
+### Video 10
+https://youtu.be/EpiKTuopxIE
+
+Most of what we'll be learning in this introductory lesson plan should
+feel like review to you. If it has been challenging so far, or
+becomes challenging as you go through
+the introductory lesson, it might mean that
+you don't have the necessary background
+for taking an advanced operating systems course.
