@@ -1,8 +1,13 @@
-## L01a Principle of Abstraction ##
+## L01a: Principle of Abstraction ##
 
 ### All Links
 
-00. https://classroom.udacity.com/courses/ud189
+Udacity: https://classroom.udacity.com/courses/ud189
+Playlist 01: https://www.youtube.com/playlist?list=PLAwxTw4SYaPkKfusBLVfklgfdcB3BNpwX
+Playlist 02: https://www.youtube.com/playlist?list=PLAwxTw4SYaPm4vV1XbFV93ZuT2saSq1hO
+Playlist 03: https://www.youtube.com/playlist?list=PLAwxTw4SYaPk5-YaXFkWY4UXdv6pVdiYg
+Playlist 04: https://www.youtube.com/playlist?list=PLAwxTw4SYaPmfaiuzJcK3tNoeKlvRR990
+
 01. https://youtu.be/GTObrKKbRww
 02. https://youtu.be/dCQEeUia9UI
 03. https://youtu.be/XzUVj3cPhxM

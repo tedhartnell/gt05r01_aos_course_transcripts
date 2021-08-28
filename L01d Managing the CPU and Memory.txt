@@ -1,8 +1,13 @@
-## L01d Managing the CPU and Memory ##
+## L01d: Managing the CPU and Memory ##
 
 ### All Links
 
-00. https://classroom.udacity.com/courses/ud189
+Udacity: https://classroom.udacity.com/courses/ud189
+Playlist 01: https://www.youtube.com/playlist?list=PLAwxTw4SYaPkKfusBLVfklgfdcB3BNpwX
+Playlist 02: https://www.youtube.com/playlist?list=PLAwxTw4SYaPm4vV1XbFV93ZuT2saSq1hO
+Playlist 03: https://www.youtube.com/playlist?list=PLAwxTw4SYaPk5-YaXFkWY4UXdv6pVdiYg
+Playlist 04: https://www.youtube.com/playlist?list=PLAwxTw4SYaPmfaiuzJcK3tNoeKlvRR990
+
 01. https://youtu.be/A8UFqyr8yIA
 02. https://youtu.be/ez5wa4HBQuM
 03. https://youtu.be/tfBd2zeM9pc
