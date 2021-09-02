@@ -1,0 +1,542 @@
+## X02-569: Interview With Yousef Khalidi - Interview With Yousef 1 ##
+
+Hello everyone. It's my pleasure to introduce
+to you Doctor Yousef Khalidi. Yousef as I
+call him graduated from Georgia Tech in
+1989. And and then after he graduated from
+Georgia Tech with a PhD in computer science and I'm very proud to say that he
+was my first PhD student. He went to work for Sun Microsystems where he was
+developing multiprocessor operating systems and then at
+some point of time Microsoft found him.
+And he moved to Microsoft and while he was at Sun he was the CTO
+of the Solaris MC product. And some of which we saw in our own discussion of
+structure of operating systems early on. And and then he moved to Microsoft and
+in Microsoft he developed the current he developed the cloud platform which is
+called the Microsoft Azure cloud platform and
+that's the one that he'd been leading.
+He was a distinguished engineer at Sun Microsystems and then now he is
+a distinguished engineer at Microsoft. And so it's a great pleasure to have you
+>> Thank you Kishore for having me and I just want
+to say that Kishore was a great professor. But a tough professor.
+>> [LAUGH] And I want him to tell tell that to my students even now. [LAUGH]
+>> I'm sorry but that's the truth.
+>> So Yousef it's a pleasure always to meet you and and see
+you. And and and the thing that is really exciting for me is
+being able to bring you back to this interview because this is interview's
+going to be part of the course
+that I'm developing in advanced operating systems
+and and and you contributed a lot to that. And
+so what I want to do is first sort of rewind.
+>> 'Kay.
+>> Back to the the mid to late 80s. When you were a PhD student and
+and you developed as part of your dissertation
+work the cloud's distributed operating system. And then
+fast forward to 2013. You're heading the cloud Azure platform at
+Microsoft. Talk to us about your journey and and if you
+can connect the dots from what you did back then to what you're doing now.
+>> You know in many way things have changed. In many other
+ways things have not changed at all. So the fundamentals are the same.
+The structure of an OS the way you
+layer the system the basic concepts of security isolation.
+All these high separation policy of mechanisms simplicity of
+design recovery from failures and the like all these
+concepts still apply. But at the same time things
+have changed quite a bit. Give you an example.
+The product you mentioned that you and I worked
+on clouds and for 85 86 to 89 it
+was a distributed system true but we had exactly
+three machines. Growing it grew to four or five machines
+later on. That was it. I mean we had
+to manage three four five machines. Lots of algorithms that
+are very similar today but the SK wasn't the
+same. Fast forward to today. I can't even tell you
+how many machines how many VMs run in a
+public lot. Millions millions of VMs run all over the
+place. So the scale have been going up by orders
+and orders of magnitude. So the fundamentals are the same
+but the problem at hand has changed and of course the physics and the
+how the industry moved. before a given machine was what? A vax 11 750.
+>> Mm-hm.
+>> This is an old machine now of course.
+>> Mm-hm.
+>> Well I mean there many many students
+may not even know about vax 11 750.
+>> You find them in the in the history museum now. It used to be as big as a
+>> And the company doesn't exist. That we.
+>> Company's gone. The machine is gone but it was the best machine
+there was for awhile. As big as this. And probably my
+watch or my phone has order of magnitude more power than
+this. So you know again this is just how the industry
+moved. So again the the concepts are the same the fundamentals
+are the same. Some of the papers that we now teach
+and learn from are the same ones that were written back
+then even before. But their application now has been applied to
+a much much bigger scale. So so my short answer here.
+And this scale of course you see everywhere. All
+of us have some devices some smart phone or some
+machine or a PC and the like. And all these
+services out there are using the the the the connectivity
+the computing the power of the collective if you
+will. That's new as well. Before we used to apply
+all these concepts in the small. To a given machine.
+To a server. Now we apply them to a collective.
+>> So is it fair to say
+that some of the techniques that were invented in the 80s
+and the 90s are still applicable today? It is just that the scale has gone up.
+>> Very much so. I mean the fundamentals of
+distributed computing replication algorithms
+consistence leader election synchronization all
+these are of course the bread and butter of what we do. It's a given. But at the
+same time since things have changed when we
+scale changes by one two three orders of
+magnitude some other things break. So we have
+to think in terms of maybe loose consistency instead
+of very absolute consistency. You would need to
+think of handling failures in a different way.
+Optimized for mean time to recovery versus making
+it perfect the first time through. So as you
+know in computer science when change by this much some
+things have to move but the fundamentals are the same.
+>> That's a very comforting piece of news for
+the students because some of the papers that we
+read are from the 90s and the 80s and
+the classic papers and I tell them why they are.
+>> The classic even goes before that as you know.
+>> Right. Exactly.
+>> It somebody said that was wasn't me that nothing has
+been invented in our field for the last 20 years or so.
+>> Mm-hm.
+>> And again they're partially right.
+>> Mm-hm.
+>> The fundamentals are the same.
+>> Mm-hm.
+>> So you have to start with the basics.
+>> Mm-hm.
+>> And you build on top of them.
+>> Right right. So I I wanted to ask specifically with respect to
+Microsoft Azure it uses the platform as a service model for the cloud.
+Now discuss why that model is the one that you chose.
+And what are the pros and cons of
+that that model vis-a-vis other kinds of models?
+>> Sure. So I just want to tell you in Azure we
+have the whole spectrum now. Platform as a service infrastructure as a service
+all combined to build basically services
+so-called software as a service. First I
+want to start by telling you I'm not a fan of these terms.
+>> Okay.
+>> They are not technical at all. The industry at
+times wants to put things into separate segments. Separate segments.
+>> Mm-hm.
+>> But by you know what the definition
+of them are. Platform services you typically have
+APIs and other services out of which you
+compose other services. Whereas infrastructure service is typically just
+comp built VMs virtual machines and instantiate them.
+Real life of course is more complex than that.
+It's a combination. And Azure like other systems
+support both. The long-term direct direction though many applications
+are not written from scratch anymore. You compose existing
+components. There was a time before I was in
+this field you know? People used to write machine
+language then assembly language. You wrote things like maybe in
+C and so forth. And you started with a
+program out of scratch from nothing. Now fast forward to
+today. Everything's composed. So you may have some storage
+services some database services some caching services some identity services.
+And you compose your application out of that.
+>> Mm-hm.
+>> And that's really the way to go from now on.
+>> Right.
+>> And you compose things out those compositions.
+>> Mm-hm.
+>> To restful APIs and the like.
+>> Mm-hm.
+>> So in this spectrum I that's why I am not a very fan of
+those terms. You know yes they have a definition. Yes you can look at them and
+apply them. But what's more interesting is
+to have a very large scalable reliable platform
+with rich services that allows you to run if you want to VMs all the way
+to compose apps at a very high level.
+>> So in in that sense what I'm hearing you
+say is that these distinctions are are not that important.
+>> Architecturally scientifically whatever.
+>> There is no.
+>> I don't think so.
+>> There is more of a marketing.
+>> Marketing or or a way to simplify concepts.
+>> Okay.
+>> Remember cloud computing is still early on. And
+we feel early sometimes people have to define terms
+just to be able to reason about the concepts. To me speaking
+for myself I really think it's far more important to look at the
+actual services APIs have and what can you do with them to
+make your life easier to develop applications and to run reliably at scale.
+>> Now students get to know about these giant scale
+services and how cloud computing is enabling the giant scale services.
+What do you see as the future evolution of
+system structure for providing distributed services? Is it going
+to be the same more of the same or
+is it going to be drastically different in the future?
+>> To be honest if I knew exactly I'd be probably
+lying. We nobody knows exactly. But we can look at the trend.
+>> Mm-hm.
+>> And the trend as I alluded to shifted from
+the old days where we used to have three machines
+in our data center.
+>> Mm-hm.
+>> You and I used to have three machines.
+>> Yeah.
+>> We used to have mainframes bigger than this room we're in at the
+moment. Is shifting to more of a scale out model. Where it's built out
+of smaller servers off the shelf components
+and many many of them. That's dictating
+a trend in application structure and format
+that's different than before. You are no longer
+looking at big SAP boxes and an app that optimizes a
+big SAP box. Looking at an application that may have multiple
+cores in a box but has to live across boxes across
+servers and has to deal with failures and has to deal with
+the network as as a as a reality. Latency is there and so forth. So the shift
+will be more and more towards scale out horizontal scaling versus scale up.
+And more trend towards simplicity where failures
+will happen and you have to optimize for
+recovery from failures and to make forward progress.
+Said differently all our apps today are what?
+You know back end services to your phone to your
+PC to your laptop to your pad et cetera. They
+expect the network to be always there. They expect the
+servers to be always there. Of course this is not
+true but you have to design it as it to
+make sure it can handle failures for it to appear
+to be always there. So this disconnected operation of the
+network is important. Caching and and the and the host stack
+is important. And when a component fails
+you need to have to state somewhere else.
+>> Mm-hm.
+>> The truth has to be in the network not anywhere else.
+>> Mm-hm. Mm-hm.
+>> So those I think trends will only accelerate.
+>> Mm-hm. Mm-hm. Mm-hm.
+>> Exactly where they're going to be in ten years from now I'm not sure.
+>> Mm-hm.
+>> Five years probably like I described.
+>> Mm-hm. Now so I think you started touching on this already in your
+answer. So what do you see changing in the data centers for catering to these
+kinds of future evolution of distributed services?
+>> Uha number of things are changing in a data center. First given the
+accounts of scale you have by having the horizontal model you have a an
+increasing concentration of computing power in a effectively in a flat network.
+>> So when you said horizontal model.
+>> Yes.
+>> Perhaps you may want to elaborate it for the students.
+>> Okay so on a horizontal model if you want extra
+capacity you end up adding more servers to a
+network. So you may start with one server with maybe
+one CPU with multiple cores and a fixed amount
+of memory. If you want more capacity like extra memory
+or extra cores you don't open up the box
+and add to it. There's nothing to add to it
+the box is closed. You add more boxes. I'm
+being figurative here but you know what I mean. So
+this is as to contrast how it used to be
+in the past where you bought one big mainframe one big
+chassis and you added more stuff inside it to make it
+bigger. So you have to know networks. You have to know
+distributed systems. It's a fact of life basically. So the trend
+is basically to go that way. If if you go to
+a modern data center now a truly modern one you're going
+to find a network which is fairly flat network where it
+it caters both to south east traffic and west
+east west traffic. Which in different words it can
+do well to take requests in and send them
+back out or to do traffic within the network.
+>> Meaning computations that are going inside.
+>> Computation and data replication.
+>> Okay.
+>> So that's a trend that's definitely happening so
+scale out model of many many servers. Typically commodity service
+which is fairly small. They increase of course
+with Moore's law but still are fairly small. A
+network which is fairly flat so you you
+can do a lot of traffic between them. And
+applications that are basically laid over that network.
+And with the app itself is mostly mostly structured
+in way it can withstand any piece going
+down. And the state replicated in different data tiers.
+
+## X02-570: Interview With Yousef Khalidi - Interview With Yousef 2 ##
+
+So you already touched on this aspect also. The fact that
+more and more we are seeing end users using mobile platforms.
+>> Yeah.
+>> And mobile platforms are entirely in the cloud.
+And so as this future revolution happens in the data
+center things are changing. What do you expect as changes
+that are happening at the consumer end of these services?
+>> To be honest the consumer end is driving most of this.
+>> Mm-hm.
+>> And the classical enterprise IT is following.
+>> Mm-hm.
+>> So the the consumer revolution in the mobile
+And small devices of the like are driving much of
+this criteria. And the benefit then as accruing over time
+to the usage of the systems. So you want examples.
+>> Right.
+>> With more and more collaboration needs or sharing of state.
+You're going to put more state in the back end. To be
+able to share them with multiple users. Or they need to
+do things beyond just messaging you know sharing sharing data sharing
+state and the like. You'll find out that data will flow
+quite a bit from the devices [INAUDIBLE]. And there are physics
+however the device cannot be very big the battery or device
+cannot be very big so the device can only do so
+much. So the back end has to do it for you.
+>> Right.
+>> And finding the balance between them
+will change over time as well of course.
+>> But there's also brings an interesting concern
+that is as you said there's going to be
+more that's happening in the back end right?
+Because the mobile devices may not be able to
+do it all. And you also mentioned that
+there may be collaboration among the mobile devices. And
+a lot of the things that happen in
+mobile devices today are streaming kinds of things and
+how ready is the cloud for dealing with that kind of
+traffic. And in particular you also mentioned that cloud is architect
+ed today as throughput oriented not so much latency oriented. So
+what do you see as changes that might be coming [UNKNOWN]? [CROSSTALK]
+>> The different type of streaming order. Okay so for the
+the bulk of inter traffic [UNKNOWN] steaming of pre recorded material.
+And the way that Internet can handle it at large as you know its
+[INAUDIBLE]. So you have circle cs networks.
+Content solution networks. Where the content is
+told that they edge closer to the user and once you ask for a
+movie and you'll be able to ask for it the second time is almost free
+and by and large that's all working practically. I mean
+umuh depending where you are in the world Netflix for
+example in the US is very big and so forth.
+To do more real time it becomes more interesting and more
+conversant to be honest. And I think I think things
+will change as well. But I have to tell you
+I am myself amazed how it works are already in
+that sense. The latency aspects are have to do with Ultimately
+with physics. So there will be cases where if
+your application requires a lot of chatty lots of protocol
+between a component and another component you have to
+think seriously about where they should land. If it's very
+chatty and physics as the same we cannot change
+the laws of physics They have to be closer to
+each other. So decomposing the app whether it be be
+to [INAUDIBLE] time live streaming of data or video whatever
+is very important to put chatty stuff and where they
+should land which is where they can withstand the long distance.
+>> Right but that also brings up the
+question of data centers as they are architecture today.
+>> Yes
+>> They are as you mentioned they're in some darkroom somewhere. But if my
+mobile device is latency sensitive shouldn't it
+be closer to where the mobile device is?
+>> True. And there will be multiple levels.
+So you want put some competitional on device. That's if
+it if the latency between two components is so critical
+there's no way you can cross any wire So some
+will live in the device itself. Some will live on the
+edge of the network before we get to the actual
+DC. And in increasingly there are mega services on the internet.
+Don't directly hit you don't hit the DC directly. You
+go to a net somewhere. And you do also when optimizations.
+TCPIP optimizations. For example You may land to an edge
+closer to you. And there the connection between that base and
+the actual DC yard I get to create over common [INAUDIBLE]
+connections. So tricks are definitely
+important. Latency hiding tricks are important.
+>> So this next question I'm going to ask
+you is more related to. From the students' perspectives.
+You know the students that are taking
+this course this is an advanced operating
+systems course and and these students they
+may be aspiring to work in leading software
+companies such as yours. What would be
+your advice to students that are taking this
+course? Specifically can you talk to the
+students about the opportunities that exists for O.S.
+designers today in the industry space. And how
+the students should prepare themselves for such opportunities.
+>> Sure I'll be honest with you you may not design new O.S. from scratch
+We have a bunch of them already. But every concept you're learning here will be
+needed more than beneficial needed when you
+move up and down the stack. If you're
+doing an application like much of the discussion we had right now a high scale
+application it's it's no longer writing an application through on
+a machine by itself displaying to a screen. All the
+issues we touch on you have to worry about you
+have to know about them. You have to know about
+caching and scale you have to know about synchronization data
+replication handling failures so all these concepts you have in
+a classic of OS sense are directly applicable regardless where
+you live up and down the [UNKNOWN] So I'm convinced
+that with out a fund a strong foundation operating
+systems and a few other topics programming languages and
+the like. One cannot handle or build those big
+applications. You could do some simple work programming do some
+java script and a nice animated screen don't get
+me wrong this all is important. But if you
+want to do the real scalable services where the
+entity's moving you have to have the foundations. More generically
+you have to also use the information you learned here and be ready ready
+to learn more. And to apply it
+in different domains. So the classical papers that
+you taught me way back when are still relevant. But as we discussed you
+may have to apply them differently to
+morph them evolve them into newer [INAUDIBLE] areas.
+>> So I want to make sure that the students get an idea
+about specific things that you think that they should get when they're
+in school. What are the things if you can name specify I
+mean specifically can you name a few things that you think are
+important for students to get while they are still a student here.
+>> Mm-hm. College time. The time you are taking right now to learn
+all this stuff is a most exciting time to be honest. Because you
+can keep an open mind. And go white. So learn as why I think that's possible.
+You want specific things in computer science let's
+be specific here. Definitely operating systems. Distribute systems
+and definitely programming language as a background. I
+think they're very important. The foundations for any
+platform level type of work if you [UNKNOWN]...
+Know the classical information but also know how
+to apply them and what you actually have in
+every day and the like. What else would I want
+to do? Frankly beyond CS I would also try
+to get other back ground that complement what I do.
+>> Mm-hm.
+>> Even the things like humanities and the like that are
+actually important because when you move up and you want to work
+in industry and the like. Much what we do we actually write
+code. We design code. We make software. But we also no longer
+build things by ourselves. Now the systems you have
+at your disposal aren't built by one person they
+are built by teams. So learn how to work
+in teams. Learn how to deal with other people like
+you who have to collaborate. And build a software
+collage. Some districts can only we often look you may
+only learn the basics in college. But as you
+go forward you know apply the large software. And also
+don't shy away from the tough assignments you know. Push
+the envelope while you can right now. Then come back and
+you can really apply them as you go forth. Lastly a
+good foundation in just knowing the basics of computer science basic
+you know algorithm algorithm design analysis is actually very
+important. So the more advanced topics you never did
+ask you in industry what np is equal to p and go solve this one or solve that.
+But you will have to reason almost every day
+about the basic complexity of an algorithm or to
+basically to apply a certain technique on the like.
+And the foundation algorithms are really important as well.
+>> So outside of school though they are in
+school there's a chance for them to to hone their
+skills overall. What do you think of things
+that they should be absorbing outside of school?
+>> I would start the habit now outside
+of school to keep track what's happening out there.
+If you join [UNKNOWN] tomorrow you will in a
+sense have stopped learning what the [UNKNOWN] stuff is and
+you start going and learning what's happening out there. And
+things move very quickly out there as you know. So
+start right now understanding what's happening in general. So
+know the fundamentals but also know how people are applying
+them. Be curious. I mean I sometimes bring up a
+browser look at a pic and say how they done
+this thing and oh it's Ajax doing dress for APIs and
+so forth. So learn to be curious from right now and learn
+to link what you do with what you see around you
+as well. And that habit has to start early and don't stop
+it. Keep it going. The worst thing that can happen is
+for you to go to industry and to spend five years doing
+the same thing and nothing but that. You have to be
+able to be curious and see around you as well. And that
+habit has to be started right now.
+>> So the next question is very specific to you and your own journey.
+>From a student in the 80's to becoming a leader in your chosen field
+what are some of the skill sets you wish you had acquired when you're
+still a student. If you reflect back what are the things that you would have
+done differently or learned differently as a student that might have helped you?
+>> Honestly I mean I'll be quite honest
+with you. I took the least amount of humanities
+I could get and I loaded my schedule with
+CS and Eclasses and math because that was the
+fun stuff the heavy stuff. And not go any
+wrong this always important too but take a balance
+view to this. The humanity is all important knowing
+what's really around you beyond just the actual chord
+and the bits are very important. And the reason
+is very simple really which is a part of my
+last answer. When you go out there and do
+things you'll be expected to lead. To work with others
+and to tell them where to go if you
+will. So you can lead them or you can follow.
+It's better to lead to be honest. And to
+lead you need to have soft skills and an ability
+to understand people. So learning about the humanities learning about
+critical thinking and writing. Had actually very important and sometimes
+we in Academia don't pay enough attention to these things to be honest. We'll
+be great to make sure you hone your skills in that space as well.
+>> Mm-hm.
+>> I mean a critical for example in the US a critical English writing class
+may sound you know too much work and why do I need this. But it can
+really hone your skills for critical thinking
+critical analysis. Of the language. So fast forward
+20 years or in my case more than that and you have to send an email
+explaining why something is going right is
+going wrong et cetera. Conveying the message in
+two paragraphs or to some busy people that's
+actually a skill that has little to do
+with writing code to be honest. But more of can I put my thoughts down to
+paper quickly and clearly and concisely? With softer
+scales or in ethical scales are important too.
+>> So this is more of an advice from me of
+professors like me from your experience. In your opinion what you what. How
+do you think we can better prepare our students? To be ready for the work place.
+>> There's a couple of dimensions. One is just
+to bring the last thought and then we'll switch a
+different point. One dimension is that in Academia you you
+you're going through a class you're going to give a grade
+to every student and the grade is his or
+her grade. So in academia we basically look at
+the individual performance did I pass or not? Don't
+get me wrong the same happens in industry but to
+get through anything in industry you have to collaborate.
+So what's usually missing in in in in the
+more academic environment is how to build software for
+example in a and how to do the soft skills
+for building software in a group. And those things
+are hard to get I know in academia but it
+is something I wish we can get more at
+the graduate with that background if you want. You typically
+have something in you when you when you're you're
+a good leader but then when you go join a
+company and the like you have to go nurture
+and do more of that. Otherwise that really would happen.
+Beyond that there are some things which would be great
+if you make sure that the students can push the envelope
+in ways that otherwise we in industry cannot do. So make
+sure they have in them the ability to try things which
+otherwise some of us will try it and say it doesn't
+work. You know I'm not jaded by that. So it's important
+to instill in the students that that and I think you
+do a good job of that but it's important to remember
+that that that to push the envelope. Because once you
+hit industry and the like you're going to find constraints. You
+have to shift quickly. There's a deadline et cetera and
+you may forget about what's possible. Never forget what's really possible.
+>> So do you have any final thoughts that you want to share?
+>> Again thank you for the opportunity. This is great. I hope you enjoy his
+class. I'm going to actually plan to take
+it. I'm not going to take it for grades
+ok but I'm going to go I want to see it. I'm looking forward to it.
+I think sir it's a great thing you're doing. And I wish you real luck.
+>> Well thank you so much Yousef for coming and joining us.
+>> Thank you thank you sure.
+>> And let's thank Youself for being
+here and sharing his thoughts with you all.
+>> Thank you.
+

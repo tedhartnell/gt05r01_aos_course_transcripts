@@ -1,74 +1,52 @@
-## L01c: OS Functionality ##
+## L01c-019: OS Functionality - Introduction ##
 
-### All Links
-
-Udacity: https://classroom.udacity.com/courses/ud189
-Playlist 01: https://www.youtube.com/playlist?list=PLAwxTw4SYaPkKfusBLVfklgfdcB3BNpwX
-Playlist 02: https://www.youtube.com/playlist?list=PLAwxTw4SYaPm4vV1XbFV93ZuT2saSq1hO
-Playlist 03: https://www.youtube.com/playlist?list=PLAwxTw4SYaPk5-YaXFkWY4UXdv6pVdiYg
-Playlist 04: https://www.youtube.com/playlist?list=PLAwxTw4SYaPmfaiuzJcK3tNoeKlvRR990
-
-01. https://youtu.be/4qOJayVmEOU
-02. https://youtu.be/OiwAQgCwDYU
-03. https://youtu.be/fLv1H938iYE
-04. https://youtu.be/uXp3xLKLjH8
-05. https://youtu.be/l22ZwiVhJIw
-06. https://youtu.be/FlDjkvROxfI
-07. https://youtu.be/Ak9x2eLOdm8
-08. https://youtu.be/278DNcR-NUE
-
-### Video 01
-https://youtu.be/4qOJayVmEOU
-
-Now, having reviewed the conceptual tool
+Now having reviewed the conceptual tool
 of an abstraction and the physical resources
-that is contained in a computer system, we turn our attention now to the
-major subject, the operating system. What
+that is contained in a computer system we turn our attention now to the
+major subject the operating system. What
 exactly is the operating system? Come help
 me describe one. So we want to
 understand the functionality of an operating system.
 
-### Video 02
-https://youtu.be/OiwAQgCwDYU
+## L01c-020: OS Functionality - OS Functionalities Question ##
 
 What better way than ask you what you
 think are the functionalities that should be provided by
 an Operating System. So here are some choices
-I'm giving you in this question, and what I
+I'm giving you in this question and what I
 want you to mark off or select are
 choices that you think describe the functionalities that should
-be provided by an Operating System. And, more
+be provided by an Operating System. And more
 than one of these choices may apply to the
 functionality that you expect from an Operating
 System. So go ahead and choose these
-correct choices. The first choice is, Operating
+correct choices. The first choice is Operating
 System is a resource manager. The second choice
-says, the Operating System provides a consistent
+says the Operating System provides a consistent
 interface for the hardware resources such as
-CPU, memory and so on. The third
-choice says, the Operating System schedules applications on
-the CPU. The fourth choice says, the Operating System stores personal
-information such as credit card numbers, social security numbers, e-mail
-addresses and so on. So, pick the things that you
+CPU memory and so on. The third
+choice says the Operating System schedules applications on
+the CPU. The fourth choice says the Operating System stores personal
+information such as credit card numbers social security numbers e-mail
+addresses and so on. So pick the things that you
 think are functionalities that you expect an operating system to provide.
 
-### Video 03
-https://youtu.be/fLv1H938iYE
+## L01c-021: OS Functionality - OS Functionalities Solution ##
 
-Now let's talk through the choices I've given you. yes, the operating system is a
+Now let's talk through the choices I've given you. yes the operating system is a
 resource manager. It is the boss in control of the hardware resources. So that's
 a functionality that you do expect from
-the operating system. Yes, the operating system -
+the operating system. Yes the operating system -
 Is the entity that provides a consistent
 interface to the hardware resource. Remember earlier lecture
-on obstructions, I mentioned that operating system is
+on obstructions I mentioned that operating system is
 a level in the obstruction hierarchy sitting between the
 application and the processor and the other resources
-and so in this sense, the operating system should
+and so in this sense the operating system should
 be the entity that provides a consistent interface
-to the hardware resources such as CPU, memory, and
-io devices. So yes, the second choice is
-a good one in terms of functionality, that you
+to the hardware resources such as CPU memory and
+io devices. So yes the second choice is
+a good one in terms of functionality that you
 would expect from an operating system. The
 third choice says the operating systems schedules applications
 on the CPU. This also seems like a
@@ -81,128 +59,124 @@ devices and therefore yes. The operating system
 is an entity that schedules applications on
 top of the CPU. The last choice
 says the operating system stores personal information
-such as credit card numbers, social security
+such as credit card numbers social security
 number and email addresses. Now this looks
 like something that you wouldn't have want
-the operating system to do. And these are,
+the operating system to do. And these are
 these are personal information and you would
 not want the operating system to store such
-information, and therefore this is not a
+information and therefore this is not a
 functionality that you expect of the operating system.
 So the first three choices are the right choices. The operating system is not an
 entity that should be storing your personal information
 such as credit card numbers and so on.
 
-### Video 04
-https://youtu.be/uXp3xLKLjH8
+## L01c-022: OS Functionality - What is an OS ##
 
-Most concisely, an operating system contains code to access the physical
-resources, that is contained in a computer system, and arbitrate among competing
-requests for those hardware resources, coming
+Most concisely an operating system contains code to access the physical
+resources that is contained in a computer system and arbitrate among competing
+requests for those hardware resources coming
 from multiple applications that may be
 running simultaneously on the processing platform.
-So in other words, the operating
-system is just a program, like any other program you may have written. Okay,
+So in other words the operating
+system is just a program like any other program you may have written. Okay
 slightly more complex than a hello world
-program, I'm being facetious here, intentionally. But you
-get the point. It's a matter of climbing the latter of programming, just like,
+program I'm being facetious here intentionally. But you
+get the point. It's a matter of climbing the latter of programming just like
 a ball player may start from t-ball to little league to the minor league and
-then to majors, you can also do it. If Microsoft can do it, you can do it. If
-you can write a hello, world program today, you can eventually write an
+then to majors you can also do it. If Microsoft can do it you can do it. If
+you can write a hello world program today you can eventually write an
 entire operating system. So what the operating system provides are well-defined
 APIs for accessing the hardware resources that are managed by the operating
 system. And these resources are provided as operating
-system services through this well defined interfaces, and an application may
+system services through this well defined interfaces and an application may
 make a request to the operating system for such hardware resources through this
-well defined api interface. And the application, via the response from the
+well defined api interface. And the application via the response from the
 operation system gets the services from
 the operating system via these API codes.
 
-### Video 05
-https://youtu.be/l22ZwiVhJIw
+## L01c-023: OS Functionality - A Few Examples ##
 
 Let's start by giving a few examples
 of how hardware and software interact. An application
 asks for and obtains services from the operating
-system. For example, reading a file that is
+system. For example reading a file that is
 stored on the hard drive. Or clicking the mouse on Google Earth to take you
-virtually to some place. Now let's understand, how
+virtually to some place. Now let's understand how
 the hardware architecture and the system software work
 together to serve an app running on the computer system.
 
-### Video 06
-https://youtu.be/FlDjkvROxfI
+## L01c-024: OS Functionality - Mouse Click Question ##
 
 Here is another fun quiz to get you
-thinking about hardware, software interaction. And in this
-question, I am asking you, what happens when
+thinking about hardware software interaction. And in this
+question I am asking you what happens when
 you click the mouse? And I'm giving you
 three choices. One of those is the right
-choice. And the first choice is, the mouse
+choice. And the first choice is the mouse
 click corresponds to specific CPU instructions. The second
-says, the mouse click starts up a specific program
+says the mouse click starts up a specific program
 to read the spatial coordinates of the mouse. And
-the third choice says, the mouse click results in a
-CPU interrupt. As I said, there's exactly one right
-choice, and I want you to pick the right choice.
+the third choice says the mouse click results in a
+CPU interrupt. As I said there's exactly one right
+choice and I want you to pick the right choice.
 
-### Video 07
-https://youtu.be/Ak9x2eLOdm8
+## L01c-025: OS Functionality - Mouse Click Solution ##
 
-As you may have guessed, the right choice is, the most clicked results in a CPU
-interrupt. That's the first thing that happens, and
-once the interrupt has been delivered to the CPU,
+As you may have guessed the right choice is the most clicked results in a CPU
+interrupt. That's the first thing that happens and
+once the interrupt has been delivered to the CPU
 there are domino effects that may eventually result
 in some program running to read the spacial coordinates.
 But the thing that happens when you click
 the mouse is it results in a CPU interrupt.
 
-### Video 08
-https://youtu.be/278DNcR-NUE
+## L01c-026: OS Functionality - What Happens When You Click Your Mouse ##
 
 Let's understand what happens when you click
 the mouse on your computer. Let's say you're
 running the Google Earth application and you select
 the point that you want to visit on
 the globe by clicking the mouse. When
-you click the mouse, first the hardware controller
-that is interfacing the mouse, which is a
+you click the mouse first the hardware controller
+that is interfacing the mouse which is a
 hardware device. To the system using the conduit
 of the bus is going to raise an interrupt
 on the interupt line which is one of the
-dedicated lines on the bus. This conduit, which I
-call the bus, contains, as you know, data lines and
+dedicated lines on the bus. This conduit which I
+call the bus contains as you know data lines and
 address lines and one of the things it also
 contains is an interrupt line or multiple interrupt lines.
 And the controller asserts this interrupt line to indicate
-to the CPU that it wants attention. It's sort of like,
+to the CPU that it wants attention. It's sort of like
 if I'm teaching a class and you all
-were a live audience. If you have a question,
+were a live audience. If you have a question
 you might raise your hand and that's exactly
 what happens when you click the mouse. The equivalent
 of raising your hand in a classroom is
-what the controller is doing, but asserting the interrupt
+what the controller is doing but asserting the interrupt
 line on the bus. Asserting the interrupt line on
-the bus results in an interrupt to the CPU,
-now the processor at this point of time,
+the bus results in an interrupt to the CPU
+now the processor at this point of time
 is running some program. Perhaps your Google Earth
 application is being run on the CPU at
 this point of time. An interrupt is a hardware
-mechanism for alerting the processor that something external,
-in this case the mouse click, requires the
+mechanism for alerting the processor that something external
+in this case the mouse click requires the
 attention of the processor. It's sort of like a
-doorbell in a house. Someone is ringing the doorbell,
+doorbell in a house. Someone is ringing the doorbell
 someone has got to pay attention to who is at the door. Remember that the CPU is
 a dumb animal. All it can do is execute
-instructions. Right now, it's executing some application. Now, an
-interrupt comes in, some other program has to run
-on it, in order to field that interrupt, answer
+instructions. Right now it's executing some application. Now an
+interrupt comes in some other program has to run
+on it in order to field that interrupt answer
 the doorbell. Who's that entity? That is the operating
-system. The operating system, which is also a collection
-of programs, schedules itself to run on the processor so that it can answer the
-doorbell. So the operating system is the one that fields this interrupt, finds
-out, who it is intended for, and passes it to the program for appropriate
+system. The operating system which is also a collection
+of programs schedules itself to run on the processor so that it can answer the
+doorbell. So the operating system is the one that fields this interrupt finds
+out who it is intended for and passes it to the program for appropriate
 action for this particular interrupt. This example
 of a mouse click and what happens between
 the hardware and the software is a good way to segue into the abstractions
 provided by an operating system for managing the hardware resources.
+

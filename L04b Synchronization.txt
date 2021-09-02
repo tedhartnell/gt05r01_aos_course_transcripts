@@ -1,0 +1,1575 @@
+## L04b-157: Synchronization - Lesson Summary ##
+
+In the previous lecture we got done
+with discussing the model of a parallel machine.
+And in this lesson what we're going to start
+doing is talking about synchronization algorithms that goes
+into the guts of any parallel operating
+systems that is supporting multi-threaded applications. And as
+we discuss the synchronization algorithms watch out for
+attacker's quote that I mentioned in the previous
+lesson on sharing in shared memory multiprocessors
+that is going to be very very key
+in terms of understanding the scalability of
+the synchronization algorithms. Synchronization primitives are a
+key for parallel programming. In your first
+project you implemented a threads library which
+provides the mutual exclusion lock. Let's talk
+about locks. What exactly is a lock?
+Well you know in the metaphor that you
+know about in real life. Lock is something that
+protects something that is precious. And in the
+context of parallel programming if you have multiple threads
+executing and they share some data structure it
+is important that the threads don't mess up each
+other's work. And a lock is something that allows
+a thread to make sure that when it is
+accessing some particular piece of shared data It is
+not inter being being interfered with by some other
+thread. That's the purpose of a lock. So the
+idea would be that a thread would acquire a
+lock and once it acquires a lock it knows
+that It can access this data that it shares
+with potentially other threads. I'm showing only two threads
+here but potentially in a multi-threaded program you can
+have a lot more threads that are sharing a data structure.
+And once T1 knows that it has access to this data
+structure then it can do whatever it wants with it. And
+then once it is done with whatever it wants to do
+with this data it can release the lock. So that's sort
+of the idea behind a lock. And locks come in two
+flavors one is what we'll call an exclusive lock or a
+mutual exclusion lock. And this is exactly the one that you
+implemented in your first project. And the idea
+is as the name suggests a mutually exclusive lock
+means that it can be used by a thread one thread at a time. That's the idea.
+And here's a silly example of two children
+playing and you know they have to take turns
+in order to hit this ball and obviously
+you don't want both of them hitting the ball
+at the same time. Not good for the game and not good for the safety of the
+children either. That same same thing that applies
+to the mutual exclusion lock that we use in
+parallel programming. The idea is that a thread
+that wants to modify data It has to make
+sure that when it is modifying the data nobody
+else is going to be accessing that particular data structure.
+And therefore it is going to get a mutual exclusion
+lock it knows that nobody else is going to be messing
+with it. Then it can modify the data and then
+release the lock. And similarly if another thread wants to
+read that data and wants the assurance that nobody is
+going to be modifying this data while it is reading it
+it can get a an exclusive lock access the data
+read it and then release it. That's the idea behind mutually
+exclusive lock. You can also have a shared lock.
+Now what that means is that this lock is something
+that allows multiple threats to access the data at the
+same time. Well under what conditions would that me meaningful?
+Well here is a an analogy again. If there
+is a newspaper and multiple people want to read the newspaper
+at the same time perfectly fine to do that right?
+That's the same sort of thing that happens often in
+parallel programming. That you have a database and and there
+are records in the database that multiple threads want to
+inspect. But they want to make sure that while they're inspecting
+it the the data itself is not going to be changed so
+a shared lock is something that allows multiple readers to
+access some data with the assurance that nobody else is
+going to be modifying the data. So these are two different
+types of locks that you might have that might be useful
+in developing multi-threaded shared memory programs.
+
+## L04b-158: Synchronization - Synchronization Primitives ##
+
+Another kind of synchronization perimeters that is very
+popular in multithread apparel programs and extremely useful in
+the developing applications especially in the scientific domain
+is what is called a barrier synchronization. The idea
+here is that there are multiple threads and
+they are doing some computation And they want to get
+to a point where they want to know where everybody
+else is at that at that point of time.
+And they want that insurance that everybody has reached a
+particular point in the respective computations so that then they can
+all go forward from from this barrier to the next phase
+of the computation. Now I'm sure that you've gone to dinner
+with your friends and one of the experiences that you
+may have had is that and you may have a party
+of four or five people that are going for dinner. Two
+or three of you are showing up at the dinner restaurant.
+And the usher say wait you know do you have the
+entire members of your party here? If they're not here wait til
+the other members of the party show up so that I can
+seat you all at the same time. And that's sort of the
+same thing that's happening with barrier condition. It is possible that you
+know thread t1 and t2 arrive at the barrier meaning they completed
+their portion of the work. They've gotten to this barrier but the
+other threads that are lagging behind and those shirkers are going to eventually
+show up but they're not here yet and until
+everybody shows up nobody can advance to the next
+phase of the computation. So that's the idea behind
+barrier synchronization exactly similar to the analogy that I
+mentioned here. So we looked at two types of
+synchronization primitives. One is the lock and the other
+is the barrier synchronization. Now these are concepts I
+am expecting that you know already. If you find that
+these two concepts are either new to you or you would Like some refresher for
+that I strongly advise you to go and and take a look at the review
+lesson that we have on multithreaded programming.
+Now that we understand the basic synchronization primitives
+that are needed for developing multithreaded applications
+on a shared memory machine. It's time now
+to look at how to implement them. But before we do that
+let's do a quiz to get you in the right frame of mind.
+
+## L04b-159: Synchronization - Programmers Intent Question ##
+
+To get you primed up to answer this question
+let's first discuss a little bit about the instructions as
+architecture of a processor. In the instruction set architecture
+of a processor instructions are atomic by definition or in
+other words if you think about Reads and writes
+to memory which are usually implemented at loads and stores
+and the instructions have architecture for processor. Those are
+atomic instructions and what that means is during the execution
+of either a load instruction or a store
+instruction or also as you might think about
+them read or write instruction the memory. The
+processor cannot be interrupted. That's important that that's
+the the definition of an of an atomic
+instruction that the processor is not going to be
+in- interrupted during the execution of an instruction.
+Now the question that I'm going to ask you to
+think about is if I have a multi-threaded program And
+in that program there is a process of P 1
+which is modifying a data structure A and there is
+a process of P 2. That is waiting for the modification
+by P 1 to be done and after the modification
+is done it wants to use that structure. Very natural
+to think about situations in which you have this kind
+of a producer-consumer relationship. This guy is the producer of data
+this guy is the consumer of data. And
+the consumer wants to make sure that the producer
+is done producing it before he starts using
+it. Quite natural. Now given that the instructions of
+architecture is only read and write atomic instructions
+The question that I'm going to pose to you is
+is it possible to achieve the programmer's intent
+that I have embodied in this code snippet here?
+And you know the the answer is a binary answer
+yes or no. And and if you if you answer yes
+I would like to see a code snippet that you think
+would make this particular code snipet work correctly on a multiprocessor.
+
+## L04b-160: Synchronization - Programmers Intent Solution ##
+
+If you answered yes then you and I are on the same wavelength. And in the
+next few panels I'm going to show you how
+this particular programming construct that a multithreaded program
+may execute in terms of producer and a
+consumer can actually accom accomplished with simple read/write
+atomic operations available in the instruction set of
+a processor. The solution it turns out is
+surprisingly very simple. The idea is that
+between p1 and p2 I'm going to introduce a
+new variable a shared variable and that variable
+I'll call it a flag. And I'll initialize
+this flag to be zero to start with.
+And the agreement between these two. Producers in
+consumer is that the producer will modify the
+data structure that he wants to modify and
+once he's done with the modification he will
+set this flag to be a one. And that's
+the signal to p2 that this guy is
+done with the modification. Now what is p2 doing?
+Well p2 is basically waiting. For this flag
+which initial initially the flag was initially zero. And
+and basically the processor P2 is waiting for the
+flag to change from a zero to a one.
+Now once p1 is done with its modification it's going to
+set this flag to a to a one. And that's the
+signal that this guy's waiting for. And as soon as this
+flag changes to a one. Then he'll break out of this spin
+loop hereand he is now ready to use the real structure.
+And once he is done using the real structure he can
+flip it back to zero to indicate that he is that
+he is done using it. So that the next time it the
+producer wants to modify it again he can
+do that. So that's sort of the solution.
+Now let's analyze the solution and see why
+it works. It will just atomic reads and writes.
+
+## L04b-161: Synchronization - Programmers Intent Explanation ##
+
+Now the first thing to notice is that all
+of these are read and write accesses. There's nothing special
+about them. This is this is going to be modifying
+data using loads and stores and this is storing a
+value into it and this is reading a value and
+using a value. So all of these are normal read
+write accesses but there is a difference between. The way
+the program uses this flag variable versus this data structure.
+The flag variable is being used as a synchronization
+variable. And that's a a secret that only this P1
+and P2 know about. That this even though innocuously
+it looks like a simple Integer variable that is used
+in a program where there is special semantic for
+this particular variable so far as this this program is
+concerned. P1 and P2 know that this is the way
+by which their signalling each other that something that this
+guy waiting on is available from P1.
+Right? And so its a synchronization variable. On
+the other hand the - The data structure A is a normal data. But both accessing
+the synchronization variable and normal data is being
+accomplished by simple read write accesses that's available
+in the processor. And that's how we're able
+to get the solution for this particular question.
+It's comforting to know that atomic read and
+write operations are good for doing simple co-ordination
+among processes as we illustrate it through this
+question. And in fact when we look at
+certain implementation of barrier algorithms later on You'll
+find that this is all that is needed
+from the architecture in order to implement some
+of them. But now how about implementing a synchronization
+primitive like a mutual-exclusion lock? Are atomic reads and writes sufficient
+to implement a synchronization primitive like
+a mutual-exclusion lock? Let's investigate that.
+
+## L04b-162: Synchronization - Atomic Operations ##
+
+Let's look at a very simple implementation of a
+mutual exclusion lock. In terms of the instructions that the
+processor will execute in order to get this lock will
+be to come in and check if the lock is
+currently available and that is done by this check.
+And if it is available then we're going to set it
+to one to indicate that I've got the lock nobody
+can get it. All right? That's the idea behind this
+check and then setting this to one. On the
+other hand if somebody already has the lock L is
+going to be one and therefore I'm going to wait here
+until some the the lock is released. And once the
+lock is released then I can go back and
+check again to make sure that the lock is available
+and set it to one. So this is the basic
+idea. Very simple implementation of this lock. And and how
+will I know that the lock has been released? Unlocking this is
+a very simple operation again. All that you have to do is
+reset this L to zero and that'll indicate that the lock has
+been released. So if I am waiting here and somebody else has
+got the lock they going to come and unlock it by setting it
+to zero. And that way I will know that it has been
+released. I can go back. I double check to make sure it
+is still zero because somebody else could have gotten in the middle.
+If nobody else has gotten it then I can set it to one. So this is the idea of
+a simple very simple minor implementation of a lock
+algorithm. Is it possible to implement the simple minded implementation
+of the lock using atomic reads and writes alone?
+Let's talk thought this implementation here. Now if you look
+at this set of instructions that the processor has
+to execute in order to acquire the lock. It has
+to first read L from memory and then check if it is 0. And store that new
+value which is 1 into this memory location. That's
+a group of three instructions that the processor has
+to execute and the key thing is these three
+instructions have to be executed atomically in order to
+make sure that I got the lock and nobody
+else is going to interfere with my getting the lock.
+And as we know reads and writes instructions by
+themselves are atomic but a group of reads and
+writes are not atomic and therefore. What we have
+here is a group of tree instructions and we need
+them to be atomic. What that means is we
+cannot have just reads and writes as the only
+atomic operations if we want to implement this lock
+algorithm. And we need a new semantic for an atomic
+instruction and the semantic is what I call the read modify write operation.
+Meaning that I'm going to read from memory Modify the value and write it back to
+memory. So that's the kind of instruction that is needed in order to ensure that
+we can implement a lock algorithm. Now several flavors of
+read-modify-write instructions have been. Proposed and
+or have been implemented in processor architectures. And
+we will look at a couple of them. The
+first one is what is called a test and
+set instruction. The idea here is the test and
+set instruction takes on a memory location as an
+argument. And what it does is it returns the
+current value that is in this particular memory location.
+And also sets the memory location to a one.
+So these two things that are being done.
+That is getting the current value from memory
+and setting it to one is being done
+atomically. That's the key thing. That it is
+testing the old value and setting it to this new value atomically.
+Another atomic Read Modify Write instruction that has been imposed and/or
+implemented is what is called a fetch and increment instruction.
+And this takes on again a memory location of an argument
+and what it is gong to do is it is going
+to fetch the old value of what was in the memory...
+And then incriment the current value that is in the emmory by
+one or whatever value. So it could be that this may
+take on an extra argument to indicate how much it is
+going to change it by. But in the simple version it
+might simply imple increment in the simple version it might simply incriment
+the current value that is in the memory location
+by one. As I said before there have been
+several flavors of read modify write instructions that have
+been proposed in the literature. And often generically these
+read modify instructions are called fetch and phi instructions.
+Meaning that it is going to fetch an old
+value from memory. And do some operation on that
+fetched value and write it back to memory. So
+for instance fetch an increment is one flavor
+of that. There are other flavours like fetch
+and store fetch and decrement compare and swap
+and so on. And you can read about that
+in the papers that we've identified for you.
+Okay now that we have an atomic read modify
+write instruction available from the architecture we can
+start looking at how to implement the mutual exclusion
+lock algorithems. Now I gave you of course
+a very simple version of it we'll talk
+more about that in a minute. And and
+I'm sure that in the first project when you
+implemented the mutual exclusion lock you did not
+care too much about the scalability of your
+locking implementation. Now if you are implementing your
+mutual exclusion algorithm on a large scale shared memory
+multi-processor let's say with 1000's of processes.
+You'll be very worried about making sure that
+that your synchronization algorithm scale and scalability
+issues fundamental to the implementation of synchronization algorithms.
+
+## L04b-163: Synchronization - Scalability Issues With Synchronization ##
+
+Now let's discuss some of the issues with
+scalability of the synchronization primitives in a shared
+memory multiprocessor. Now we already saw that locks
+both mutual exclusion as well as shared lock is
+one type of a synchronization operation. And we
+also saw that barrier algorithms is another type of
+synchronization operations. And when you look at both
+of these guys Both of these types of synchronization
+perimeters that a parallel operating system is going to
+provide for application programmer
+developing multi-threaded applications. The sources
+of inefficiencies that come aboard is first of all
+latency. What do we mean by that? Well If
+the thread wants to acquire this lock it has
+to do some operation. Has to go to memory
+get this lock and make sure that nobody else
+is competing with it. And so that's the the
+latency that is inherently what is the time that
+is spent by a thread in acquiring the lock.
+That's what we mean by latency. Well to be
+more precise what we mean is that latency is
+saying lock is currently not being used. How long
+does it take for me to go and get
+it? That's really the key question that latency is
+is trying to look at. The second source of scalabilty
+with synchronization is the waiting time and that is if
+I want to go and get the lock how long do
+I wait in order to get that lock? Well clearly
+this is not something that you and I as the
+oldest designer has complete control over because it really depends
+on what these threads are doing with this lock. So
+for instance if this thread acquires this lock and and
+then it is modifying the data for a long time before
+releasing it and if another thread comes along
+and wants the team lock it's going to wait for
+a long time. So the waiting time is really
+in the purview of the application. And there's not
+much you can do as an OS designer in
+reducing the waiting time. The third source of unscalability
+of locks is contention. What we mean by that
+is. If currently some guy is using the lock
+and he releases it when the lock is released it's
+now up for grabs. Maybe there's no I've shown you only
+one thread here but maybe there's a bunch of threads
+waiting here to access this particular lock. If they're all waiting
+to access this lock they're all contending for this lock.
+And how long does it take in the presence of contention
+for one of them to become the winner of the
+Lock and the others to go away? So that's the contention
+part of im implementing a synchronization primitive.
+And all of these things latency waiting time
+and contention even though I mentioned it
+in the context of a mutual exclusion lock
+appears when you're talking about barrier synchronization
+algorithms or shared locks. So latency and contention
+are two things as all designers we have
+to be always worried about and implementing scalelable
+versions of synchronization primitives.
+
+## L04b-164: Synchronization - Native Spinlock ##
+
+Let's start our discussion with the world's most
+simplest and naive implementation of the lock and we're
+calling it spinlock because as you're going to see a
+processor that is waiting for lock has to spin
+in order to spin meaning doing no useful work
+but it is waiting for the lock to be
+released. And the first one that we're going to look
+at is what is called spin on testing set.
+The idea is very simple and straightforward. There's
+a shared memory location L and it can
+have one of two possible values. Either unlocked
+or locked. And let's say that at the.
+at the beginning we've initialized unlocked so nobody
+has the lock. And the way to implement
+this naive spinlock algorithm is the following. What
+you do is you go in and check
+using test and set primitive the memory location L. So when you call this lock
+primitive the lock primitive executes this Instruction
+testant set of L and what that is
+going to do is its going to return the old value from L and set it to
+the new value which is locked that's going to
+be done automatically we that from the architecture
+that it is going to provide you that that is a primitive and so
+now if we find that this test and and set
+instruction execution returns the value locked it means that somebody else
+has bought the lock. And therefore I cannot
+use it and i'm going to basically spin here. That's
+why its called spin on test and set
+so you're basically spinning waiting for this test and
+set instruction to return to me. A value that says the
+old value is unlocked. If I if it gives me the old
+value is unlocked then I know I won. But if I
+don't then I basically I'm going to wait here. That's why it's called
+spinning on test and set. So let's put up some threads
+here that are trying to get this lock. And so let's say
+that T 1 is the first one to make a test and
+set call on this lock and it finds it unlocked and therefore
+it locks it. And once it locks it T1 knows
+that it's got the lock. So it's got the lock it
+can go off to messing with the data structure that
+it wants to mess with and that is good. So far
+as T1 is concerned. In the meanwhile T2 and T3
+may come along and say well we also want the lock
+and they also execute the same lock algorithm. And when
+they execute the lock algorithm they're going to do the Test-and-Set and
+you know that the Test-and-Set when they do that the
+old value that is going to be returned for T2 or
+T3 is going to be that the value L is locked
+and therefore these two guys both T2 and T3 are stuck
+here. How long are they going to be stuck? Until this
+guy releases the lock and the way to do that
+is very simple. So he comes along and calls an
+unlock function and what the unlock function does is it basically
+goes in and clears this lock. Meaning it
+resets this lock to the unlocked state. And and
+so once it does that then this lock becomes
+available. So it becomes unlocked and at this point
+T2 and T3 were stuck here. When they
+tried to do this testing set again they're going to
+find at least one of them hopefully exactly one
+of them is going to find that that the lock
+is unlocked and therefore they're going to get it.
+And one of them will get it and
+will will go on to executing whatever code
+they want to do and the protection of the
+lock and so only exactly one of T2 or T3 will win because that's a semantic
+of test and set. So that's the world's
+simplest lock algorithm spinning on test and set.
+
+## L04b-165: Synchronization - Problems With Native Spinlock Question ##
+
+I'm going to pause here and let you think about what are the problems with
+this naive implementation of this spinlock. Do you
+think there is going to be too much contention?
+Or do you think that it it's not good enough because it does not exploit
+caches? Or do you think that it is
+going to disrupt useful work? Think about that.
+
+## L04b-166: Synchronization - Problems With Native Spinlock Solution ##
+
+If you checked all three of them you're
+exactly on the right track. Let's talk about
+it. First of all you know that with
+this with the naive implementation there is going to
+be too much contention for the lock when
+the lock is released. Because everybody both t2
+and t3 in the previous example jumped in
+and started looking at the test and set instruction
+trying to acquire the lock. And there are thousands
+of processes everybody is going to be executing this
+test and set instruction so there is going to
+be plenty of contention on the network in order to
+get to that shared variable that's the first problem.
+Now let's talk abolut why the second answer is
+also the right answer. You know from the previous
+lesson that a shared memory multiprocessor has private caches associated
+with every one of the processors. And it is
+often the case that the caches may be kept
+coherent by the hardware. Now if the private caches
+associated with every processor and if a value from
+memory can be cached in that there is an
+issue with test and set instruction. And that is
+test and set instruction cannot use the cached value
+because it has to make sure that the memory
+value is modified atomically when when it is inspecting
+the memory. And therefore. By definition a test and set
+of instruction is not going to exploit caches it is
+going to bypass the cache and go to memory in
+order to do the test and set operation. And therefore
+yes this is also true that the spin algorithm that
+I gave you spin on test and set is not
+going to be able to exploit the caches. The third
+problem is is the fact that it might disrupt
+useful work. And it's also a good answer and
+the reason is because when a processor releases the
+lock. After releasing the lock that processor wants to
+go on and do some useful work. And similarly.
+If let's say there are four processors trying to
+acquire the lock. Only one of them is going
+to get it and the others are going to have to
+back off because they're not going to have the lock.
+Now the one one guy that did get the
+lock has useful work to do. But because of
+the fact that there's a lot of contention the
+guy that can actually do useful work is being
+impeded from doing useful work because the contention that
+is there. In all the other processors trying to
+go and get the lock when it is not available.
+So this is really the problem that the test
+and set instructions because it is bypassing the caches
+it's first of all causing a lot of contention
+on the network and it is also impeding some
+of the useful processor from carrying on with its
+work. Which may advance the cause of the parallel
+program. So all of these are good answers in
+terms of the problems with this with this naive spinlock.
+
+## L04b-167: Synchronization - Caching Spinlock ##
+
+Now let's look at how we can exploit the caches
+available. Now it is a fact that a tested set
+instruction has to necessarily go to memory when we want
+to acquire the lock we have to execute a tested
+set instructions so that we can atomically make sure that
+exactly one processor gets the lock. But on the other
+hand the guys that don't have the lock. Could in
+fact exploit the caches in order to wait for the lock.
+And that's why this particular algorithm that I'm going to
+describe to you is what is called spin on read
+and the assumption here is that you have a
+shared memory machine in which the architecture is providing cache
+coherence or in other words through the system bus
+or interconnection network The hardware is ensuring that the caches
+are kept coherent. Well that gives us an idea
+as to how we can exploit the caches. The waiters
+instead of executive a test [INAUDIBLE] instruction that has
+to go to memory they can spin locally on the
+cached value of the lock. because when you are
+spinning on the local cached value of the lock. If
+that value changes in memory these guys are going
+to notice that. That's the principle behind the cache coherence
+that is implemented in hardware. And so we can exploit
+that fact in implementing a more efficient way of spinning.
+Which is called spin on read. The idea is that the
+lock algorithm the first thing it's going to do is go and
+do a check on the the memory location to see if
+it is locked. So this is a a normal atomic read operation
+that is being done not a test and spin operation so
+if it is not in the cache you're going to go to memory
+and bring it in and once you bring it in so
+long as this value doesn't change we're going to basically looking at the
+value that is in that cache in order to do
+the checking And I'm not going to go to the
+bus and therefore I'm not producing any contention on the
+network. And there could be any number of processes waiting on
+the lock simultaneously. No problem with that because all of
+them are going to be spinning on the local value of
+L in their respective caches. And so if there is
+one processor that's actually doing useful work and it has to
+go to memory it's not going to find that
+to be a problem. No contention on the network
+from the waiting processors because of this. Now
+if the one processor that was having the lock
+eventually releases it they go everybody's going to notice
+that. And so if I'm waiting for the lock
+and I've been spinning here locally in my
+cache when the the lock is released I'll notice
+that through the cache coherence mechanism as I'll I'll
+break out of this spin loop. But immediately I
+want to check I want check if the lock
+is available by doing this test and set and
+get it uniquely for myself. So multiple processors are
+trying to execute this testing set simultaneously. It's possible
+somebody else is going to beat me to the punch
+and if that happens I simply go back and and
+and do the grouping on my private copy of L and wait for the guy who beat me
+to the punch to release a lock eventually. So
+that I can get it. So that's the idea.
+The idea is you spin locally. When you notice
+that the lock has been released you try and
+do a test and set. If you get lucky you win if you lose you go back and spin
+again locally. So that's the idea behind spinning on
+read. The unlock operation of course is pretty straightforward. The
+guy that wants to unlock is simply going to change the
+memory location to indicate that L is no longer locked.
+So that's all it has to do. And then and
+then the other processes can observe it through the cache
+coherence mechanism and be able to acquire the lock. But
+note what happens when the lock is released. When the
+lock is released all the processes that are stuck here
+in the spin loop they are going to go and
+try to do this test and operation at the same
+time and we know that test and set has to
+bypass the cache everyone is hitting on the bus right?
+Everybody is hitting on the bus trying to go to
+memory in order to do this test and operation. And
+so that essentially means that in a right invalidate this
+cache coherence mechanism is going to result
+in order of n squared bus transactions.
+For all of these guys to stop chattering on the bus because everyone of
+these test and set instructions is going to
+result in invalidating the caches and as
+a result you have an order of n squared operation that is going to result
+when a lock is released where n is the number
+of processors that are simultaneously trying to get the lock.
+And obviously this is impeding that one guy that got
+the lock and can actually get some useful work done.
+And this is clearly disruptive. And earlier one of the
+things that we said is that we want to avoid
+or limit the amount of disruption to useful work that
+can be done by the process that acquired the lock.
+
+## L04b-168: Synchronization - Spinlocks With Delay ##
+
+Now in order to limit the amount of contention
+on the network when a lock is released we're
+going to do something that we often do in real
+life. procrastination. So basically the idea is the following.
+Each processor is going to delay asking for the
+lock even though they observe that the lock is
+released. Then I will immediately go and try to
+get the lock. They're going to wait for a little bit
+of time. It's sort of like what happens at rush
+hour. If you find that the this traffic is too
+much you might decide that I don't want to get on
+the highway right now. I'm going to delay a little bit
+so that I don't have to spend as much time
+on the highway. So that's sort of the same thing
+that is being proposed here and this is what is
+called spinlocks with delay. Let's discuss two different delay alternatives.
+In the first one you're here. You found that you
+did not get the lock and therefore you're here locally
+spinning in your cache waiting for the lock to be
+released. Normally what you would have done when the lock
+is released is go back out break out of this
+loop and go back and check if you can get
+the lock again. But what we're going to do is
+instead of doing that when we break out of this loop
+meaning that the lock has been release I'm
+not going to immediately go and check to see
+if I can get the lock. I'm doing to
+delay myself by a certain amount of time. And
+you notice that the delay is conditioned by what processor id I
+have. So every processor is waiting for a different amount of
+delay in order to contend for the lock. So since the delay
+is being chosen differently for each processor even though
+all of them notice that the lock has been released
+simultaneously only one of them will go and check
+it. And so we are sort of sequentializing the order
+in which the processors that are waiting for the
+lock are going to check whether the lock is available.
+So that is one possible scheme for delaying. Now
+the problem with this is it's a static delay right?
+So every processor has been preassigned a certain
+amount of delay which means that even if
+the lock is available I may not immediately
+go and check because my delay may be very
+high compared to some other processor. And that's
+always an issue when you have static decision
+making. What we can do is instead make
+the decision dynamically and what we're going to do is
+when we notice that we don't have the lock
+we're going to delay ourselves by a certain amount of
+time before we try for the lock again. You
+notice that if you're going to delay checking for whether
+I have the lock or not. It's not super
+critical that that you spin locally or go to
+memory. But in this example I'm making it very
+simple by saying that if you don't get the
+lock just delay a little bit before you try for
+this lock again. And the idea here is this delay
+is is some small number to start with. But suppose
+I go and check and I find it again to
+be locked. Now what I'm going to do is the
+next time around I'm going to increase the delay. That's
+why it's called exponential backoff. So I'm increasing the delay
+doubling the amount of delay that I'm going to do.
+So that the next time if I don't find
+the lock to be available I delay by twice
+the amount from the previous time. And this is
+essentially saying that when the lock is not highly contented
+for I'm not going to delay myself too much. I'm
+going to immediately go and get it. But on
+the other hand if I go back again and
+again and every time I go and check I find
+it is locked I'm going to increase the amount of
+delay. Because that's saying that lot of people are contending
+for the lock at the same time. And therefore
+in order to make sure that we are being sensitive
+to the contention that is there for the lock
+we increase the amount of delay that we're experiencing. Now
+one nice thing about this simple algorithm that I've shown
+you is that I'm not using the caches at all.
+And if the if the processor happens to
+be a non-cache coherent multi-processor this algorithm will
+still work. Because we're always using test and
+set and not using just loading from the memory.
+Because if it is not a cache-coherent multiprocessor
+your private cache is now going to be coherent
+with respect to memory. And so you have
+to execute test and set. But you don't want to
+do it all the time. And this delay makes sure that you can reduce the amount
+of contention on the network. Generally speaking. If
+there's a lot of contention then static assignment
+of delay may be better than the dynamic
+exponential backoff. But in in general any kind
+of delay any kind of procrastination will help
+a lock algorithm better than the naive spin lock
+that we talked about.
+
+## L04b-169: Synchronization - Ticket Lock ##
+
+Up to now what we've talked about is
+how to reduce the latency for requiring the lock
+and the contention when the lock is released.
+So far we've not talked about fairness. What do
+we mean by fairness? Well if multiple people
+are waiting for the lock should we not be
+giving the lock to the guy that made the
+lock request or tried to acquire the lock first.
+Unfortunately in Spinlock there is no way to distinguish
+who came first. Because as soon as the lock
+is released they are going to try and gab the
+lock. And it's entirely up for grabs as to
+who may be the winner. So next we're going to
+do is we going to look at a way by
+which we can we can ensure fairness in the
+lockout position. Now many shops and restaurants busy ones
+that is often use a ticketing system to
+ensure fairness for those who are waiting to get
+served. So for instance in this example here
+let's say I walk in the deli shop. And
+my ticket is 25 and I notice that currently they're serving 16. So I know that
+I have to wait for a little bit of time. And you know once my number comes up
+I can get served. So this is actually and if I know that there at least nine
+people ahead of me who need to be served before my turn comes up. And by similar
+argument. If people come after me I know
+that they're not going to served before me. That's the
+basic idea that we're going to use in this ticket
+lock algorithm. The ticket lock algorithm is basically implementing
+what I described to you as to what happens in
+a deli shop. The lock data structure has two fields to
+it a next-ticket field and a now-serving field. And the
+lock algorithm in order to acquire a lock what I'm going to
+do is I'm going to mark my position. And the way
+I do that is I'm going to get a ticket just like
+when I walk in a deli shop. I get a unique
+ticket I get a unique ticket by doing a fetch and
+increment on the next ticket field of the log data structure
+and when I do the structure increment I get a unique number and this number is
+also advanced exactly like how it would happen in a deli shop. And once I have
+my position marked as to when I can get my
+lock. I can then wait by procrastination.
+And what I'm doing here is pausing to see if I've won my. Lock by an
+amount that is proportionate to the difference between my ticket value and who
+is being served currently. And after there's amount of dealing I'm going to go
+and check if the now serving value equals my ticket value. And if if it is
+then I'm done I can return. Otherwise I
+go back to looping. So basically I'm looping waiting
+for waiting for my number to be up so that I can assume that I've got the
+lock. And how am I going to get get
+this information that that my ticket is up for
+serving? That is going to be done with the current
+holder of the lock. He's going to come and release
+the lock and when he releases the
+lock he's going to increment the now_serving value in
+the lock data structure and that's all
+eventually the now_serving will advance to be equal
+to my_ticket and I'll get the ticket and then I can I can return from
+the acquire lock. Now this algorithm is good
+that it preserves fairness but you notice that
+everytime the lock is released there is now
+serving value that is in my local cache is
+going to be updated with a cache coherence
+mechanism and that's going to cause contention on the
+network so On the one hand frener is achieved and on the other hand we have not
+really completely gotten rid of the contention that can
+happen on the network when the lock is released.
+
+## L04b-170: Synchronization - Spinlock Summary ##
+
+So to summarize the Spinlock algorithm that we've seen
+so far we saw that the read spin on
+read and spin on test and set and spin on test and set with a delay. All of
+these spin algorithms there's no fairness associated with them.
+And if you think about the ticket lock algorithm
+it is fair but it is noisy. So all of them are not quite there yet in terms of
+our twin objectives of reducing latency and reducing
+contention and if you think about it let's
+say that you know that currently this T1
+has got this lock. And all of these guys
+are waiting for this lock to get released.
+You know when T1 releases the lock exactly one
+of them is going to get it. Why should all of them be attempting to see if they
+they've got the lock. Ideally what we would
+want is that when T1 releases a lock.
+Exactly one guy one of these white reading
+guys is is a signal to indicate that
+you've got the lock. Because exactly one guys
+can can get the lock to start with.
+And therefore ideally T1 should signal exactly on
+the next thread and not all of them.
+Now this is the idea. Behind queueing locks that you're going to see next.
+
+## L04b-171: Synchronization - Array Based Queueing Lock ##
+
+We will discuss two different variants of the
+queueing lock the first one we'll talk about is
+the array-based queueing lock and this is due
+to Anderson. And I'll refer to it as Anderson's
+lock later on as well. Associated with each lock L is an array of flags. And
+the size of this array is equal to the number of processes in the SMP. So if you
+have a an N-way multiprocessor then you have N elements in the circular
+flags array. And this flags array serves as a circular queue. For N-queuing the
+requesters that are requesting this particular
+lock L. So every lock has associated
+with it this flags array and it's really intuitive that since we have utmost
+we have N processors in this multiprocessor. We can have utmost
+N requests simultaneously waiting for this particular lock so the size of the
+data structure the flags data structure is equal to N where nN is the number of
+processors in the multiprocessor. Now each element in this flags
+array can be one of two states. One state is the has-locks state.
+And the other state is a must-wait state. Has-lock
+says that whoever is waiting on a particular slot
+has the lock. So this particular entity let's say
+is hl. And that means that whichever processor happens
+to be waiting on this particular slot is a
+current winner of the lock and is using the
+lock. On the other hand must-wait is indicating that
+if a processor has must-wait as the. Entry in this
+particular element of the array and is waiting on
+this particular slot that means that the processor has to
+wait. You guessed it. There can be exactly one
+processor that can be in the hl happy state because
+it's a mutually exclusive lock. And therefore. Utmost one
+processor can have a lock at a time and all
+the others should be waiting. And so what we
+do is in order to when we get this lock.
+To initialize the lock what we do is
+we initialize the lock data structure this array
+data structure. The flags of array data structure
+which represents a circular queue by marking one slot
+as hl. And all the others as must-wait. An important point I want you all to
+notice is that the slots are not statically
+associated with any particular processor. As requesters come in
+they're going to line up in this flags array at the spot that they get
+in the next available slot. The key point is that there is the unique
+spot that is available for every waiting
+processor. But it is not statically assigned
+and we'll see. How requests get formed using this circular queue in a minute.
+
+## L04b-172: Synchronization - Array Based Queueing Lock Continued ##
+
+Since we've initialized this array with hl in the
+first spot and mw in all of the other
+spots of this array to enable the queuing what
+we will do is associate with each lock another
+variable which is called a queuelast variable. And this
+queuelast variable is initialized to zero. And so these
+two are the two data structures associated with every
+lock. So every lock that you have in your program
+the operating system is going to assign two data structures
+for you. One which is the circular queue represented
+by the flags array. And the other is the
+queuelast variable which is saying what is this part that
+is available for you to queue yourself in this
+in this particular array? So as you can see since
+there is no lock request yet we just initialized
+the queue the first guy that comes around to ask
+for the lock will get it and and he
+will queue himself here and he will get the lock
+as well. So let's say some processor came along
+and and made a lock request. It's going to get
+it immediately because there's no locks request currently pending.
+And so it's got this position and it's got the
+lock and what will happen is that the queuelast
+variable will advance to the next spot to indicate that
+future requesters have to start queuing up from here. And
+now this current lock holder has got the lock and he
+can go off in the critical section and do whatever
+he wants in terms of managing or messing up with the
+data structure that is governed by this particular lock. Let's
+say that at some point of time I come along and
+request the same lock. Now depending on who else got
+ahead of me at the point that I made that lock
+request there may be some number of people that are
+lined up ahead of me and where ever queuelast is
+pointing is my place. And and so this is where
+I'm going to queue myself waiting for that lock and of
+course queuelast will advance to the next open spot for future requesters that
+come after me. Now the important point that I want you to notice is that since
+that the array size is N and the number of processes
+is N nobody will be denied. [LAUGH] Everybody
+can come and queue up waiting for this lock.
+Because since there are N processes at most
+N simultaneous requests can be there for the lock
+and everybody will get their unique spot to
+wait for if in fact the lock is currently
+in use. Given the timing of my lock
+request and the position of the current lock holder
+you can see that I have some waiting to do because
+there are a quite a few requests that are ahead of
+me and so I have some waiting to do before I
+get my turn in in acquiring this particular lock. So now
+I can tell you how the lock algorithm is going to look
+like pretty simple. When I make a lock request what I'm
+going to do is mark my place in this flags array
+and the way I do that is by calling fetch and increment
+on the queuelast variable. And that ensures that I
+get my unique spot due to the fetch operation
+and I increment the queuelast to point to the
+next spot which is available to the next spot for
+future requesters. And since fetch-and-increment is an atomic operation
+remember that we have read modify write operations fetch-and-increment is
+one of those. And it's an atomic operation and
+therefore even though it's a multiprocessor there could be multiple
+guys trying to get the same block at
+the same time. They're all good to be sequenced
+through this fetch-and-increment atomic operation and so there is
+no issue of any risk condition in that sense
+So I will get my spot and I'll increment
+queuelast. And of course if the architecture does not
+support this fancy fetch and increment read modify write
+operation then you know you have to simulate that
+operation using using test and increment instructions. So
+once I've marked my position in this flags array
+then I'm going to basically wait for my turn. So what I do in order to wait is
+I'm basically waiting for this spot that I've marked
+myself it is right now must wait it has
+to change to hl. Once it changes to hl
+I know I have the lock and therefore I'm
+going to do a spin on this particular
+location. and and I'm going to wait for this
+this location changing its value from mw to hl so that's the spin loop that you
+see here. So basically once I have marked
+my position I'm going to wait on my position
+becoming hl to know that I have acquired
+the lock. And I will get it eventually
+because that's the way this algorithm is supposed to work.
+
+## L04b-173: Synchronization - Array Based Queueing Lock Continued ##
+
+So let's see what happens when the current
+lock-holder comes around to unlocking the lock. What he's
+going to do is he's going to execute the unlock
+algorithm. And the unlock algorithm the first thing that
+it does is it sets this position that the lockholder had from HL to MW. And the
+reason for that is is that this is a
+circular queue and since it's a circular queue even
+though queue last is here future requesters can can come
+around and then eventually somebody may come here and may want
+to occupy this particular slot and they have to know that
+they have to wait. And that's the reason the first thing
+that the current lock holder does is to mark this
+spot that he used to be at as hl. The next
+thing that the current lock holder is is going to do is
+signal the next guy in the circular queue. So the current
+lock holder was here so you'd mark it as mw
+for future requesters that may come and wait on his
+spot. And the next request in the circular queue is
+the guy next to him. And therefore what he is
+doing is he is saying you know current plus one
+mode N is going to be set to hl. And so
+that guy would have been waiting in this position and
+so he'll get the signal. And therefore he will be
+getting ready to go. And he can get into the
+critical section and do whatever he wants to do with
+the Data structure that is protected by this particular lock.
+Now this will go on and eventually my predecessor will become
+the current lock holder. And when my predecessor is done
+using the lock he'll come around to do an unlock
+and when the current lock holder who's my predecessor does
+the unlock operation that's going to be resulting in a signal for
+me because basically. He's going to set the flags array
+the next spot in the flags array as hl. And
+that's the spot I'm waiting on. So good news for
+me. I've got my position marked as hl and what
+that means is that now I've got the lock. And
+now I can go off into the critical section do
+what I need to do in order to do the
+code that is associated with the critical section protected by
+this particular lock out. Now that we understand that the
+lock and the unlock algorithm works with this array-based queuing
+let's talk about some of the virtues of this algorithm.
+The first thing that you notice is that there is
+exactly one atomic operation that you have to carry out
+put put critical sections soevery time you want to acquire a
+lock you come in and do a fetch and increment
+and that is all that you do in order to get
+the lock. And so there's one atomic operation that
+you do per critical section that's good news. And
+the other thing that you also notice is that
+the processes are all sequenced in other words there is
+fairness uh so whoever comes first. Gets into the
+queue ahead of me and when I come in
+if people are going to come after me they're going to
+get queued up after me. So that's good news also.
+And the spin variable we're going to mark my position
+in this array my spin variable is distinct from
+the spin variable of all the other guys that
+may be waiting for the same lock. That's another good
+thing. In other words I'm completely unaffected by all
+the signaling that it will happen when the guys that
+are ahead of me were getting the lock and
+and signaling the next guy and so on. I'm completely
+impervious to that because I'm spinning on my
+own private variable. Waiting for the lock. And
+of course correlating to what I just said
+is that whenever a lock is erased exactly one
+guy is signaled to indicate that they've got
+the lock. And and that's another important virtue of
+this particular algorithm. So it is fair. And
+it is also not nice so these are two
+things that very good things about this algorithm. And
+those we saw were you know the deficiency of the
+ticket log algorithm was exactly that where it is fair
+but it is noisy when the lock is released. So
+that problem has gotten away with this queuing lock. Now
+you might be wondering are there any downside to this
+array based queuing lock. I assure there is. The first
+thing I'm sure that you've noticed already is the size
+of the data structure is as big as the
+number of processors in the multiprocessor. So the space
+complexity [COUGH] for this algorithm is order of N
+for every lock that you have in the multiprogram. So
+if you have a large scale multiprocessor with dozens
+of processors that can start eating into the memory
+space. So that's something that you have to watch
+out for. So the space can be a big overhead.
+And the reason I'm emphasizing that is because
+in any well-structure multi-threaded program even though we may
+have lots of threads executing in in all
+the processors. At any point of time for a
+particular lock they might not be in contention
+but all the processors only a subset of them
+may be requesting the lock. But still this
+particular algorithm has to worry about the worst case.
+Contention for a lock and therefore it creates a data
+structure that is as big as a number of processes
+that you have in the multiprocessors. And that's the only
+downside to this but all the other things are good stuff
+about this algorithm. And of course the reason why you
+have that downside with the with this particular Anderson's queueing
+lock is the fact that the queue is being simulated
+by a static data structure an array. And since it is
+a static data structure and you have to
+worry about the worst case contention among requesters for
+a lock we have to make this static array
+as big as the number of processors. So that's
+really the the catch in this particular algorithm.
+Next we will look at another algorithm a lock
+algorithm that is also based on queuing but it
+doesn't have the space complexity of Anderson's queuing lock.
+
+## L04b-174: Synchronization - Link Based Queueing Lock ##
+
+So to avoid the space complexity in the
+Anderson's array based queueing lock we're going to use a
+linked list representation for the queue. So the size
+of the queue is going to be exactly equal to
+the dynamic sharing of the lock. And this particular
+linked list based queueing lock algorithm is due to
+the authors of the paper that I've prescribed for
+you in the reading list. Namely Mellor-Crummey and Scott.
+And so sometimes this particular queueing lock is
+also referred to as the MCS lock. So the
+lock data structure. The head of the queue is
+a dummy node. It is associated with every lock
+so every lock is going to have this dummy
+node associated with it and will initialize this dummy
+node to indicate there is no lock requesters presently
+for this particular lock. So this pointer is pointing
+to nil. Nobody's got the lock. And there are two
+fields for every q node for a requester. So every new
+requester is going to get this q node. And in this q
+node there are two fields. One field is the guarded field.
+And guarded is basically a bullion that which and and it
+says whether I have the lock or not. If it is
+true I've got it. If I don't have if if it
+is false I don't have it yet. And the next field
+in the queue note is pointing to my successor
+in the queue. So if I came in and I
+requested the log I get into the queue. And if
+a if a successor comes along and requests a log
+he gets queued up behind me. So that's this
+basic data structure every queue note Is associated with a
+requester. The dummy node that we start with is representing
+the lock itself. And since we are implementing a queue
+fairness is automatically assured. The requesters get
+queued up in the order in which they
+make the request and so we have fairness
+built into this algorithm just like the Anderson's
+array-based queue lock. The lock to to
+nil indicating there are no requests yet. And
+let's say that I come along and request a lock. I don't have to wait because
+currently there's nobody in the queue and therefore I get
+the lock right away. And and I can go off
+into the critical section and start executing the critical section
+code that is associated with this particular lock. So what
+I would have done when I came in to make
+this lock request. Is to get this q node. And
+make the lock data structure point to me. And I'd
+also set the next pointer to null to indicate there's nobody
+after me. And once I've done that I know that I've got the lock. And
+I can go off in the critical section and do whatever I need to do.
+
+## L04b-175: Synchronization - Link Based Queueing Lock Continued ##
+
+I was lucky this time that there was nobody in
+the queue when I when I first came and requested
+the lock. But another time I may not be that
+lucky. There may be somebody else using the lock already and
+if that is the case then what I would have
+to do is to queue myself in this data structure.
+And the way to do that is to indicate by
+setting the last pointer in this list to point to me.
+This pointer is always pointing to the last requestor. In this
+case the original case that I showed you I was the
+only requestor that was also last requestor. But now the queue
+has somebody using that particular lock and so when I come in
+what I'm going to do is I'm going to set this field of
+the lock data structure the dummy load the head node of the
+lock data structure to point to me and the last requester.
+And I'm also going to fix up the link list so that the
+current guy is going to point to me. Why am i doing
+this? Well the reason i do this is because when he is
+done using the lock he needs to reach out and signal me.
+What am I going to be doing? I'm going to be spinning. And what
+am I spinning on? I'm spinning on the got-it flag. So this
+is a data structure that is associated with me and one of
+the fields you know is the got-it field in the data structure.
+So I'm going to spin on this got-it field in the data structure
+waiting for this guy to set it to two. So
+I initialized it to false when I came in and form
+this request. When I form this request what I did was
+to set myself as the last requester I'll clear out this
+field to indicate that I don't have the lock and I'll
+set up the link list so that the current lock holder
+points to me through his next field. And my next field
+of course is null because there is no requester after me.
+So once I fixed up this link list and in this fashion
+then I basically can spend on my got it a boolean variable.
+
+## L04b-176: Synchronization - Link Based Queueing Lock Continued ##
+
+So now we can describe to you the
+lock algorithm. Basically the lock algorithm takes to arguments.
+One is this name domino that is associated
+with this particular lock. And and it's also taking
+my queue node the one that I am providing to say that this is my queue node
+please queue me into this lock request queue. And
+when I make this call it could be that
+I'm in this happy state in which case I don't
+have any lock requesters ahead of me. But if it turns
+out that when I come in there is somebody is
+using this lock then I'm going to join this que. And has
+to be done atomically. There are two things going on
+here in joining this queue atomically. What I do is I
+set the last pointer. This list is always pointing to
+the last requester. So it used to point to this guy
+he was the only requester. I came along so
+we had to fix up this list so that this
+and pointer is going to point to me the last
+requester. And I also had to fix up the current
+requestor point to me. And once I have done
+that then I can await the predecessor namely this guy
+to signal me by spinning on the got-it variable that
+is associated with my data structure. And the other thing
+that I would do as part of joining this
+queue is to set my next point at null because
+there is nobody after me I just made the
+lock call. Notice that when I'm joining this queue I'm
+doing two things simultaneously. One is I'm taking the
+pointer that was pointing to him and making it point
+to me. And I also need the coordinates of
+the previous guy so that I can set his next
+pointer to point to me. So I have to do
+this double act. So this has to be done atomically
+as well. So joining the queue essentially is a double
+act of breaking a link that used to exist here make
+it point to me and get the coordinates of this
+guy so that I can fix him up. And remember that
+this is happening simultaneously. Perhaps with other guys trying to do
+the same thing joining this queue. And therefore this operation
+of breaking the queue and getting the coordinate
+of my predecessor has to be done atomically. And
+in order to facilitate that we will propose having
+a primitive operation called fetch and store. And atomic
+operation and the semantics of this fetch and store
+operation is that when you make this call and
+give it two arguments L and Me. What this
+fetch and store is going to do is it's going to
+return to me what used to be contained in
+L so what used to be contained in L is
+my predecessor. So I'll get that and I'll get
+the coordinates of this guy. And at the same time
+it's also storing into L a new node that
+is the pointer to the new node that is me.
+And so that is what is being accomplished by this.
+The double act that I mentioned of getting my predecessors
+coordinates and setting this guy to point to me is
+accomplished using this fetch-and-store operation.
+It's an atomic operation. And clearly
+the architecture is not having this fetch and store instruction
+you have to simulate that with a test and set instruction.
+
+## L04b-177: Synchronization - Link Based Queueing Lock Continued ##
+
+So once I've done the double act then I
+can set up the current node's next pointer to point
+to me. And then I'll be done with joining the
+cube and then I can await the predecessor to signal
+me. So I'm spinning on the got-it variable. And
+how will I know that I've got the lock? Well
+my predecessor who is currently using the lock will eventually
+come around And call this unlocked function. And the unlocked
+function is basically taking again two arguments. One argument
+being the name of the lock and and the other
+argument is the guy that's making the unlock call
+in this case the current node that's making the unlock
+call. And what it does is to remove current
+from. On the list and it is going to signal
+the successor. And the way the successor is going to
+be signalled is because the current node has an x
+pointer and the x pointer says he's the next
+guy waiting in line for getting this particular lock. And
+he's pinning on the got it variable. So he's
+just going to signal the successor. By setting the guarded variable
+for the successor to be true and that will
+get me out of my spin loop and I'll have
+the lock. And I'm now running inside the critical section
+having obtained the lock that's protecting the data structure associated
+with that critical section. So now I'm in my
+critical section. And eventually I'll get done with my
+critical section. When I get done with my critical
+section I have to unlock and I call the unlock
+function. Normally the unlock function involves me removing myself
+from this link list and then signaling the successor.
+So these are the two things I have to
+do. Remove myself from the list and signal any successor.
+The special case occurs. When there is no successor to
+me. The special case when that occurs what I have to
+do is I have to set the headnode the dummy
+node of the link link list namely l to null to
+indicate that there is no request... Waiting for this lock.
+So that's a special case. And so if I look at
+this picture here what I have to do is I have
+to set this L to null and then I'll be done.
+I don't have a successor signal. But wait there could
+be a new request that is forming. And if a new
+request is forming now this guy what you would have done
+is To do a fetch and store. And and if you
+did a fetch and store on this linked list what
+would have happened is that he would've gotten my coordinates and
+you'd have set the list to point to him. So the
+new request is forming but it will not form completely yet.
+In other words the next pointer in me is
+not pointing to this new request yet. And this
+is the classic race condition that can occur in
+parallel programs and in this particular case the race condition
+is between the unlocker that is me and the
+new requester that is coming to put himself on the
+queue. And such race conditions are the bane of
+parallel programs. And one has to be very very watchful
+for such [INAUDIBLE] conditions. And being an operating
+system designer you have to be ultra careful
+to ensure that your synchronization algorithm is implemented
+correctly. You don't want to give the user the experience
+of the blue screen of death. You have
+to think through any corner case that can happen
+In this kind of scenario and design the
+software in such a way operating system in particular
+to make sure that all sets of
+these conditions are completely avoided. Now let's
+return to this particular case and see how we can take care of this situation.
+
+## L04b-178: Synchronization - Link Based Queueing Lock Continued ##
+
+So if there was a new request that is forming
+you know that the new request would have called the
+lock algorithm. And if you call this lock algorithm and
+it actually executed this fetch and store operation then you know
+that this link is no longer going to be pointing
+to me. But is going to be pointing to him
+right? And that's what this fetch and store would have
+done. It is to give this new guy my coordinates and
+it'll also set the linked list to point to him
+as the last requester. So that would have been accomplished
+through this fetch-and-store. So what I have to do when
+I come in and try to unlock that is removing
+me from the queue. Even though my next pointer is
+nil I cannot trust it entirely because it could be
+a successor that is forming it's just that it's not
+that the formation of the list is not complete yet.
+So what should I do? Well remember when I told
+you if I was the only guy what I wanted to
+do was to set this guy to nil to indicate
+that there's no requesters after me. the the list is empty.
+But before I do that I have to double check
+if there is a request that is in the information. And
+in other words I want to have an atomic ray of setting
+this guy to nil if in fact he's pointing to me.
+And the invariant in this case is that. If he's
+pointing to me I can set him to nil. If he's
+not pointing to me I cannot set him to nil
+because he's pointing to somebody else. That's the invariant that I
+should be looking for so I need an atomic way
+of checking for the that invariant. And the invariant is in
+the form of a conditional store operation. The conditional store being.
+Do this store only if some condition is satisfied. Now in
+this particular case I'm going to tell you a primitive
+that will be useful for this purpose. And that primitive
+is what is called compare and swap. It takes three
+arguements. The first two arguments is saying here is L and
+this is me. Check if these two are the same.
+If these two are the same then you set L
+to the third argument. The third argument is what L
+has to be set to if these two are the same.
+That's where it's called compare and swap. You are
+comparing the first two arguments and if the first two
+arguments happen to be equal then we are saying set
+the first argument to be equal to the third argument.
+So that's the idea behind compare and swap. So
+essentially when I execute the compare and swap operation on
+L me and nil. What I'm telling is to to
+set this guy to nil if he's pointing to me.
+If he is not pointing to me don't do
+that. So that's the idea behind compare and sway.
+
+## L04b-179: Synchronization - Link Based Queueing Lock Continued ##
+
+So this compare and swap instruction is going
+to return true if it found that L and
+me that first two arguments are the same and
+therefore it set L to the third argument in
+that case it's a success and success is
+indicated by a true being returned by the operation.
+But on the other hand if the comparison failed
+it won't do the swap. It'll simply return false.
+So it won't do the swap but it'll return
+false. So that's the semantic of this particular instruction. Again
+this is an atomic instruction. And this atomic instruction
+maybe available in the architecture. But if it isn't then
+you have to simulate it using test and set
+instruction. So in this particular example that I am showing
+you when I try to do this unlock operation
+because this new guy has come in and he's executing
+he's halfway through executing his lock algorithm. So he has done
+the fetch and store and and he's going to set up the
+list so that my next pointer will point to him. So
+that's the process that he's in right now. So at that
+point I'm coming in I'm saying well I want to do
+the unlock operation and that's when I found that my next
+pointer is nil. And so what I have to do is
+do this compare and swap and at the compare and swap
+now it's going to return to me false indicating that
+this particular operation failed. So once I know that this
+operation has failed then I'm going to spin. And so
+the semantic of the unlock call is I come in
+remove myself from L. And in order to do
+that I'm going to do this compare and swap on the
+linked list. And if I find that the compare and
+swap instruction fails I'm going to spin. Now what am I
+spinning on? When will it become not nil? So basically
+what I'm going to do is I'm going to spin on
+my next pointer being not nil. So right now it's
+nil. That's the reason that I think that there's nobody
+after me. I was going to set this guy to nil.
+But I know that compare and swap fail and therefore
+I know that there's a request information and I'm going to
+spin waiting for my next pointer to become not nil.
+Now when will my next pointer become not nill? Remember
+that this guy the new guy that is doing this
+lock operations doing exactly what I did earlier. Right? And
+and what he's doing is he's gotten my coordinates and
+he is in the process of setting it up so
+that my next pointer's going to point to him. So eventually
+he'll complete that operation. So my spinning is on this
+becoming not nil and it'll become not nil because of this
+new guy completing what he needs to do as
+part of this lock operation. And so eventually the
+next pointer in in my note will point to him and at that point I can come out
+of my spin loop. Now I'm ready to signal
+the successor that hey you got the lock. So
+that's how I can make sure that when we
+unlock the corner case that occurs during unlock and that
+is there is no requesters after me I can take
+care of that by doing this atomic and ensuring that
+there's no race condition between me the unlocker and a
+new requester that is in the process of forming through this
+lock call. So once this lock data structure has been
+fixed up nicely by this new requester so far as
+I'm concerned everything is good. I can the list is
+good and therefore I can go ahead and signal the next
+guy that he's got the lock and be done with it.
+
+## L04b-180: Synchronization - Link Based Queueing Lock Continued ##
+
+I strongly advise you to look through the
+paper and understand both the link list version
+as well as the previous Anderson's array based
+lock version of the queuing locks. Because there
+are lots of subtleties in implementing these kinds
+of algorithms in the kernel and in the
+parallel operating system kernel. And therefore it is
+important that you understand the subtleties by looking at
+the code. I've given you of course a description
+at a semantic level of what happens but looking
+at the code will actually make it very clear
+what is going on in terms of writing a synchronization
+algorithm on a multiprocessor. And one of the things
+that I mentioned is that both the the link list
+based queuing lock as well as the earlier array
+based queuing lock required fancier re-modified write instruction. So for
+instance in this case we need a fetch and store and in this case and also a
+compare and swap to fancier re-modified write instruct instructions.
+And similarly the array based queuing log required a
+fetch and increment. Now it is possible that the
+architecture doesn't have that. If that is the case
+then you have to simulate these fancier read modify
+write instructions using a simpler test and sentence structure.
+
+## L04b-181: Synchronization - Link Based Queueing Lock Continued ##
+
+So now let's talk about the virtues of this
+link list based queuing lock. Some of virtues are
+exactly similar to the Anderson's queuing lock and that
+is it is fair. And so Anderson's lock was also
+fair ticket lock was also fair. The linked list
+queuing lock is also fair. And again the spin location
+is unique for every spinner right? Every spinner has
+a unique spin location to wait on and so that
+is similar to the Anderson's queue lock as
+well. And that's good because you're not causing contention
+on the network when the lock is released. When
+one guy releases the lock others if they're waiting
+they don't they don't get bothered by by the
+by the signal. And exactly one processor gets signaled
+when the lock is released. That's also good. And
+usually there's only one atomic operation per critical section.
+And the only thing that happens is this corner case.
+In order to implement this corner case you have to
+use a second atomic operation. But if the link list
+has several members in this in these examples. I'm just
+showing only two requesters at a time. But if the
+link list has a number of requesters then if I
+am middle of the gang have using the lock I
+simply signal the successor. I don't have to do anything fancy
+in terms of compare and swap. So this is something
+that needs to be done only for the corner case not
+as a a routine for doing the unlock operation. And
+the other good thing that we already mentioned is that the
+space complexity of this data structure is proportional to the
+number of requesters to the lock at any point of time.
+So it is dynamic. It's not statically defined as in
+the array-based queueing lock. And so that's one of the biggest
+virtues of this particular algorithm that the space
+complexity is bound by the number of dynamic
+requests to a particular lock and not the
+size of the multi-processor itself. Now the downside
+to this link list based queuing lock of course is the fact that there is link
+list maintenance overhead that is associated with making
+a lock request or unlock request. And Anderson's [INAUDIBLE]
+queue lock because it is in a irregular structure
+can be slightly faster than this link list based algorithm.
+And one of the things that I should mention
+to that is that both Anderson's [UNKNOWN] queue lock as
+well as the NCS link list based queue lock.
+May result in poorer performance if the architecture does not
+support fancy instructions like this because they have to
+be simulated using test and set so that can be
+a little detriment to to this particular
+algorithm as well. We have discussed different
+algorithms for implementing locks in a shared
+memory multi processor. If the processor has some
+form of affection free operation then the
+two flavors of queue based locks both due
+to Anderson and MCS they are good bet for scalability. If on the other hand
+the processor only has test and set then an
+exponential backoff algorithm would be a good bet for scalability.
+
+## L04b-182: Synchronization - Algorithm Grading Question ##
+
+So we've completed discussing the lock-based synchronization
+algorithms for a multiprocessor. So how about
+we close this section of the lesson with a quiz? What I want you
+to do is we've talked about several different algorithms spin on test and set
+spin on read spin with delay. TIcket
+lock Anderson's queue lock array based MCS link
+based queue lock. So these are the
+different algorithms that we've looked at. And along
+the way I mentioned some of the attributes that we look for latency for getting
+the lock contention when locks are released
+fairness whether the spin is on a. Private
+variable or a shared variable. How many
+read modify write operations are required for acquiring
+a lock? And what are the space overhead associated
+with the lock? And when the lock is released are
+we signaling one guy or are we signaling everybody?
+So all of these are different attributes that you can
+associate with these different. Block algorithms and what I
+would like you to do is take your time and
+read the algorithms by filling this table and of
+course you should go back and look at these algorithms
+to get a clearer understanding if you find yourself not
+ready yet to fill out this table so take your time.
+
+## L04b-183: Synchronization - Algorithm Grading Solution ##
+
+So I'm going to give you the solution
+for this particular question by filling out this
+table. And as I said take your time thinking about it. And and verifying your
+own intuition against what I'm presenting to
+you here. Now what you'll find is that
+MCS Link-based queue lock and Anderson's array-based
+queue lock are the two things two algorithms
+that done do quite well on most of
+the different categories of attributes that I have mentioned
+to you. But I should tell you that if
+you if you have fancy instructions. Fancy read modify
+write instructions. Then Anderson's and MCS lock give
+you the best performance on all these attributes. But
+on the other hand if the architecture does not
+support fancy read modified op operations and it only
+has testing set operation available then some sort of a a delay base is a
+in a exponential delay base or. Starting
+delay based spin lock algorithm may turn out
+to be the best performer. And in fact when the amount of contention for lock
+is is fairly low it's best to use
+a spin lock with exponential delay start out
+a small delay and keep increasing it. On the other
+hand if it is a highly contended lock Then it is
+good to use a Spin Lock that has categorically assigned various
+spots for every processor. And one of the things that I
+also want you to notice is that the number of
+re modify right operations that you need to do for the
+different lock algorithms really depends on the amount of contention that
+is there for the lock in the case of spin algorithms.
+In the case of Anderson's and MCS the number of
+Atomic operation is always one regardless of how much contention
+there is. And of course in MCS this is the
+quanta keys that you have to worry about during during
+unlocking that might result in an extra remodified item operation.
+But in the case of the Spin algorithms the amount
+of contention is really dependent on the number of re
+modified item operations that you have to perform per critical section.
+Really depends on the mode of mode of contention that is there for the lock.
+

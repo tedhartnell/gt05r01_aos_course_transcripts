@@ -1,0 +1,842 @@
+## L04d-204: Lightweight RPC - RPC and Client Server Systems ##
+
+The next topic we'll start discussing is
+Efficient Communication across address spaces. The client-server
+paradigm is used in structuring system services
+in a distributed system. If we're using
+a file server in a local area network every day we are using a
+client-server system when we are accessing a
+remote file server. And remote procedure call.
+Is the mechanism that is used in building this
+kind of a client server relationship in a distributed
+system. What if the client and the server are
+on the same machine? Would it also not be
+a good way to structure the relationship between client
+and servers using RPC. Even if the clients and
+the servers happen to be on the same machine.
+It seems logical to structure clients of a systems even
+on the same machine using this RPC paradigm.
+But the main concern is performance. And the relationship
+between performance and safety. Now for reasons of safety
+which we have talked a lot about when we
+talked about operating system structures you want to make
+sure that servers. And clients are in different address
+spaces or different protection domains as you've been calling
+them. Even if they are on the same machine
+uhthey will be running on different processors of an SMP
+but they're still on the same machine. You what you want to
+do is you want to give a separate protection domain for
+each one of these servers from the point of view of
+safety. But what that also means because we are providing
+safety there's going to be a hit on performance. Because of the
+fact that an RPC has to go across the outer spaces.
+A client on a particular outer space server on a different
+outer space. So that is going to be
+a performance penalty that you pay. Now as operating
+system designers what we would like to be able
+to do. Is to make RPC calls across protection
+domains as efficient as a normal procedure call
+that is happening inside a given process. If you
+could make the RPC across protection domains as efficient
+as a a normal procedure call it would actually
+Encourage system designers to use RPC as a
+vehicle for structuring services even within a same
+machine. Why is that a good idea? Well
+what that means is that you know we've talked
+about the fact that in structuring operating systems
+in microkernel you want. You want to be able
+to provide every service having its own protection
+domain. What that means is that to go across
+these protection domains you're making a a protected
+procedure call or a RPC call. Going from
+one from one protection domain to another protection
+domain. And that is going to be more expensive
+than. Simple procedure call. It won't encourage system
+designers to use these separate protection domains to
+provide the services independently. So in some sense
+again is the same question of wanting to have
+the cake and eat it too. So you
+want the protection and you also want the performance.
+
+## L04d-205: Lightweight RPC - RPC Vs Simple Procedure Call ##
+
+All of you know how a simple procedure call
+works. There is a caller you have a process in
+which all the functions are being compiled together and
+linked together made an make an executable. And so when
+a caller makes a call to the callee it
+makes a call passing the arguments on the stack. The
+callee can execute the procedure. And then a return
+to the caller. So this is your simple procedure call.
+And the important thing is that all of the interactions
+that I'm showing you here is happening at compile time. All
+of these things are being done at compile time. Now
+let's see what happens with remote procedure call. You know in
+principle a remote procedure call looks exactly like this picture.
+That you have a caller and a callee. SO the caller
+is making a call Executing a procedure and returning. So
+that's what is going on in in a remote procedure call.
+But under the cover let's see what's going on
+when you're using remote procedure call. When the caller
+makes its call it's really is a trap into
+the kernel. A caller trap into the kernel. And
+what the kernel does is it validates the call.
+And it copies the arguments of the call into
+kernel buffers from the client idle space. The kernel
+then locates the server procedure that needs to be
+executed copies the arguments that it has buffered
+in the kernel buffer into the idle space
+of the server. And once it has done
+that it schedules the server to run the particular
+procedure. So that's what's going on in this
+in this direction. At this point the server
+procedure actually starts executing using the arguments of
+the call and performs a function that was requested
+by the client. When the server procedure is done
+with execution of the procedure. It needs to return
+the results of this procedure execution back to the
+client. And in order to do that it's going to
+tap into the kernel there's the return trap that
+the server is experiencing in order to return the
+results back to the client. And what the Kernel
+does at this point. Is to copy the results
+from the address space of the server into
+the kernel buffers and then it copies out the
+results from the kernel buffer into the client's address
+space and now at this point we have completed
+sending the results back to the client. So the
+kernel can then reschedule the client who can then
+receive the results. And go on its merry way
+of executing whatever it was doing. So that's essentially
+what's going on under the cover. So even though the
+picture is so clean up here that a client is making
+a call and you get the results and it can continue
+with whatever it was doing. In reality what is going on
+under the cover is fairly complex. And more importantly all of
+these actions are happening at runtime as opposed to What I
+mentioned about a procedure call where everything is happening in compile
+time all of these actions are happening at run time and
+that is one of the fundamental sources of performance
+hit that an RPC system is going to take in
+the fact that everything is being done at the time
+of the call. In particular if you want to analyze all
+the overheads that... Or the works that needs to
+get done at run time. There are two traps. The
+first trap is a call trap. The other trap is
+a return trap. There are two traps and there are
+two context switches. So the first context switch
+is when the kernel switches from the client to
+the server to the run the server procedure. And
+when the server procedure is done with its execution
+of the server procedure it has to reschedule
+the client to run again. So two traps two
+context switches and one procedure execution. That's the work
+that is being done by the runtime system in
+order to execute this remote procedure call. So what
+are all the sources of overhead now? Well first of
+all when this call trap happens the kernel has
+to validate the access whether this client is allowed to
+make this procedure call or not the validation has
+to happen. And then it has to copy the arguments
+from the client's address space into kernel buffers. And
+potentially if you look at this picture there could multiple
+copies that are going to happen in order to
+do this exchange between the client and the server
+and then there is the scheduling of the server
+in order to run the server code and then there
+is the context which overhead we talked about. The
+explicit and implicit costs of doing context switches there is
+a context which overhead that is associated between but
+when we go from the client to the server and
+back again to the client from the server
+and of course dispatching a thread on the
+processor itself is also time which is explicit
+cost of scheduling. So before we discuss how
+we can reduce the overheads in this remote
+procedure call when the clients and the servers
+happen to be on the same machine let me prime the pump with a with a quiz.
+
+## L04d-206: Lightweight RPC - Kernel Copies Question ##
+
+So the question that I'm going to pose to you
+is the following in an RPC there is a
+client call followed by the server procedure execution and
+then the returning the results to the client. How
+many times does the kernel copy stuff from the
+user address spaces into the kernel and vice versa?
+And I want you to focus on the question
+a little bit more carefully. I said the entire
+interaction going from the client call to server
+execution and returning results back to the client
+the whole package in order to execute an
+RPC. How many times does the kernel copy
+stuff from user address spaces into the kernel
+buffers and vice versa? Meaning from the kernel
+buffers back out to the user address spaces. Is it done once? Is it done twice?
+Is it done three times? Or four times?
+
+## L04d-207: Lightweight RPC - Kernel Copies Solution ##
+
+The right answer is four times. And I
+sort of walked through that for you hopefully
+you got that. Basically the kernel has to
+copy from the client address space into the kernel
+buffer. That's the first copy. The second copy
+is the kernel has to copy from the kernel
+buffer into the server. And then the third
+time when the procedure is completed the server procedure
+is completed the kernel has to copy it from the server address
+using the kernel and then the fourth time it's going to be copied from
+the kernel buffer into the client. So it's tough being moved from
+the user address space... Through the kernel and back out happens four times.
+
+## L04d-208: Lightweight RPC - Copying Overhead ##
+
+This copying overhead that we're talking about
+in this client server interaction in RPC
+call is serious concern in RPC design.
+Why? Because this copying happens every time you
+have a call return between the client and the server. And so if there is
+a place where we want to focus on shaving overheads it'll be on avoiding
+copying multiple times between the client and the server
+in order to make the RPC calls efficient. And
+if you go back to this analogy of a
+procedure call the nice thing about this is that this
+the arguments are set up in the stack. And
+and that might involve some data movement but there is
+not kernel involvement in the data movement. And that's
+what we would like to be able to accomplish in
+the RPC world as well. And in fact let's analyze how many times copying
+happens in the RPC system. Recall that in a RPC system the kernel has
+no idea of the syntax and semantics of the arguments that are passed between
+the client and the server. But yet the kernel has to be the intermediary in
+arranging the rendezvous between the client and the server.
+And therefore what happens in the RPC system is that
+when a client makes a call there's an entity
+that is called the client stub. And what the client
+stub is going to do is the client's thinking
+that it's making a normal procedure call but it is
+a remote procedure call. And the client stub knows
+that. And what it does is it takes the arguments
+that is in the client call which is living
+on the stack of the client and makes an RPC
+packet out of it. This RPC packet is essentially
+serializing the data structures that are being passed as arguments
+by the client into a sequence of bytes. It's
+sort of like herding cats into an enclosed space. So
+that's what is happening by the client stack taking the
+arguments that are on the stack of the client and
+creating a packet of contiguous bytes which is
+the RPC message. Because that is the only
+way the client can actually communicate this information
+to the kernel. So this is the first copy
+that's happening from the client stack into creating
+the RPC message is the first copy that's
+happening. Even before the kernel is involved in
+this client server interchange. The next thing that happens
+the client traps into the kernel and the kernel says
+well you know there is a message which is the
+RPC message that has to be communicated to the server.
+And that's sitting in the user address space. I better
+copy it into my kernel buffer so that's a second
+copy that's happening. From the address piece of the client
+is the RPC message is copied into the kernel buffer.
+So that's the second copy. Next the kernel schedules the
+server in the server domain because the server
+has to execute this procedure. So once that server
+has been scheduled the kernel copies the buffer. It
+it it has all the arguments packaged in into
+the server domain. So that it the third copy
+that's happening. So this so we went from the
+client stack to the RPC message first copy. From
+the RPC message to the kernel buffer second copy.
+And now the kernel buffer is passed out to
+the service domain that's a third copy. But unfortunately
+even though we've reached the address space of the
+server the server procedure cannot access this because from
+the point of view of the procedure call semantics
+the client of the server think that they are
+just doing procedure call. So the server procedure is
+expecting all of the arguments in the original form on
+the stack of the server and that's where the server stub comes in. So what the
+server stub is just like the client stub the server stub is a piece of code
+that is part of the RPC infrastructure that
+understands the syntax and semantics of the client
+server communication for this particular RPC call. And
+therefore it can take this information that has
+now been passed into the server's address space by the kernel and structure it
+into the set of actual parameters that
+the procedure the server procedure is expecting.
+So this from the server domain wherever the kernel put it into the stack
+of the server for the server procedure
+to execute that procedure that's the fourth copy.
+So you can see that just going from
+the client to the server there are four copies
+involved. These two copies are at the user level.
+And these two copies are what the kernel is
+doing in order to protect itself and the
+address spaces from one another by buffering the address
+space contents into a kernel buffer and passing that
+to the server domain before the server domain can
+start using it in the form of actual parameters
+on the stack. So at this point the server can
+start executing the server procedure can start executing do its
+job. And when it is done it has to do
+exactly the same thing in order to pass the
+results back to the client. So it is going to
+go through four copies except that we're going to reverse
+it. We're going to start from the server stack and
+go all the way down to getting the information to
+the client stack in order for that exchange to happen.
+So in other words with the client server RPC call
+on the same machine with the kernel involvement in this process
+there's going to be four copies each way. Going from
+the client to the server there's four copies. Going from
+the server back to the client there's going to be
+four copies. Two copies are happening in the user space and
+two copies are happening in the kernel space. Are orchestrated by
+the kernel and two copies orchestrated on the user level. Now
+as you can see this is a huge huge overhead compared
+to a simple procedure call that I showed you early on.
+
+## L04d-209: Lightweight RPC - Making RPC Cheap ##
+
+If RPC has to be a viable mechanism for structuring operating
+systems services above the kernel using the client server paradigm.
+Then it is important to reduce this overhead.
+Now let's see how we can reduce the overheads.
+And make RPC cheap enough that
+you want to use it in building client service systems.
+How do we remove these overheads?
+The trick is to optimize the common keys.
+Now what are the common keys?
+Well the common keys is the actual calls that are being made by the client
+to the server.
+We expect that those calls are going to be made several times
+during the lifetime of the server and the client.
+And so that's the key thing.
+That you want to make sure that during the actual calls
+the copying overhead that I talked about.
+And the locality of the arguments and the results in terms of stuff being in
+the caches that are accessible to the client and the server that's the key.
+That's the common key.
+That's what we want to make as efficient as possible.
+Now setting up the relationship between the client and the server itself
+on the very first call by the client that needs to be done exactly once.
+And that process is what is called binding.
+Binding the client and server.
+That is done once the first call is when the binding happens and
+that's done once.
+Now since the setup for the binding is done only once it's a one-time cost.
+It's okay if it is more expensive than the actual costs.
+So the binding we can afford to make it more time consuming
+it's okay to do that.
+And these ideas should sound very familiar to you from exokernal
+that we've discussed before that we want to make the one time costs
+not focus on the one time cost of setting up.
+Which is a one time cost but focus on it is a recurring cost
+which is the actual calls that are being made.
+So now let's discuss in more detail how this binding works.
+The server has an entry point procedure called
+foo that it wants to make it available for clients to call.
+And in order to make it available for everybody
+it publishes this entry point procedure in a name server.
+And let's the kernel know that there's an entry point procedure called
+foo that's available for it.
+And the name server is a vehicle by which anyone in the system can find on.
+It's sort of like the yellow pages right?
+So you want to look up somebody's name or
+phone number you look it up in the yellow pages.
+Similarly this name server serves the same purpose
+that if I want to know what services are offered as a client.
+If I want to know what services are offered by a particular server
+I can find out from the nameserver what are the entry point
+services available from S.
+So foo is an entry point service that's available in the server
+registers the name server and
+let's the kernel know that it has this particular entry point.
+And at this point the server is basically waiting for
+bind requests to come from the colonel.
+Now the client looks up the name server and
+finds that S is an entry point called foo.
+So this is an entry point that's available for
+this client to make a call on the server.
+So the client issues this call s.foo
+meaning that it wants to execute this procedure foo onto server S.
+And so that's RPC call the first time C is making.
+And this of course results in a trap into the kernel.
+The kernel doesn't know whether the server is willing to
+accept calls from the client or not.
+And therefore what it has to do is
+it has to check with the server whether there's a legitimate bona-fide client
+that can make calls on those entry point procedure foo.
+And so the kernel basically makes an up-call into the server saying that hey
+you know what?
+There is this client that wants to make something with this identity.
+Wants to make a call on your entry point procedure foo.
+And that's the up call that goes into the server.
+The server if it recognizes that this client is a bonafide
+client that can make this call it grants permission via the kernel that
+this client can make this call on its entry point procedure foo.
+So once this validation has been done what the kernel does
+is to set up a descriptor called the procedure descriptor.
+And the procedure descriptor is a data structure that is in the kernel.
+And it is for this particular entry point procedure foo.
+And it's part of granting access to the client
+to make this call into its entry point procedure foo.
+What the server is going to do is tell the kernel
+that these are the characteristics of this particular entry point procedure.
+In particular it's going to say
+this is the entry point address where you have to call me if there is call.
+This is the address of the entry point procedure in my address space
+where code exists for this particular procedure foo.
+And this is indicating the size of an argument stack and
+I'm going to talk to you a little bit more about this in a minute.
+And this argument stack is going to be the communication area between
+the client and the server and this entry in the procedure descriptor is
+just seeing what are the sizes of this argument stack?
+So this communication vehicle that is going to be established
+between the client and the server is going to be dependent at
+the formal parameters that are being passed the client and the server.
+And the results that are being passed from the server back to the client.
+Based on that the server is going to indicate to the kernel that
+communication area that I want is this size.
+So that's the size of this A-stack.
+I'm going to talk more about that in a minute.
+And it is also going to say how many simultaneous calls
+S is willing to accept for this particular procedure foo.
+And the purpose of this is if this is a multi-processor and
+there are multiple cores and multiple processes available.
+Then it may be possible for
+S to farm out multiple threads to execute simultaneous calls that
+are coming in from multiple clients distributed in the system.
+And so they're saying how many concurrent calls
+the server is willing to accept on behalf of this particular procedure.
+So this procedure descriptor is specific.
+Do this procedure foo and it is saying
+where is the entry point in the server's domain for this particular procedure?
+What are the size of the communication buffer that is needed to be established
+by the kernel for communication between the client and the server?
+And the third thing is how many simultaneous calls
+the server is willing to accept for this particular procedure foo.
+
+## L04d-210: Lightweight RPC - Making RPC Cheap Binding ##
+
+So once the kernel gets all the information from the
+server kernel gets to work. First of all it creates
+this data structure on behalf of the server and holds
+it internally for itself. So there's a data structure that
+is entirely in the kernel and nobody else has to
+see it [LAUGH] it is only for the kernel to
+know all the information that is needed in order to
+make this upcall into the entry point procedure. It also
+establishes a buffer and this is what is called
+the A-stack and this A-stack sizes as A-stack was just
+specified by the server as part of this grand communication
+to indicate how big this A-stack is got to be.
+Because the you kernel has no idea what the relationship
+is is between the the client and the server. And
+so the server is saying telling the kernel that look
+in order for us to communicate I need a buffer
+and the size of the buffer is this much. So
+the kernel allocates shared memory and takes the shared memory
+that is allocated and maps it into the address space
+of both the client and the server. So there's the
+client's address space. There's the server's address space. So in
+some part of the client address space and the server
+address space need not be exactly matching parts of the
+virtual memory space of the client and the server. But somewhere
+in the address space of the client and the server
+it maps this A-stack. So essentially what we have now.
+Is shared memory for communication directly between the client and
+the server without mediation of the kernel because once this
+has been setup as shared memory and mapped through the
+address space of the server and the client then the
+client can write into it the server can write into
+it client can read from it server can read from it.
+No mediation by the kernel or in other words what we
+have accomplished is we are getting the kernel out of the
+loop in terms of copying. Client and the server can directly
+communicate the arguments and the results back and forth using this
+A-Stack. And that's the reason it's called A-Stack it stands for
+argument stack. It's available for communication between the client and the
+server. So now the cla the kernel is done with all
+the work that it has to do in order to set
+up this remote procedure call mechanism between the
+caller the client and the callee which is the
+server. And what the kernel is going to do is
+it's going to authenticate the client that you're good to
+go. You can make calls on uhthis procedure
+foo that is being exported through the main server
+by the server so I let you make calls on this in the future and what you need
+to do every time you want to make a call to S.foo you have to give
+me a descriptive which i'm going to call
+the binding object B.O stands for the binding
+object In the Western world BO has
+a different colloquial connotation. I won't go there.
+But here BO stands for Binding Object
+and it's basically a capability for the client.
+To present to the kernel that I am authenticated
+in order to make this call into the service
+domain to this particular procedure called s.foo. So that's
+the idea. So all the work that I have
+described to you up until now is the kernel
+mediation that happens in terms of entry point setup
+on the first call from the client. On the
+first call from the client all of this magic
+happens in order to set up the communication
+buffer between the client and the server and authenticate
+client that you can make future calls on
+this particular entry point procedure by providing or presenting
+to the kernel this capability which is called
+the BO the binding object. And of course the
+important point is that the kernel knows that
+this binding object and this procedure descriptor are related.
+Or in other words if the client is
+going to present a binding object the kernel knows from
+the binding object What is the proceeded descriptor
+that corresponds to the binding object so that it
+can find the entry point to call into
+the server. So once again what I want to stress
+is the fact that this kernel mediation happens only
+one time. On the first call by the client.
+
+## L04d-211: Lightweight RPC - Making RPC Cheap Actual Calls ##
+
+Now let's see what is involved in making the
+actual calls between the client and the server. And you
+will see that all the kernel copying overheads are
+eliminated in the actual calls. What the client stub does
+on the client side is when the client makes
+the call is that through the clients tab is going to
+take the arguments and put those arguments into the a
+stack ignore this result for a minute so that the
+stub is going to the client stub is going to prepare the
+a stack with the arguments of the call and then in
+the a stack you can only pass arguments by value
+not by reference. And the reason is that this A stack
+I mentioned to you is mapped into the client address
+space and shortly it's going to be mapped into the it is
+it is mapped into the server address space as well
+by the by the kernel and since only the A stack
+is mapped into the address space of both the
+client and the server. If this has pointers pointing to
+the other parts of the client address space so it
+is not going to be a able to access that. So
+it is important that the arguments are passed by value
+and not by by reference. And the work done by
+the stub in in preparing the array stack is much
+simpler than what I told you earlier about. The general
+RPC mechanism of creating an RPC packet. Where
+it has to serialize the data structures that
+are being passed as arguments. In this case
+it is simply copying the arguments from the
+stack of the client thread into this A stack. That's what is being done by this
+stub. Then the client traps into the kernel
+making a procedure called s.foo that is also
+in the trap. And at this point the the client's stop is presenting through the
+kernel the binding object associated with s.foo.
+So the binding object I told you is
+the capability that this client is authorized
+to make calls on s.foo. So once the
+BO is validated by the kernel it
+can then see what the procedure descriptor associated
+with the BO is. And this procedure descriptor
+is as I told you the information that
+is needed by the kernel in order to
+pass the control to the server to start executing
+the server procedure corresponding to this particular RPC
+call being made by the client. Now recall that
+the semantics of RPC is that the client
+once it makes this RPC call it's basically blocked.
+It's waiting for the call to be complete
+before it gets started resuming its execution. Therefore the
+optimization what the kernel could do is. Borrow
+because all of this is happening on the same
+machine the kernel can borrow the client thread
+and doctor the client thread to run on the
+server address place. Now what do I mean
+by doctoring the client thread? What I mean is.
+Basically what you want to do is you want
+to make sure that the client's thread starts executing
+in the address space of the server and the
+PC that the client thread is going to start executing
+in is the entry point procedure that is pointed
+to by the procedure descriptor. So you have the fix
+of the PC. The address space descriptor and the
+stack that is being used by the server in order
+to execute this entry-point procedure. And for this purpose what
+the kernel does is it allocates a special stack which
+is called the execution stack I'm not showing you this
+picture. An execution stack or E-Stack and that is a
+stack that the server procedure is going to use. In
+order to do its own thing because server procedure may
+be making it's own procedure calls and so on so
+it's going to do all of that action on the E-stack.
+So the A-stack is only for the purpose of passing the arguments and the E-stack
+is what the server is going to use in order to make do its own work.
+
+## L04d-212: Lightweight RPC - Making RPC Cheap Actual Calls cont ##
+
+So at this point once the kernel has
+doctored this client thread to start executing the
+server procedure it can transfer control to the
+server. So it transfers the control to the
+server and so now now we're starting to
+execute the server procedure in the server's address
+space. And in the server's address space because
+A-stack has been mapped in this is also available
+to the server domain. And the first thing
+that's going to happen in the server domain is
+our server stub is going to get into action
+and take the arguments that are sitting in
+the A-stack and copy them into the stack
+that the server procedure's going to use. Remember I
+told you the kernel provides a special stack
+for the purpose an E- stack execution stack and
+that is a stack into which the client
+the server stub is going to copy the A-stack
+argument into that E-stack and then at that
+point the procedure foo is ready start executing.
+So at this point procedure foo is like
+any normal procedure it finds the information it
+wants on the stack it does its job.
+Once it is done with executing this procedure
+it has to pass back the results to the client and what is going to happen is
+that the server stub is going to take the results
+of this procedure execution and copy them into the
+A-stack. And of course all of this action is
+happening in the server domain without any mediation by
+the kernel. So once the server stub has copied
+the results into the A-stack at that point it
+can trap into the kernel and this is
+the vehicle by which the kernel can transfer control
+back to the client so it it does a
+return trap. Now when this return trap happens there
+is no need for the kernel to validate this
+trap as opposed to the call trap because the
+up call was made by the kernel in the
+very first place and therefore it is expecting this
+return trap to happen and so the kernel doesn't have
+to do any special validation for this. And at this point
+what the kernel is going to do is it is basically
+going to re-doctor the thread to start executing the client address
+space. So basically it knows the return address where it has
+to go back in order to start executing the client code
+and it knows the client's address space so it's going to
+redoctor the thread to start executing in the client address space.
+So when the client thread is rescheduled to
+execute at that point the client stub gets
+back into action copies the results that are
+sitting in the A-stack into the stack of the
+client and once it has done that the
+client thread can continue on with its normal execution.
+So that's what is going on. And the
+important point that you notice is that the copying
+through the kernel that used to happen
+is now completely eliminated because your arguments are
+passed through the A-stack into the server. And
+similarly the result is passed through the A-stack
+into the client. So let's analyze what we've
+accomplished in terms of reducing the cost of
+the RPC in the actual calls that are
+being made between the client and the server.
+
+## L04d-213: Lightweight RPC - Making RPC Cheap Actual Calls cont ##
+
+Recall that we had four copies in
+doing the client call just transferring the arguments
+from the client to the server's domain. That was the original cost. And the four
+copies were first creating an RPC packet
+copying that RP- RPC packet into the kernel
+buffer. Copying the kernel buffer out into
+the server domain. And in the server domain
+the server stub getting into action. Taking this
+information that had been passed up to it by
+the kernel and putting it on the server stack
+to start executing the server code. So this was
+the original costs that we incurred in terms of
+copying. Now life is much simpler. All that is
+happening is on the client side the client's stub
+is copying the parameters into the A-stack. And I
+want to emphasize the word copying the parameters. That is
+very different from what was happening over here. Here the
+client stub was doing a lot more work. It actually
+had to serialize the data structures that are being passed
+as as actually arguments into a sequence of bytes in
+this RPC message. Whereas here it is simply copying it
+because the client and the server know exactly what the
+semantics and syntax of the arguments that are being passed
+back and forth and therefore there is no need
+to serialize the data structure. It just has to create
+a copy of the parameters into the A-stack. And this
+A-stack is of course shared between the client and the
+server. So what the server stub is going to do
+is basically going to take the arguments that are now sitting
+in the A-stack and copy it into the E- stack.
+Remember the execution stack provided by the kernel for executing
+the server procedure? That is a the special
+server stack that we're going to use. So the
+arguments are copied by the server stub into
+the E-stack and once it is done the
+server procedure is now ready to be executed
+in the server domain. So what we accomplished
+is that the entire client server interaction requires
+only two copies. One for copying the arguments
+from the client stack into the A-stack which is
+usually called the marshal link of the arguments. And the
+second copy is taking the A-stack arguments that are
+sitting in the A-stack and copying it into the server's
+stack that is the unmarshal link. So these are
+the two copies involved. One on the client side and
+one on the server side and both these copies are
+happening above the kernel. It's in the user space right?
+It is in the space of the client that the client stub is making this copy of
+the arguments into the A-stack. And similarly it
+is in the space of the server domain that
+the unmarshaling is happening. And of course this
+is the work done. So we're basically taking the
+original four copies and gotten rid of the
+two copies that were being done inside the kernel.
+One into the kernel and one out of the kernel.
+These two copies which is done by the kernel we
+got rid of them. And instead we have only two
+copies. These copies even though you're calling it copies it is
+it is really not as tedious as creating an RPC
+message. It is it is a more efficient way of
+creating the information that needs to be passed back and
+forth between the client and the server using this A-stack. And
+needless to say the same thing is going to happen in
+the reverse direction for returning the results. So it is just
+that it is the server stack that is going to have
+the result and the server stub is going to put it in
+the A-stack and the client stub is going to take it
+from the A-stack and give it to the client so that
+the client can state resuming its execution. So there's two
+copies involved in going from the client to the server and
+two copies involved in going back to the client from the server.
+
+## L04d-214: Lightweight RPC - Making RPC Cheap Summary ##
+
+So to summarize what goes on in the new
+way we are doing the RPC between the client
+and the server. During the actual call copies through
+the kernel is completely eliminated. Right? It's completely eliminated because
+all of the argument-result passing between the client and
+the serving is happening through this A-stack which is
+mapped into the outer space of the client and
+the server. And so the actual overheads that are incurred
+in making this RPC call is this client trap and
+validation by the kernel that this call can be allowed
+to go through. And switching the domains I told you
+about this trick of doctoring the client thread to start
+executing in the server procedure. That is really switching the
+protection domain from the client address space into the server
+address space so that you can start executing the procedure
+that's visible only in this address space. So that is the
+switching domain in the second overhead.
+And finally when the server procedure is
+done executing the return trap. That's the
+third explicit cost. So three explicit costs
+associated with the actual call. The first explicit is the client trap and and
+validating this BO. And the second explicit
+cost is switching the protection domain from
+the client to the server so that you can
+start executing the server procedure. And the third explicit
+cost is when we have this return track to
+go back to the client address space. So those
+are the explicit costs. But we know having done
+a lot of work on the operating system structure
+early on that there are implicit overheads that are
+associated with switching protection domains. The implicit overhead is
+the loss of locality due to the domain switching that's
+happening. When we go from the client address space to
+the server address space we are touching of course we
+are touching some part of the address space are going to
+be in physical memory and therefore in the caches of
+the processor. But there's a lot of stuff that may
+not be in the caches of the processor. So there
+is going to be a loss of locality due to the domain
+switch that that may happen. In the in the sense that caches and the processor
+may not have all the stuff that the server needs in order to do its execution.
+
+## L04d-215: Lightweight RPC - RPC on SMP ##
+
+This is where multiprocessor comes in. If you're
+implementing this RPC package on a shared memory multiprocessor
+then we can exploit multiprocessors that are are available
+in the SMP. What we can do is we
+can preload the server domains. In a particular
+processor. And what we mean by that is if
+we preload a server domain in a processor and
+and don't let anything else run on this processor.
+This particular server is loaded on CPU 2.
+We're not going to let any other thing disturb
+what's going on in this CPU. What what
+that would mean is that the caches associated with
+this CPU. Will be warm with the stuff
+that this particular domain needs. So in other
+words the server's address space is pre-loaded in
+a particular processor. If you have multiple processors then
+you can exploit the fact that you have
+multiple processors in the SMP. So if a client
+comes along and wants to make an RPC call.
+Then what we want to do is use the server
+that has been preloaded in a particular CPU as
+a recipient of this particular RPC call. So when
+this client makes that call that call is going to
+be directed to the server that has been preloaded.
+In a particular CPU and so the VP loaded in the CPU the caches will be warm
+and therefore we can avoid or reduce mitigate
+the impact on loss of locality. That I mention
+to you that goes on when you go
+from one protection domain to another protection domain. So
+this is the happy state of the world where
+what we have done is we've first of all
+eliminated kernel intervention in making the actual call and
+return between the client and the server by providing
+an argument stack in shared memory that is shared
+in the address space of the client. And the address
+space of the server. And this way the client
+can pass the actual arguments of the call to the
+A-stack and the server can retrieve it from the
+A-stack without kernel intervention. And when the server is ready
+to return the results back to the client once again
+it can do the same thing. Put it in the A-stack
+so that it is available for the client. So without any
+kernel intervention you can actually do the. Call and return and
+of course the mediation happens only in the fact that the
+kernel has to validate the call. Every time the client makes
+a call it has to validate that call. But the loss
+of locality you can avoid by making sure that the server
+domain is pre-loaded in one of the CPUs. And the other thing that the kernel can
+do is look at the popularity of a
+particular server. If a server is serving lots of
+different clients than in a multiprocessor then it
+can potentially based on monitoring the site that we
+may want to have multiple. CPUs very catered
+to the servers and that way you have several
+different domains of the same server preloaded in several CPUs to cater to the
+needs of several simultaneous requests that may
+be coming in for a particular service.
+
+## L04d-216: Lightweight RPC - RPC on SMP Summary ##
+
+So in summary what we have done is we have taken a mechanism that is
+typically used in distributed systems namely RPC and
+we ask the question suppose we want to
+use RPC as a structuring mechanism in a
+multiprocessor. How to make that efficient so that
+the designers of services will in fact use
+RPC as a vehicle. For building these services.
+And the reason why you want to promote that is
+because when you put every service in its own protection
+domain you are building safety into the system. And that
+is very important for the integrity of an operating system.
+As an operating system designer we worry about the integrity
+of services and we can provide the integrity by putting
+every service in its own protection domain. And we're making
+RPC cheap enough that you would use as a structuring
+mechanism we are promiting a a software engineering practice
+of building services in sep in sepearate protection domains.
+

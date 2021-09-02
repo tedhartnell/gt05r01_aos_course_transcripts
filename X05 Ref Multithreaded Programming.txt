@@ -1,0 +1,715 @@
+## X05-058: Ref Multithreaded Programming - Parallel Processing ##
+
+Hello and welcome to this lesson on multi-threaded programming.
+This lesson begins with a brief review of parallel
+programming in general and moves on to discuss multi-threaded
+programming in particular. It uses the POSIX threads library as
+the conical example though the same principles apply to
+most all threads libraries. To motivate parallel programming consider
+the following task. You're given a set of webpages
+some of which link to each other. We'll draw this
+using a standard abstraction of a directed graph where outgoing
+edges represent links. So webpage A here contains a link
+to webpage B. And our goal is to figure out
+how many links our website say U has pointing to it.
+This is something that a search engine might do to
+help figure out how popular a website is. Now there's no
+way to know whether another web page has a link
+to our web page in it without looking at it. So
+in one way or another we're going to need to read
+all of the web pages in our collection. And if we
+try to do this with a single processor this could
+take a long time. First I have to read webpage A
+then webpage B etc. Thankfully this task is highly paralyzable.
+That is there is nothing about my processing of A ie
+counting how many links it has to website U that
+affects how I'm going to process website B or website C. So
+I can easily divide up the web pages among say three
+CPUs. Let's get these over here to CPU one these to CPU
+two and these to CPU 3. Now we can let each CUP
+count up in its sub group how many links it has to
+you and then we can just add these units up to
+get our final answer. Returning to our time graph we see that
+with three CPUs we only need 1 3rd of the time potentially
+with n CPUs we would only need 1 nth of the time.
+It's important to realize that we're doing the same
+amount of work here. Suppose that in our original thread
+we first process the website assigned to CPU one then
+those assigned to CPU two and then those assigned to
+CPU three. Well in parallel programming we've cut this one
+long strand of computation into three shorter strands and arranged
+them in parallel by giving them to three seperate CPUs.
+This of course is the ideal case for parallel programming.
+Now of course in real life we don't always
+get as many processors as we want they aren't
+always available. And given that our application will likely
+be running on the same machine as others we
+don't know exactly how many processors we will have
+access to. But by expressing our algorithim in this
+way we can take advantage of the processors that
+we do have and thus make our algorithms run faster.
+
+## X05-059: Ref Multithreaded Programming - Parallelizable Tasks Question ##
+
+This leads us to our first question which
+of the following tasks is parallelizable? Mowing the lawn
+playing the piano cooking a chicken rice peas
+dinner or reading a novel? Check all that apply.
+
+## X05-060: Ref Multithreaded Programming - Parallelizable Tasks Answer ##
+
+And the answer is the first and the third. Mowing the lawn
+is easily parallelizable. I can take one part you another and we'll get
+it done in half the time. Playing the piano I would say
+is not parallelizable. Sure I might be able to play the right hand
+and you the left but the song isn't going to finish any faster.
+Cooking dinner is clearly parallelizable. We don't wait for the rice to cook
+before putting the chicken in the oven. Lastly reading a novel in parallel
+would be pretty difficult. You might be able to read one part and
+I another and then we could explain it
+to each other but I don`t think that counts
+
+## X05-061: Ref Multithreaded Programming - Asynchronous Computation ##
+
+Even if you know that your application will only run on
+a single core single CPU it can still be useful to express
+parallelism in your programs. In fact almost every time you load
+a web page your browser is making something called an asynchronous request
+back to the server for more information that exploits a certain
+kind of parallelism. You see the web server rarely sends all the
+information for a web page in response to your initial request.
+Instead it sends a kind of outline for the page. That includes
+other URL's where your browser can find the details. To get
+these details your browser then sends other HTTP requests back to
+the server for example we might need a style sheet and
+also an image to help fill out the website. Now if we
+were to implement this in a naive synchronous way our program
+might run for a while but when it discovers that it
+needs a CSS file from the server it would make the
+HTTP request And then pause part way to get the response back.
+After receiving the response it could then process the CSS
+file and then continue with work until it discovers that it
+needs image file. Make that request wait til it receives
+it and then process that image file. Clearly this is inefficient.
+There is no sense in making the browser and hence
+the user wait for a response from the server While there
+was more work to be done in reading and rendering
+the original request. This is why requests back to the server
+are made asynchronously. And this is really just a fancy
+word meaning that we get to continue our program without having
+to wait for a web request or sometimes a system
+call to complete. So an asynchronous approach we would begin by
+processing the HTML profile just as we did in the
+naive approach. But when we find that we need to request
+a CSS page we do so in a new thread. This
+allows our original thread to continue processing a HTML file and
+discover that he also needs to request a PNG file
+again he will do this in a new thread. When he
+gets this CSS file back from the server the requesting thread
+can process it. And when he gets back the p and
+g file the requesting thread can also process that. And
+the end result is that we finished loading the page much
+faster. Now remember we're still assuming that we only have one
+CPU. This means that the computation that the naive approach did
+say this red portion here can't run in parallel with
+the other parts of the processing. They still have to
+take turns. Nevertheless because we weren't idle while we waited
+for the web server as we were in the naive approach
+we've made our page load faster by always giving the
+CPU something to do. And it's the programming abstraction of
+threads that makes it possible to achieve both this behavior
+as well as the true parallel processing that we discussed earlier.
+
+## X05-062: Ref Multithreaded Programming - Threads Question ##
+
+Here's a questin to test your understanding. Which of the
+following are indicators that your application might benefit from the
+use of threads? You have multiple cores and part of
+the program can be run without knowing the outcome of
+another part. Code can be broken down into procedure. Or
+your program asks a slower entity may it be a
+database web server or a file system for information while
+there's other work to be done. Check all that apply.
+
+## X05-063: Ref Multithreaded Programming - Threads Answer ##
+
+And the answer is the first and the
+last. The first case is our original example by
+counting how many webpages point to our site. The
+third is like our second example. There's no sense
+in having the process wait on some blocking
+call while there's other work to be done. Option
+two however merely being able to break code down
+into procedures is not a good indication of parallelism.
+
+## X05-064: Ref Multithreaded Programming - Process Thread Relationship ##
+
+To understand threads more deeply it's important to have a
+clear picture of a traditional process and its address space.
+Typically at the lower addresses a process will have the
+instructions followed by literals that is values in the code then
+statically allocated memory really global variables and then the heap.
+Which will grow upwards. And then at the top of
+the address space and working its way down we have
+the current stack of a process. Remember that the stack includes
+all the information local to a procedure. Parameters local
+variables and the address of the instruction to return to
+when the current procedure is over. In a multithreaded
+environment each thread has it's own stack but it shares
+everything else with the original main thread of the
+process. So from a certain perspective a thread acts like
+an entire process unto itself and hence threaded programming
+isn't much different from a traditional programming. The difference comes
+from the fact that part of the memory is shared. On the
+one hand this makes it very easy for threads to communicate. But
+it also means that extra care is needed to make sure that
+the threads coordinate as they use this memory. I should point out
+as well that one can do parallel programming without having multiple threads.
+Each parallelizable task could have it's own process with it's own address
+space. And it could communicate with
+the other processes through message passing.
+In fact if we wanted to take advantage of a distributed system
+where each processor has it's own separate physical memory we would be
+forced to use this approach. As
+we think about multi-threaded programming however the
+paradigm explored in this lesson is more appropriate to think of a shared
+memory system where we have multiple cores sharing a common piece of memory.
+
+## X05-065: Ref Multithreaded Programming - A Pthreads Example ##
+
+Here's a very simple threaded program that uses POSIX threads
+or p-threads as the library is also known. We'll discuss POSIX
+threads for the remainder of the lesson but most of
+the concepts will apply to all thread libraries. The entry point
+for our process is main as always. And main will
+spawn two new threads t1 and t2 which will enter at
+the procedures f1 and f2 respectively. That's why we passed the
+function pointer as we create these threads. These functions become like
+the main of our other threads. And as we see
+these threads are going to print out a message over and
+over that says that they are the better thread. Notice that
+main we have this join method. We'll discuss this a little
+more later but basically this mean that the thread is
+going to wait for thread one to finish before it goes
+any further. And then join with thread two means that it
+will wait for thread two to finish before going any further.
+
+## X05-066: Ref Multithreaded Programming - What Will Happen Question ##
+
+So actually this is a quiz. What will happen when we run this code?
+Is it that thread one will seize control and print that thread one is
+better forever? Will thread two seize control
+and print thread two is better forever?
+Will the threads print their messages alternately
+or is the order of prints indeterminant?
+
+## X05-067: Ref Multithreaded Programming - What Will Happen Answer ##
+
+And answers that the order of prints is indeterminate. Exactly when
+we switch from one process to another is determined by the
+threads library in the OS. We haven't exercised any control over
+switching here in our program so we can't make any assumptions about
+the order in which these things will run. It ma be
+that thread 1 will print 5 times and then thread 2 will
+print three. Then thread one will print once again or thread
+two might print two times then thread one print fours times etc.
+We don't know and go programming here means assuming the worst.
+
+## X05-068: Ref Multithreaded Programming - Code Changes Question ##
+
+Now suppose that instead of letting each thread
+have its own local variable we create a single
+global variable for who's better. How does this change
+affect the program's behavior? Will it create a compilation
+error? Is it that a seg fault will occur
+when the second thread accesses this global variable? Will
+the threads eventually agree on who's better? Or does
+the behavior of the program not change at all?
+
+## X05-069: Ref Multithreaded Programming - Code Changes Answer ##
+
+The answer is that the threads will eventually agree on
+who's better. Before each method had its own copy of
+the variable in its stack. Now the threads share the
+variable via the global memory. In fact this is a common
+way for threads to communicate. Because who's better is a
+shared variable it must have the same value in all the
+threads. Looking back at the code we see that this
+sets off a race condition only in this case the winner
+is the second thread to reach the assignment statement. Suppose
+that thread one reaches the assignment first. Then he sets
+who's better to one and it's possible that he gets
+to print out that he's better a few times. But eventually
+thread two will seize control change the value of who's
+better to two and then from then on they will
+both agree. That thread two is better. Now I've treated
+this as all fun and games but in reality this situation
+where we have two threads trying to write to the same memory can create
+some very serious [INAUDIBLE]. And it's particularly
+bad when the order in which rights happen
+is indeterminate as it depends on the choices of the schedulers and the library
+library and the OS make and maybe let that affect the output of our program
+
+## X05-070: Ref Multithreaded Programming - Joinable and Detached Threads ##
+
+Now if you've been actively thinking about how threads work so far
+in this lesson you may be wondering how does the memory for a
+thread get cleaned up after it is finished or where does its return
+value go or how can I make sure the thread has finished its
+work before I let the main thread terminate? We'll answer all these
+questions by looking at the distinction
+between joinable and detached threads. Let's start
+by talking about what makes a thread terminate. We'll draw the main thread
+here on the left our thread here on the right. And maybe there
+are some other threads in between. There are really
+two cases. First the entire process will terminate if
+any thread makes a call to exit or if main reaches the end of its code it's or
+executes a return statement. Again this will kill all
+threads associated with the process. The second way our
+thread might terminate is if he himself calls either
+pthread-exit or executes a return statement. The distinction between
+joinable and and detached threads is important for the second case
+here. A thread can either be created in a detached state or
+detached later with the procedure call. When the detached thread reaches
+the end of its execution its memory is cleaned up right away
+and any return value just disappears. At least no other thread
+has a way of getting at it. Moreover we have to be
+careful that main doesn't reach the end of its execution and
+execute a return statement before the thread is done with its work.
+As seen in point 1 if main returns then
+the whole process terminates. So if we want to keep
+this detached thread going we have to terminate main
+with a special call to pthread exit. Joinable threads y
+contrast don't get destroyed right away when they finish.
+Instead they stick around until another thread joins them. This
+other thread makes a call to thread join specifying
+the thread. And also an address where the return value
+of the joinable thread will get stored. This call blocks
+until the joinable thread is finished. Though it's okay too
+if it's finished already. So it's okay for the joined
+call to be made first. Before the join thread is
+finished. Having main join with other threads is a common
+way to make sure that main doesn't finish before the
+other threads and kill them all via exit method one.
+By default threads are joinable in the p threads library.
+
+## X05-071: Ref Multithreaded Programming - Joinable Threads ##
+
+To illustrate how joinable threads work let's take a look
+at a very simple program. We first create a thread
+and then we can't be sure what's going to happen
+next. Perhaps the main thread will keep control and print
+his hello message or perhaps the created thread will get
+control and print his hello message. It's indeterminate. In any
+case however the main thread is going to execute this
+join procedure. It specifies which thread it wants to join and
+gives an address where the return value can
+be passed. Only when the created thread is
+finished will the pthread_join call complete. So we
+can be sure that Done will be printed last.
+
+## X05-072: Ref Multithreaded Programming - What Will the Output be Question ##
+
+Let's take a look at another example program. Look at the program carefully and
+tell me what its output will be.
+Will this program create a segmentation fault? Will
+it print out null the empty string? Will it print out a message from
+the created thread? Or will it complain
+about how a joinable thread is not joined?
+
+## X05-073: Ref Multithreaded Programming - What Will the Output be Answer ##
+
+The answer is null. The program creates a second thread but this thread first
+sleeps. Hence we can count on the main thread printing out the current value of
+msg which we had just set to null. And then we can also count on
+exiting and terminating the whole program before
+the thread_proc call here gets to do anything.
+
+## X05-074: Ref Multithreaded Programming - Thread Patterns ##
+
+Threads can have many different relationship patterns. For much of the rest
+of the unit we will look at an example of the producer
+consumer pattern. Before going into that however I want to put it
+in context by taking a broader view of possible thread relationships. To
+give our thread something to do we'll imagine that we are servicing
+some requests that come through a queue. In the team model we
+have a pool of worker threads that all look in the queue
+fetch the next request and service it. This idea of a worker pool
+is common to many patterns. The costs of creating a new
+thread are fairly high so rather than spending time creating and
+destroying threads applications will simply let the threads wait around until
+there is work for them to do. A model similar to
+the team model is the dispatcher model. Here instead of having
+a whole team of threads constantly looking at our queue and
+possibly creating some contention we have a single dispatcher thread looking
+at the queue. He finds an available worker and passes the request
+off to the worker to be serviced. Instead
+of dividing up the work by requests it's also
+possible to divide it up by subtask. This is
+the strategy employed in the pipeline model. One thread
+DQs a request does part of the work
+and then passes it on to another thread who
+does part of the work passes it on etc.
+So all three of these models are commonly used.
+
+## X05-075: Ref Multithreaded Programming - Producer Consumer Pattern ##
+
+One of the most common design patterns for multithreaded applications is
+the producer consumer model. This can be viewed as a special case
+of one of the models discussed before if you like. To
+motivate our discussion we'll use a
+tracking application. Here's our camera. Maybe
+it's monitoring the number of people on a subway platform to
+help route trains or something like that. You can then break the
+computation down into two pieces. One is to get the picture
+from the camera into the memory. We'll call this the producer task.
+And the other task is to analyze the picture to figure
+out where all the people are and pass this information on to
+the training planner or whoever may need it. We'll call this the
+consumer task. Now for this scenario suppose the images are available from
+the camera every 33 milliseconds. We want to get all of them
+so we're going to have a thread whose job is just to copy
+the frame from the camera into computer memory. And let's say that
+the image processing to find the people is variable taking somewhere between
+20 and 40 milliseconds. But on average less than 33. If
+it were more than 33 we could put more consumer threads here
+to do the work. Because of the variability in the time
+it takes to process the image we need a place in which
+to store images that our consumer thread is not yet ready
+to handle. And for this we use a ring buffer. Each division
+here represents memory for our frame from the camera. The ones that
+haven't been consumed yet I've colored in red. Now we should imagine
+the producer and consumer threads chasing each other around this ring
+with the producer one writing frames making them red and the consumer
+one running behind turning them back to white. That is empty
+or processed. Though of course the consumer will never pass the producer.
+
+## X05-076: Ref Multithreaded Programming - What is the Problem With This Code Question ##
+
+We'll start with a naive attempt to implement our tracking
+application. This digitized procedure here
+represents the producer method and the
+tracker is the consumer one. This if statement is intended
+to stop the digitizer from wrapping all the way around the
+queue and overriding a frame before the tracker has had
+a chance to process it. This if statement is intended to
+stop the tracker to work all the way around the
+queue to a frame it has already tracked again. Try to
+see if you can find the problem with this code. Is it that we
+can't write to the same memory more than once in a threaded program? Is
+it that the threads will go into an infinite loop? Is it that this
+bufavail isn't updated atomically? Or is it
+that each thread has its own bufavail variable.
+
+## X05-077: Ref Multithreaded Programming - What is the Problem With This Code Answer ##
+
+The answer is c. We are indeed allowed to write
+to memory more than once in a threaded program so its
+not that. The threads will indeed go into an infinite
+loop but that's intentional. We want our tracker to run continuously.
+Actually since bufavail is a global variable it's shared among
+the threads. So that eliminates this option. The real problem is
+that bufavail might get out of sync. Going back to the
+code observe that these two lines might get executed at about
+the same time. Our fear is that something
+like the following might happen. The Incrementing line might
+take the value currently in memory 3 load
+it up but then gets suspended. And then control
+goes to the Decrementing line which loads the
+value 3 into memory and then decrements it turning
+that value in the CPU register here to 2.
+And then copying that back to memory making this
+2 as it should be and when the increment
+finishes it should restore it back to 3. But it
+doesn't because it's already done its load. So instead when
+it goes to do its increment it changes the value
+to 4 and then writes that value into memory meaning
+that we have a value one higher here than we
+should. And as you can imagine this might through our
+queue out of sync if this happened too many times.
+
+## X05-078: Ref Multithreaded Programming - Mutex Lock ##
+
+Now in real life if I want to keep other people
+from taking my things or messing with things they shouldn't I use
+a lock to stop them. In threaded programming we use a
+similar concept to protect memory. Let's say that inside some procedure there's
+a block where I manipulate some data in our example the
+variable a. And I need to be sure that no other thread
+touches this variable while I am working on it. Whether executing
+this procedure or another one. Well then I can declare a lock
+variable which should reside in shared memory and put
+the lock on before I have it do my manipulation
+and unlock it afterwards. And I should do the
+same wherever I manipulate this variable a. If some other
+thread running this code simply accesses the shared resource
+without using the lock it won't be able to stop
+him. But if he does try to acquire the lock
+first then this call to mutex lock will block until
+the lock variable shows that has been unlocked. And
+only then will this code proceed. And of course if
+the schedule had worked things out so that this call
+had been called first then he would get the lock.
+And this call to acquire the mutex lock would block
+until this data manipulation was finished and the mutex variable
+had been unlocked. And this way the threads are able
+to mutually exclude each other from using resources hence these
+are called mutex locks.
+
+## X05-079: Ref Multithreaded Programming - Which Thread is Running Question ##
+
+A section of code that shouldn't be executed
+by more than one thread is called critical.
+This diagram shows the states of four threads
+running a single process all running the same code
+with the green arrow indicating the line of
+control that is where the tread is in
+it's execution. The boxes denote the critical sections.
+Check the treads that could be running right now.
+
+## X05-080: Ref Multithreaded Programming - Which Thread is Running Answer ##
+
+And the answer is all of them expect the one that
+is right before the critical block. This first one is in
+the middle of the critical section so he's running. This next
+one is before the critical section so he has some work to
+do before he needs to stop. This third one is past
+the critical section so he's fine continuing on. Only this fourth
+one only for him would the next statement to execute be
+in this critical section. So only he needs to pause and wait
+for this first thread to finsih the critcal
+seciton so that he can then enter it.
+
+## X05-081: Ref Multithreaded Programming - What is Wrong With This Program Question ##
+
+Let's use this new knowledge to add mutual exclusion
+to our digitizer tracker program. Hopefully now we won't
+have the same problem but before were we could
+end up reading from a frame that was only
+half filled with the data we wanted because bufavail got out of sync. So we'll
+create a new mutex lock variable. And we will set
+this lock Before we do our manipulation and unset it afterwards.
+We'll do that both in the digitizer part and then also in the tracker part.
+What's wrong with this program? Does it not have any concurrency? Will we end
+up with deadlock where there's no thread to run? Is it that two threads cannot
+use the same lock? Or is it that two procedures cannot use the same lock?
+
+## X05-082: Ref Multithreaded Programming - What is Wrong With This Program Answer ##
+
+The answer is that the program doesn't
+have any concurrency. The two threads can't run
+at the same time anymore. One of them will always be able to run so there's
+no dead lock. And of course two threads can use the same block. That's kind
+of the whole point and two procedures can
+too as we've seen in a previous example.
+
+## X05-083: Ref Multithreaded Programming - What is Wrong With This 2nd Program Question ##
+
+We do have a major problem with concurrency. The
+lock makes essentially the whole body of the code critical
+while the digitizer is doing his work the mutex
+lock will prevent the tracker from doing his work and
+similarly while the tracker is doing his work the
+lock will prevent the digitizer from doing his work. All
+parallelism is lost. Okay okay. So we put too much
+code in the critical section. Remember that our original problem
+arose when both threads were trying to modify bufavail. If we're
+able to stop that then we achieve mutual exclusion on the
+buf frame array. Let's just try putting the lock around our
+changing and accessing of the bufavail variable. What's wrong with this program?
+
+## X05-084: Ref Multithreaded Programming - What is Wrong With This 2nd Program Answer ##
+
+This time the answer is dead lock. We now have
+the potential for all the threads could be waiting for
+a condition that will not happen. Specifically if the tracker
+were to find that bufavail were equal to MAX then the
+thread would stage in this loop waiting for bufavail to
+change. But it wouldn't be able to change because the other
+thread is waiting for it to give the lock back.
+It might be stuck on this mutex lock call right here.
+
+## X05-085: Ref Multithreaded Programming - How to Solve the Problem ##
+
+One way to solve the problem is to simply stop using the
+mutext lock on the while statement. This sets off something called the sync
+race where one thread is quickly reading a variable and a while loop
+or spinning on it as it waits for another thread to change the
+value of a variable. Because the spinning thread is just checking the
+valuable of a variable over and over. It can't possibly interfere with anything
+the other thread is doing. So we can be reasonably confident this is
+correct. This turns out to be a fine way for threads to communicate
+this sync race that is. Actually if
+this spinning thread has its own processor or
+core to run on then it will resume its execution very quickly which can be
+a good thing. However if processing time
+is at premium then all this spinning is
+just wasted. Hence the motivation for another
+important feature of thread libraries conditional wait variables.
+
+## X05-086: Ref Multithreaded Programming - Mutex vs Synchronization ##
+
+Before talking about conditional weight variables I want to make a
+distinction between mutual exclusion and
+synchronization. Mutual exclusion as we
+have seen is about preventing two threads from accessing a
+resource often a piece of memory at the same time
+regardless of exactly where they are in their execution. For
+example if Thread 1 is accessing this memory then the
+lock should block Thread 2 from accessing it or vice
+versa. If Thread 2 is accessing the piece of memory then
+the lock should block Thread 1 from accessing it. Synchronization
+by contrast is about controlling where the threads are in
+the flow of their executions. For instance it might be
+important that Thread 1 completes some task A before Thread 2
+can start task B. In effect we want the message
+that A happened to get sent to thread B. Mutual exclusion
+and synchronization are related. But it is important as a
+program to know which of these goals you are after so
+that you can use the right constructs.
+
+## X05-087: Ref Multithreaded Programming - Conditional Wait Variables ##
+
+Most simply conditional wait variables allow you to take one thread
+off the scheduling que until there is a signal from another
+thread that it should be put back on. This is useful
+if we don't want one thread to continue it's work until
+the work of another thread is finished. To give an example
+let's oppose that we have a thread A over here and
+a thread B over here. Thread B wants to stop until
+thread A's work is done. Now to use a conditional weight variable
+we need three things. A variable indicating whether the
+work is done or some other condition that can be
+tested in memory. A lock that we can apply to
+this variable... And a special conditional wait variable. Now after
+finishing the work thread A is going to acquire the
+lock change is_done to true and then send a signal
+to anyone waiting on this condition a signal that they
+should wake up and then he'll unlock the lock. Thread
+B for his part will first acquire the lock and
+then check if the work is done. If it isn't
+he will wait. Now it's important that this cond-wait not
+only makes thread B wait but it also unlocks a mutex.
+This will allow thread A to acquire the lock and
+eventually send the signal. The call blocks until the signal
+is received and thread B acquires the lock again. Hence
+the need to unlock it at the end of the code.
+At first this might seem unnecessarily complicated. Why do we need
+this if statement before the cond_wait procedure call for instance? Well
+if it weren't there then it's possible that the signal will
+have already come and we would never see it. So it's important
+to check that there's something to wait for before you actually
+wait. Given that there is such a condition to check We better
+also have a lock for it. Otherwise we might decide that
+we need to wait. But before we actually execute the wait function
+the signal might come. And of course the
+cond-wait method had better unlock the mutex. Otherwise
+thread A would never be able to acquire
+and change the condition that we're waiting on.
+
+## X05-088: Ref Multithreaded Programming - Returning to Digital Tracker ##
+
+Returning to our digital tracker remember that we were still left
+with the problem of busy waiting. We were wasting CPU cycles just
+waiting for another thread to change the value of the variable.
+We're going to solve this problem by creating an additional weight variable. So
+the code will look like this. Instead of having a wow
+loop and whether the condition is met that does nothing the wow
+loop now makes a call to cond_wait. CPU's cycle save. The
+second thing to notice is that the new text variable is back
+and it gets passed in along with the conditional
+wait variable into the cond_wait procedure. We do this
+because we want to make sure that the condition
+in this while loop still holds when we put the
+thread onto the wait variable Q. The nightmare scenario
+is that in between this check and the call to
+cond_wait another thread changes the condition and sends the
+signal. Then we could be waiting for a signal that
+might never come. So it's a good practice to lock
+variables that might cause the condition to change before you
+make the cond_wait call. The cond_wait method itself puts the
+active thread on a waiting queue and then unlocks the
+new text so that another thread can change the condition
+we are waiting on. When the conditional signal comes the
+method then reacquires the box before returning that's why we
+need to unlock it again down here. Now somewhat surprisingly
+we need to recheck our waiting predicate that is is bufavail
+equal to zero again before moving on. That's why we have
+the while statement here instead of an if. The reason for
+this is that we might not have been the first thread to
+acquire the lock. Another thread might have acquired it first and
+changed back the condition to something where we would need to
+wait again. In this digitizer example I guess maybe that would
+be another tracker. Putting this in a while loop so that we
+recheck the predicate after the signal comes is called rechecking the predicate.
+
+## X05-089: Ref Multithreaded Programming - Program Analysis ##
+
+Now let's make sure that this program has all
+the properties we want. Namely concurrency absence of deadlock and
+mutual exclusion of the important shared memory. Does it
+have concurrency? For this we just need to convince ourselves
+that the critical sections of the code are short.
+This critical section here is just decrementing a variable and
+sending a signal. Not much work to be done there.
+And the tracker does the analogous thing. So we're okay
+on that front. The top two blocks just this one
+and this one these just check the condition and then
+call the wait procedure. And then they immediately unlock afterwards.
+So this also is short. Okay so let's check off
+concurrency. The absence of deadlock we can convince ourselves that
+both threads are never blocked. We can see that the
+mutex_lock can't be responsible for a deadlock because both the
+producer and consumer give up the lock writing after acquiring
+it just as we argued about concurrency. There
+isn't much work to be done here. Nor is
+there much going on up here. It's just a
+matter of checking the value of the bufavail variable.
+That leaves the possibility that we get blocked
+on one of these cond wait calls. Let's suppose
+that a digitizer is blocked on this line. Because
+he's waiting for bufavail to be greater than zero.
+Let's suppose that the digitiser is blocked because
+he's waiting for a signal saying that bufavail is
+greater than zero. We know that right after condwait
+was called bufavail was zero. Remember we had the
+lock at the time. This means that the tracker
+can't possibly be blocked on its wait because that
+would imply that bufavail were equal to max. We
+also know that our digitizer unlocks the newtext variable.
+Again that's part of the cond wait call.
+Hence our tracker can't be blocked on this while
+he tries to acquire the lock either. Eventually
+the tracker will get around to incrementing bufavail and
+then sending the signal back to the digitizer
+thread. And so we can be confident that eventually
+this signal will arrive and we'll exit this procedure.
+The argument is analogous if we suppose that the
+tracker is waiting on cond wait. That means
+the digitizer will be able to make progress and
+eventually decrement bufavail and send the signal. Alright so
+hopefully we've convinced ourselves that there's no deadlock. Lastly
+we want to convince ourselves that we have achieved
+mutual exclusion of the necessary shared memory. Well the
+use of this mutex box around all the accesses
+and rights to bufavail should convince ourselves that we
+don't have a race there. That leaves the frame
+buff variable. But the logic of the program that is
+the logic of the ring buffer that we talked about
+earlier prevents the head from ever catching up with the
+tail or vice versa as they chase each other
+around the ring buffer. In fact that's the whole point
+of the buff avail variable. So mutual exclusion is achieved
+and our program has all three properties that we desired.
+
+## X05-090: Ref Multithreaded Programming - Conclusion ##
+
+Phew some of that was pretty technical but if you
+followed along you now have a solid understanding of the
+semantics of threaded programming. You are now familiar with the
+notions of joinable and detached threads locks synchronization and many
+of the details of the p threads library. Of course
+you will learn much more if you get involved in
+developing an application that uses threaded programming but now at
+least you have a good foundation to start from. Happy programming.
+

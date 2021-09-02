@@ -1,130 +1,118 @@
-## L02c: The Exokernel Approach ##
+## L02c-074: The Exokernel Approach - Exokernel Approach to Extensibility ##
 
-### All Links
-
-Udacity: https://classroom.udacity.com/courses/ud189
-Playlist 01: https://www.youtube.com/playlist?list=PLAwxTw4SYaPkKfusBLVfklgfdcB3BNpwX
-Playlist 02: https://www.youtube.com/playlist?list=PLAwxTw4SYaPm4vV1XbFV93ZuT2saSq1hO
-Playlist 03: https://www.youtube.com/playlist?list=PLAwxTw4SYaPk5-YaXFkWY4UXdv6pVdiYg
-Playlist 04: https://www.youtube.com/playlist?list=PLAwxTw4SYaPmfaiuzJcK3tNoeKlvRR990
-
-### Video 01
-https://www.youtube.com/watch?v=c7dYJvsT018&list=PLAwxTw4SYaPkKfusBLVfklgfdcB3BNpwX&index=75
-
-Having seen SPIN's approach to extensibility, now we will look at Exokernel's
+Having seen SPIN's approach to extensibility now we will look at Exokernel's
 approach to operating system extensibility. The
-name, Exokernel, itself comes from the
+name Exokernel itself comes from the
 fact that the kernel exposes hardware
 explicitly to the operating system extensions
-living above it. The basic idea in Exokernel, is to decouple authorization
+living above it. The basic idea in Exokernel is to decouple authorization
 of the hardware from its actual use. let's say
 you want to do research in my lab. I
-may interview you, and once we're on the same
-page, I'll give you a key to the lab. And
+may interview you and once we're on the same
+page I'll give you a key to the lab. And
 the resources you need in order to do work
-in the lab. Mm, example, laptop, servers and so
+in the lab. Mm example laptop servers and so
 on. Then I get out of the way. When
-you actually use the resources, that's exactly the same idea
+you actually use the resources that's exactly the same idea
 in Exokernel. Library operating system asks for a resource. Exokernel will
 validate the request for the resource from the library. And bind the request
 to the specific hardware resource. In
-other words, Exokernel exposes the hardware
+other words Exokernel exposes the hardware
 that was requested by the Library OS through creating a secure binding between
 the ask and the actual hardware resource. Once Exokernel has established
-this binding, it creates an encrypted key for the resource, and gives it to
+this binding it creates an encrypted key for the resource and gives it to
 the requesting library operating system. Similar to the analogy that I gave
-you, of a student using my lab resources, the semantics of how the resource
+you of a student using my lab resources the semantics of how the resource
 is going to be used by the library is entirely up to the library.
-Of course, within the norm of accepted use, similar to what I may impose
+Of course within the norm of accepted use similar to what I may impose
 as certain restrictions or rules of behavior
 that students have to observe in the
-lab. Same way, there are certain accepted
+lab. Same way there are certain accepted
 norms for the user's resource that Exokernel may
 have imposed. And so long as the
-library operating system is staying within those norms,
+library operating system is staying within those norms
 then the semantics of how a particular
 hardware resource is used is entirely up to
 the library operating system. Once a library
 operating system has asked for a resource and
 Exokernel has created the binding for that
-resource to the requesting library operating system, then,
-the operating system is now ready to use the resource. Now, how does it use
-the resource? Basically, what the library operating
+resource to the requesting library operating system then
+the operating system is now ready to use the resource. Now how does it use
+the resource? Basically what the library operating
 system will do is present the encrypted key
-that is received, authenticating that use of
+that is received authenticating that use of
 the resource for this library to the Exokernel.
-In other words, Exokernel will be able
-to validate whether the key presented to it,
+In other words Exokernel will be able
+to validate whether the key presented to it
 is the key that was presented for this particular
-libraries operating system. So in other words, the key
-cannot be forged, cannot be passed around. If I
-gave a key to this library operating system, that
-key, if it is presented to the Exokernel by
-this library operating system, it's a valid key. Even
-if it's a valid key, but it is not
-the operating system to which Exokernel gave the key,
+libraries operating system. So in other words the key
+cannot be forged cannot be passed around. If I
+gave a key to this library operating system that
+key if it is presented to the Exokernel by
+this library operating system it's a valid key. Even
+if it's a valid key but it is not
+the operating system to which Exokernel gave the key
 then that request would be denied. So with
-a valid key, any time the library operating
-system can present the key to the Exokernel,
-Exokernel will validate it, and then, the library
+a valid key any time the library operating
+system can present the key to the Exokernel
+Exokernel will validate it and then the library
 operating system is free to go in using
 that resource for which it has this valid
 key. This is sort of like a doorman
-in an apartment building, checking when a resident comes
-in, whether the resident is a bona fide
-occupant of the residence. Once inside his apartment,
+in an apartment building checking when a resident comes
+in whether the resident is a bona fide
+occupant of the residence. Once inside his apartment
 what the resident does is not something that
 the doorman cares about. Exactly the same thing
 is being done by Exokernel as a doorman
 for using the hardware resource for which a
 valid key exists with a library operating system.
-So, establishing the secure binding is a heavy
-duty operation. That's where Exokernel comes in the middle of saying, well, this
+So establishing the secure binding is a heavy
+duty operation. That's where Exokernel comes in the middle of saying well this
 particular library operating system wants access
-to a specific resource, can I give
+to a specific resource can I give
 it? And it makes that decision. Once such a secure binding has been
-established, the actual use of the hardware is going to be much cheaper.
+established the actual use of the hardware is going to be much cheaper.
 
-### Video 02
-https://www.youtube.com/watch?v=hra4LX_xInk&list=PLAwxTw4SYaPkKfusBLVfklgfdcB3BNpwX&index=76
+## L02c-075: The Exokernel Approach - Examples of Candidate Resources ##
 
-You are thinking, wow this sounds tedious
+You are thinking wow this sounds tedious
 and not performance conscious if exokernel has to
-validate the key every time for the library to use it. Well, it depends on what
+validate the key every time for the library to use it. Well it depends on what
 we mean by a resource. Let's look at some examples. Here is an example of a
-candidate resource, a TLB entry. TLB entry is
+candidate resource a TLB entry. TLB entry is
 going to establish a mapping between a virtual
 page to a physical page. That mapping of the virtual page
-to the physical page is done by the library. Now, once the mapping has been done
-by the library, it presents the mapping to the exokernel along
-with capability of the key, the encrypted key that it has for a particular
+to the physical page is done by the library. Now once the mapping has been done
+by the library it presents the mapping to the exokernel along
+with capability of the key the encrypted key that it has for a particular
 TLB entry. Exokernel validates it and puts this
 mapping into the specific TLB entry of the hardware TLB. Now this is a
 privileged operation. Putting an entry into the
-hardware TLB, is a privileged operation. The
+hardware TLB is a privileged operation. The
 library operating system cannot do it by
-itself, because it doesn't have the same
-privilege as exokernel. And therefore, once that
+itself because it doesn't have the same
+privilege as exokernel. And therefore once that
 capability in the form of the encrypted key
 for this TLB entry is presented to
-exokernel, then exokernel, on behalf of that operating
-system, is putting that mapping that has
+exokernel then exokernel on behalf of that operating
+system is putting that mapping that has
 been established by the library operating system into
 the specific TLB entry of the hardware TLB. Once this entry has been put into
-the TLB, the process that is going to be using that virtual page, when it is
-running, can use this multiple times
+the TLB the process that is going to be using that virtual page when it is
+running can use this multiple times
 without exokernel intervention. So even though putting
 it into the hardware TLB require the intervention of exokernel because we are
-messing with hardware. Once that entry has been put in, that entry is
+messing with hardware. Once that entry has been put in that entry is
 on behalf of this library operating system.
-And processes of that library operating system,
-when they are running on the CPU, can
+And processes of that library operating system
+when they are running on the CPU can
 access the TLB. And do the translation any number
 of times because all of that is happening
-under hardware control and exokernel, of course, is not
-in the middle of any of that. So that gives you an idea of how, even though
+under hardware control and exokernel of course is not
+in the middle of any of that. So that gives you an idea of how even though
 we are seeing that in order to do certain
-things in the hardware, you need exokernel help for
+things in the hardware you need exokernel help for
 the library operating system. The normal use of a hardware resource is not
 going to be in any way affected by the fact that exokernel is in the middle
 between the hardware and the library operating
@@ -134,21 +122,20 @@ system wants to install a packet filter that
 needs to be executed every time a network packet arrives on behalf of a
 library operating system. Predicates for looking at
 this incoming packet are loaded into the kernel
-by the library operating system. Now, this
-is a heavy-duty operation, because you're doing
+by the library operating system. Now this
+is a heavy-duty operation because you're doing
 it with the help of exokernel. But
 once those predicates have been loaded into exokernel
-by the library operating system, on
+by the library operating system on
 every packet arrival exokernel will automatically check
 it using those predicates. So those are
 examples of candidate resources that tell you
 that establishing the binding may be expensive
-but using the binding, once established, does
+but using the binding once established does
 not incur the intervention by exokernal and
 therefore it can happen at hardware speeds.
 
-### Video 03
-https://www.youtube.com/watch?v=YmhHKWSe-GA&list=PLAwxTw4SYaPkKfusBLVfklgfdcB3BNpwX&index=77
+## L02c-076: The Exokernel Approach - Implementing Secure Bindings ##
 
 Now let's talk about the mechanisms that are there in Exokernel for
 implementing these secure bindings. There are three methods. The first method
@@ -159,16 +146,16 @@ being used by the display. These are all examples of specific hardware resources
 that can be requested by the library operating system and can be bound to that
 library operating system by exokernel. And exported
 to the library operating system as an
-encrypted key, and once the library operating
-system has the encrypted key for that resource,
+encrypted key and once the library operating
+system has the encrypted key for that resource
 it can use that any time it wants. The second mechanism that exokernel
 has is software caching on behalf of
-each library operating system, specifically the shadow
+each library operating system specifically the shadow
 TLB. Or caching the hardware TLB in a software cache for each library operating
 system is to avoid the context switch penalty when exokernel switches from one
-library operating system to another. Basically, what
+library operating system to another. Basically what
 will happen is that at the point
-of context switch, exokernel will dump the
+of context switch exokernel will dump the
 hardware TLB into a software TLB native
 structure that is associated with that specific
 library operating system. And similarly load the
@@ -186,44 +173,42 @@ once executed on behalf of it. I
 gave you the example of the packet filter earlier. So that's an example of
 downloading according to the kernel that needs
 to be executed on behalf of a particular
-guest operating system. And if you think about it, this idea of downloading code
+guest operating system. And if you think about it this idea of downloading code
 into the kernel is very similar to the spin idea of extending
 the kernel with logical protection domains
 that I created and dynamically linked in.
-Similarly, in the exokernel world, a library
-operating system can, if allowed by exokernel.
+Similarly in the exokernel world a library
+operating system can if allowed by exokernel.
 Securely download code into the kernel that will get executed under
 specific conditions that are laid down by the library operating system.
 
-### Video 04
-https://www.youtube.com/watch?v=4lb94N7U_Qw&list=PLAwxTw4SYaPkKfusBLVfklgfdcB3BNpwX&index=78
+## L02c-077: The Exokernel Approach - Exokernel vs Spin Question ##
 
 Time for a question. In exokernal we have this mechanism of downloading code
-into the kernel. Spin has a similar functionality, which is to extend
-logical protection domains. The question to you is, which one of these two
+into the kernel. Spin has a similar functionality which is to extend
+logical protection domains. The question to you is which one of these two
 mechanisms compromises protection more. Does spin
 compromise protection more? Or exokernal compromise protection
 more by this idea of either downloading code in into the kernel as is done
 in exokernal or extending spin using the logic and protection domain idea?
 
-### Video 05
-https://www.youtube.com/watch?v=MXw4i_-C0EU&list=PLAwxTw4SYaPkKfusBLVfklgfdcB3BNpwX&index=79
+## L02c-078: The Exokernel Approach - Exokernel vs Spin Solution ##
 
 The right answer is exokernel. Now so long as SPIN's logical
-protection remains, are entirely following modular
-three language enforced, compile time checking, and run time
-verification, there is no violation of protection In SPIN. But
+protection remains are entirely following modular
+three language enforced compile time checking and run time
+verification there is no violation of protection In SPIN. But
 we cannot say the same about Exokernel because it is arbitrary code
 that is being downloaded into the kernel
 by a library operating system and that's
 the reason that Exokernel may end up
 compromising protection more than the SPIN mechanism.
-But having said that, I should mention that it's not always possible to live
-within modular three enforced protection domains, even
+But having said that I should mention that it's not always possible to live
+within modular three enforced protection domains even
 in SPIN. Because we've seen that even
-in SPIN, in order to do certain things in the hardware, SPIN
+in SPIN in order to do certain things in the hardware SPIN
 may have to step outside the protection boundaries of
-modular three. In other words, a reality that exists with
+modular three. In other words a reality that exists with
 real hardware is that it's not always possible to do this within the
 confines of language-enforced protection domains.
 But if you just think in terms of the
@@ -231,123 +216,120 @@ logical protection domains as defined by SPIN as modular
 three objects. Those have strong guarantees of protection compared
 to arbitrary code that we can download into Exokernel.
 
-### Video 06
-https://www.youtube.com/watch?v=YNOFDc1mItc&list=PLAwxTw4SYaPkKfusBLVfklgfdcB3BNpwX&index=80
+## L02c-079: The Exokernel Approach - Default Core Services in Exokernel ##
 
-When we discussed spin, I mentioned that
+When we discussed spin I mentioned that
 memory management and CPU management are core
 services that any operating system has to
 provide; and we discussed how spin had its
 own way of dealing with those core services. We will do the same analysis
 for exokernel as to how it does
-memory management and CPU scheduling, first memory management.
+memory management and CPU scheduling first memory management.
 Specifically let's see how exokernel will handle a page fault incurred by
-a library operating system. So in this picture that I'm showing you, here is an
-application thread running, and maybe this
-application thread, belongs to a specific library
+a library operating system. So in this picture that I'm showing you here is an
+application thread running and maybe this
+application thread belongs to a specific library
 operating system and so long as this
-application thread is doing normal memory accesses,
+application thread is doing normal memory accesses
 where all its virtual addresses have been
 mapped to physical page frames. The thread is
 executing at hardware speeds on the CPU. Life is good. But life may not be
 always good. Because this thread my incur a page fault. And when it incurs a
-page fault, the page fault is first fielded
+page fault the page fault is first fielded
 by Exokernel. Exokernel knows which library operating system
-is currently executing on the CPU, it has no knowledge
+is currently executing on the CPU it has no knowledge
 of processes within a library operating system. All it knows
 is that this library operating system is doing something on
 the CPU... And it knows that there is a page
-fault incurred, and it can kick it up to the
+fault incurred and it can kick it up to the
 library operating system through a registered handler and we will
 talk about how these handlers are known to Exokernel later
-on. Right now, I just want to give you road map
+on. Right now I just want to give you road map
 of how a page fault is handled in Exokernel. Because the library operating
-system knows about processes, whereas Exokernel has
-no knowledge about that, and it services
+system knows about processes whereas Exokernel has
+no knowledge about that and it services
 the page fault. And servicing the page fault may involve requesting Exokernel
 for a page frame to host the specific page that is missing. And if it does
-that as we detailed before, that will involve
+that as we detailed before that will involve
 the library asking Exokernel for a page frame and
 Exokernel creating a binding for a page frame.
 And returning an encrypted key for the page frame.
 Assume for the moment that the library operating
 system has page frames already with it and all
 that it is doing at this point is
-in servicing the page fault, it establishes a mapping
+in servicing the page fault it establishes a mapping
 between the virtual piece that was missing and the page frame that contains
-the contents of the virtual page. Once it does that, that mapping between
+the contents of the virtual page. Once it does that that mapping between
 the virtual page and the frame that it corresponds to has to be presented
 to the Exokernel. So the library presents that mapping to the Exokernel
-along with the TLB entry, where it wants
+along with the TLB entry where it wants
 this mapping to be placed in the hardware
-TLB. Remember that, when the process runs the
-CPU is consulting the hardware TLB, to see if
+TLB. Remember that when the process runs the
+CPU is consulting the hardware TLB to see if
 there's a valid mapping between the virtual page
-number and a physical frame, so that the CPU
+number and a physical frame so that the CPU
 can go and access that page. And we
 got the page fault because the mapping did not
-exist, and the whole point of this
+exist and the whole point of this
 exercise is for the library operating system to
 reestablish a mapping. But it cannot do
-that directly into the TLB, so it presents
+that directly into the TLB so it presents
 a mapping to Exokernel along with the
 encrypted key that represents the capability that the
 library operating system has to a specific TLB
 entry where it wants this to be placed.
 Exokernel will validate the encrypted key presented by
-the library operating system, and assuming all is good,
-it will go ahead and install the mapping in the hardware TLB, and this is a, a
-privileged operation, meaning that it can be done
+the library operating system and assuming all is good
+it will go ahead and install the mapping in the hardware TLB and this is a a
+privileged operation meaning that it can be done
 only in the kernel mode of the processor. That's
 the reason that you have the red line between
 the library operating system that runs at the non-privileged
-level, and Exokernel that runs at the privileged level
-to do certain operations such as, installing an entry
+level and Exokernel that runs at the privileged level
+to do certain operations such as installing an entry
 into the TLB. And once the entry had be
-installed in the TLB, if the library operating system
+installed in the TLB if the library operating system
 is once again scheduled on the processor and if
 the same process is run by the library operating
 system when it generates the same virtual address we're
 going to find a valid mapping and life will be good.
 
-### Video 07
-https://www.youtube.com/watch?v=dTnYwWL1ymw&list=PLAwxTw4SYaPkKfusBLVfklgfdcB3BNpwX&index=81
+## L02c-080: The Exokernel Approach - Secure Binding ##
 
-Downloading code into the kernel and secure binding, how is this secure? This is
-a bit dicey. Here, the library operating system is given an ability to
+Downloading code into the kernel and secure binding how is this secure? This is
+a bit dicey. Here the library operating system is given an ability to
 drop code into the kernel. The rationale
-is purely a performance one. Namely, avoid
+is purely a performance one. Namely avoid
 border crossings. But obviously it can be
 a serious security loophole. Even in spin
 we've noticed that a core service may have to step outside the language
 enforce protection mechanism. In order to control
-hardware resources. Bottom line is, while both
-SPIN and Exokernel start out with the idea of allowing extensibility, they may
+hardware resources. Bottom line is while both
+SPIN and Exokernel start out with the idea of allowing extensibility they may
 have to necessarily restrict who will be allowed to do such extensions. Not any
 arbitrary user. It has to be a trusted set of users.
 
-### Video 08
-https://www.youtube.com/watch?v=iOHilSO9NzM&list=PLAwxTw4SYaPkKfusBLVfklgfdcB3BNpwX&index=82
+## L02c-081: The Exokernel Approach - Memory Management Using S TLB ##
 
 I mentioned software caching as a
 mechanism that's available in exokernel for establishing
 secure binding. And software TLB is one specific example of using the software
-caching idea. As we know, when we have a context switch one of the biggest
+caching idea. As we know when we have a context switch one of the biggest
 sources of performance loss is the fact that you're losing locality
 for the newly scheduled process. And since the
 address base occupied by this library operating system
 and this library operating system are necessarily completely
-different, when we switch from one library operating system
-to another, we have to flush out the entire TLB. And if we do that, when
-we run this other library operating system, it's
+different when we switch from one library operating system
+to another we have to flush out the entire TLB. And if we do that when
+we run this other library operating system it's
 not going to find any of its virtual addresses in
 the TLB. And that's a huge source of overhead and in order to mitigate that
-overhead, exokernel has this mechanism called software
-TLB. The idea is quite simple, the software
+overhead exokernel has this mechanism called software
+TLB. The idea is quite simple the software
 TLB is sort of a snapshot of the hardware TLB for each of the operating
-systems. So this software TLB, if a data
+systems. So this software TLB if a data
 structure in the exokernel that represents the mappings
-for operating system one. Similarly, this
+for operating system one. Similarly this
 data structure represents the mapping for library
 operating system number two. So let's
 say currently we're running library operating system
@@ -355,17 +337,17 @@ one. So the TLB entries correspond
 to valid mappings for library operating systems
 one. And let's say that exokernel decides
 to switch from this library operating system
-to this one. At that point, what exokernel
+to this one. At that point what exokernel
 will do is dump the TLB into the software
 TLB data structure it has on behalf of
-OS1. Actually not all of the TLB, but we'll
-get to that later on, some subset of
+OS1. Actually not all of the TLB but we'll
+get to that later on some subset of
 the TLB mappings will be dumped into this data
 structure. And let's say that we are switching from
 this library operating system to this library operating system.
-In that case, what exokernel is going to do is, it's going to pre-load the
+In that case what exokernel is going to do is it's going to pre-load the
 TLB with the software TLB data set that
-is associated with this library operating system. Essentially,
+is associated with this library operating system. Essentially
 what we are accomplishing is that when the
 library operating system starts running on the CPU
 it will find some of its mappings already
@@ -373,21 +355,20 @@ present in the hardware TLB. That's the idea
 in exokernel of having the STLB data structure
 associated with every library operating system to mitigate
 the loss of locality that happens when you
-do context switch, in terms of address translations.
-Of course, when the library operating system starts
-running, and it does not find a mapping
-for a virtual address in the TLB, at
-that point, exokernel is going to kick up that
+do context switch in terms of address translations.
+Of course when the library operating system starts
+running and it does not find a mapping
+for a virtual address in the TLB at
+that point exokernel is going to kick up that
 missing virtual page translation in the TLB as a page fault up into the
 library operating system and you'll get result exactly as we detailed earlier.
 
-### Video 09
-https://www.youtube.com/watch?v=BBDofKHNPZM&list=PLAwxTw4SYaPkKfusBLVfklgfdcB3BNpwX&index=83
+## L02c-082: The Exokernel Approach - Default Core Services in Exokernel Continued ##
 
 The second core service of course is CPU scheduling. And
-exokernel in order to facilitate this core service, maintains
-a linear vector of time slots. So, time is divided into these
-epochs T1, T2, T3 and so on, and every time quantum has a begin and an
+exokernel in order to facilitate this core service maintains
+a linear vector of time slots. So time is divided into these
+epochs T1 T2 T3 and so on and every time quantum has a begin and an
 end. And these time quantums represent the time
 that is allocated to the library operating systems
 that live on top of exokernel. And the
@@ -395,219 +376,215 @@ time quantum is bound by the begin end
 markers for each library operating system. Each library operating
 system gets to mark its time quantum at
 startup in this linear vector of time slots.
-So, for instance, OS1 may say that I get this time slot, I get this time slot,
+So for instance OS1 may say that I get this time slot I get this time slot
 maybe some of the time slot and so on.
-And similarly, OS2 marks its spots in the linear
+And similarly OS2 marks its spots in the linear
 vector time slots. So CPU scheduling in exokernel is
 essentially looking at this linear vector of time slots and
-asking the question, in this time quantum, which is
+asking the question in this time quantum which is
 the library operating system that should be running on the
 processor? And there is a start time for the
 time quantum. There's an end time for the time quantum.
-And Let's say, OS1 is now running on the CPU. When the timer interrupt goes
-off, at this endpoint, control is transferred
+And Let's say OS1 is now running on the CPU. When the timer interrupt goes
+off at this endpoint control is transferred
 by exokernal to the library operating system to
 do any saving that it has to do of the context. And the time that is
 allowed for a library operating system to do the saving and restoring of context
 at the point of a context switch is
-bounded. And if an operating system misbehaves, let's say
-that OS1, when exokernel says it's time for you
+bounded. And if an operating system misbehaves let's say
+that OS1 when exokernel says it's time for you
 to save your context and give back the processor
-to me so that I can schedule it,
+to me so that I can schedule it
 for some of the operating systems. And let's say
 OS1 takes more time than is allowed to at
-the point of this context, which, in that case,
+the point of this context which in that case
 what will happen is exokernel will remember that
 OS1 misbehaved And it will take time off of
 OS1 the next time it is scheduled. For there's
 a penalty associated with exceeding the time quantum. The
-time quantum is bound. During this time quantum, OS1
-has complete control of the processor, and exokernel is
-not going to get in the middle of it, unless
+time quantum is bound. During this time quantum OS1
+has complete control of the processor and exokernel is
+not going to get in the middle of it unless
 a process that is running on behalf of OS1
-incurs a page fault. In that case, exokernel has
+incurs a page fault. In that case exokernel has
 to come in the middle in order to field
 that page fault and pass it up to the
-operating system. And otherwise, during this time quantum, the operating
+operating system. And otherwise during this time quantum the operating
 system is entirely at liberty to use a processor
 for running whatever processes it wants to. At the
-end of the time quantum, the time integer goes
+end of the time quantum the time integer goes
 off. Exokernel feels it and kicks it up to the
 operating system and tells the operating system to clean up its act. Save
 any context it wants so that the CPU can be reallocated to the next library
-operating system. And that's where the time is bounded, as to how much time
+operating system. And that's where the time is bounded as to how much time
 the library operating system can take in order to do that saving of the context.
 
-### Video 10
-https://www.youtube.com/watch?v=t9Wt5R61J6Q&list=PLAwxTw4SYaPkKfusBLVfklgfdcB3BNpwX&index=84
+## L02c-083: The Exokernel Approach - Revocation of Resources ##
 
 Notice so far that Exokernel supports no extractions. It
 only has mechanisms for securely giving resources to the Library Operating
-System. And the resources may be a space resource, memory, time resource,
-or specific hardware resource like area of the graphic display, and
-so on. Therefore, exokernel needs a way of
+System. And the resources may be a space resource memory time resource
+or specific hardware resource like area of the graphic display and
+so on. Therefore exokernel needs a way of
 revoking or reclaiming resources that have been allocated
-to a library operating system. Of course, exokernel keeps
+to a library operating system. Of course exokernel keeps
 the scoreboard as to what resources have been allocated
-to different library operating systems. And therefore, at any
-point of time, it can revoke the resources that
+to different library operating systems. And therefore at any
+point of time it can revoke the resources that
 had been given to a library operating system. Sort
-of similar to a student working in my lab,
-if he or she graduates, I might say, well,
-it's time for you to return the key to the lab, and I have a way of revoking
-that resource that I may have given to a student for use in my lab. Similarly,
+of similar to a student working in my lab
+if he or she graduates I might say well
+it's time for you to return the key to the lab and I have a way of revoking
+that resource that I may have given to a student for use in my lab. Similarly
 exokernel has mechanisms for revoking resources from a
-library operating system. So specifically, for instance, if you
-think about the CPU, exokernel has no idea what
+library operating system. So specifically for instance if you
+think about the CPU exokernel has no idea what
 the library operating system is using the CPU for.
-As opposed to SPIN for instance, which
+As opposed to SPIN for instance which
 has an abstraction of strand that represents
 the user level that represents the library's
 notion of a thread. So exokernel has a
 revoke mechanism for exactly this purpose of
 revoking resources that have been allocated to a
-library operating system. And the revoke call,
+library operating system. And the revoke call
 which is an up call into the library
-operating system, is going to give this library
-operating system a repossession vector, saying these are the
-resources I'm taking away from you. For instance, it
-could say, you know, remember I gave you these
-page frames? Well, I'm going to reclaim those page
+operating system is going to give this library
+operating system a repossession vector saying these are the
+resources I'm taking away from you. For instance it
+could say you know remember I gave you these
+page frames? Well I'm going to reclaim those page
 frames. And when it gives those repossession vector to
-the library operating system, it is a responsibility of
+the library operating system it is a responsibility of
 the library operating system to do what it needs
 to do in order to clean up. In
-other words, the library takes corrective action commensurate with
+other words the library takes corrective action commensurate with
 the repossession vector that has been presented by exokernel
-to it. For example, if the exokernel tells this
+to it. For example if the exokernel tells this
 library that I'm going to take away page frame
-number 20 and page frame number 25 from you,
-then the library operating system will say, oh, in
+number 20 and page frame number 25 from you
+then the library operating system will say oh in
 that case I have to stash away the contents
 of those page frames into the disk.
 So that's the corrective action that the library
 operating system will have to take when it
 is informed by exokernel that some hardware resources
 that have been given to it have been taken away by exokernel. To make the life
-of the library operating system easier, exokernel also
+of the library operating system easier exokernel also
 allows a library to seed it with autosave
 options for resources that exokernel wants to
-revoke. So, in other words, if exokernel decides
-to revoke, let's say, some page frames
-from the library operating system, the library could
+revoke. So in other words if exokernel decides
+to revoke let's say some page frames
+from the library operating system the library could
 have seeded the exokernel ahead of time.
-That, any time you want to take away these
-page frames, dump it into the disk.
+That any time you want to take away these
+page frames dump it into the disk.
 And that kind of seeding allows the exokernel
 to do the work on behalf of the library
-operating system. So that, at the point of revocation, the
-amount of work that the library has to do, in
-order to do corrective action for the repossession, is minimal.
+operating system. So that at the point of revocation the
+amount of work that the library has to do in
+order to do corrective action for the repossession is minimal.
 
-### Video 11
-https://www.youtube.com/watch?v=MkYPlvc331Y&list=PLAwxTw4SYaPkKfusBLVfklgfdcB3BNpwX&index=85
+## L02c-084: The Exokernel Approach - Code Usage by Exokernel Question ##
 
 Time for a question for you. In this question
-I'm asking you, to give a couple of examples, of
-how downloading code, mechanism may be used by a library
-operating system. I already, explained to you the concept of
+I'm asking you to give a couple of examples of
+how downloading code mechanism may be used by a library
+operating system. I already explained to you the concept of
 this mechanism. The concept of this mechanism is of
 course the fact that a library operating system can say
 well here there's a piece of code. That I want
-you to run on my behalf, and present it to
-exokernel, so that it is now part of exokernel. Sort of increasing the code
+you to run on my behalf and present it to
+exokernel so that it is now part of exokernel. Sort of increasing the code
 base of exokernel by the downloaded code
 on behalf of that particular guest operating system.
 So this question is asking you to give a couple of examples. Of how
 you envision a library operating system may
-use this core downloading facility, provided by Exokernel.
+use this core downloading facility provided by Exokernel.
 
-### Video 12
-https://www.youtube.com/watch?v=hGFuIqzwuLM&list=PLAwxTw4SYaPkKfusBLVfklgfdcB3BNpwX&index=86
+## L02c-085: The Exokernel Approach - Code Usage by Exokernel Solution ##
 
 Here are a couple of examples. I'm sure
 that you may have thought of other examples
 as well. But packet filter is one thing
 that I mentioned already to you. And this
 is something that may be a critical component
-of performance for any operating system. And therefore,
+of performance for any operating system. And therefore
 it might install a packet filter for demultiplexing
 incoming network packets so that exokernel can hand packets
 intended for a particular library operating system by
 running this code on behalf of the library
 operating system. A second example would be things
 that a library would like exokernel to do on
-its behalf, even when it is not currently
-scheduled. For instance, a garbage collection mechanism for an
+its behalf even when it is not currently
+scheduled. For instance a garbage collection mechanism for an
 application is something that a library operating system
 may want to be run on behalf of it.
 And that's something that can be installed as a
 code that is downloaded into exokernel and executed on behalf
 of that library operating system. So these are all
-examples, you may have thought of other examples as well.
+examples you may have thought of other examples as well.
 
-### Video 13
-https://www.youtube.com/watch?v=0MB3fCvd6u4&list=PLAwxTw4SYaPkKfusBLVfklgfdcB3BNpwX&index=87
+## L02c-086: The Exokernel Approach - Putting it all Together ##
 
-So let's put it all together the mechanisms exokernel offers, and how
-library operating systems can live on top of this red line, that is the
-protection boundary for exokernel. And, meaningfuly
+So let's put it all together the mechanisms exokernel offers and how
+library operating systems can live on top of this red line that is the
+protection boundary for exokernel. And meaningfuly
 execute applications that belong to it on
-the hardware resources, and not interfere
-with one another. That is, achieve both
-extensibility, protection, and performance. So one of
+the hardware resources and not interfere
+with one another. That is achieve both
+extensibility protection and performance. So one of
 the hooks for getting good performance is what
-I mentioned earlier, and that is called
+I mentioned earlier and that is called
 that a performance critical for library operating system
 is something that can downloaded securely into
-the exokernel, so that piece of code becomes
+the exokernel so that piece of code becomes
 sort of the extension of exokernel. For a
 particular library operating system. This may be for
-OS one, this maybe for OS two and so on and so forth. So, now with this setup
+OS one this maybe for OS two and so on and so forth. So now with this setup
 at any point of time some application process of some library operating system
 is running on the CPU. Now remember that
 Exokernel has no idea about processes within any
 of these library operating systems. All it knows
 is existence of these library operating systems and
 the fact that Exokernel has been the broker in giving some hardware
-resources. Capabilities for some hardware resources,
-I should say, to specific library operating
-systems, and it has also been the broker for downloading some code specific to
+resources. Capabilities for some hardware resources
+I should say to specific library operating
+systems and it has also been the broker for downloading some code specific to
 library operating systems. Into the exokernel code base itself. Let's say that
 this particular thread belongs to this library
 operating system as long as this thread is
 well behaved by which I mean it's
 not doing anything funky. Doing normal program execution.
-Accessing memory. For which, mapping exists in
+Accessing memory. For which mapping exists in
 TLB and so on. Life is good. Address
 translation happens on every memory access entirely
-in the CPU, and the process is making
+in the CPU and the process is making
 forward progress at memory speeds without intervention
 from exokernel or any of the library
-operating system. But, there could be this
-discontinuities, in the execution of this process. For
-example, let's say that this processor thread
-makes a system call, like opening a file.
-When it does that, that is a
+operating system. But there could be this
+discontinuities in the execution of this process. For
+example let's say that this processor thread
+makes a system call like opening a file.
+When it does that that is a
 discontinuity in the normal execution of this process.
-Or worse yet, it may incur a page fault, meaning that not all of the pages
+Or worse yet it may incur a page fault meaning that not all of the pages
 for this particular process is currently In the
-mapping available to the hardware in the TLB, and
-therefore, there's a page fault. Even worse, this
-thread could do something stupid, such as divide by
-0, or something like that, that causes an
-exception. And lastly, the thread is not doing anything
-to cause the discontinuity, but there is an external interrupt that came in And
+mapping available to the hardware in the TLB and
+therefore there's a page fault. Even worse this
+thread could do something stupid such as divide by
+0 or something like that that causes an
+exception. And lastly the thread is not doing anything
+to cause the discontinuity but there is an external interrupt that came in And
 that is going to cause a discontinuity to this execution of this
 process on the CPU. All such discontinuities essentially
-result in the CPU incurring a fault or a trap, and
-the trap is fielded by exokernel. When such discontinuities occur,
+result in the CPU incurring a fault or a trap and
+the trap is fielded by exokernel. When such discontinuities occur
 exokernel has to pass the program discontinuity
 to the appropriate library operating system that is
-living on top of it. Now, exokernel knows, based on the linear vector of time
+living on top of it. Now exokernel knows based on the linear vector of time
 slots that I mentioned earlier Which library
 operating system is currently running on the CPU.
-And therefore, it knows the right library
+And therefore it knows the right library
 operating system to which it has to pass
 the discontinuity that occurred right now for the currently executing process.
 To facilitate a finer-grain association between these different kinds of
@@ -618,62 +595,61 @@ maintain state for each currently existing
 library operating system and we will discuss the state maintained
 by exokernel. On behalf of every library operating system next.
 
-### Video 14
-https://www.youtube.com/watch?v=Zg7KayZB-GM&list=PLAwxTw4SYaPkKfusBLVfklgfdcB3BNpwX&index=88
+## L02c-087: The Exokernel Approach - Exokernel Data Structures ##
 
 To facilitate the bookkeeping needed for the
 different types of program discontinuities that I
-mentioned, exokernel maintains the PE data structure
+mentioned exokernel maintains the PE data structure
 on behalf of each library operating systems.
-So for example, this PE data structure
+So for example this PE data structure
 corresponds to this library operating system. This
 B data structure corresponds to this library
 operating system. And the PE data structure contains
 the entry points in the library operating system for dealing with the different
-kinds of program discontinuities. For example,
+kinds of program discontinuities. For example
 exceptions that are thrown by the currently
 executing process has a specific entry
 point in the library operating system. And
-similarly, external interrupts are going to be
+similarly external interrupts are going to be
 handled by interrupt handlers that have specific
 entry points in the library operating system.
 And a process may make system calls and
-if it makes system calls, there is a
-protected entry context, which is the entry point
+if it makes system calls there is a
+protected entry context which is the entry point
 in a library operating system for system
 calls that are made by the currently running
 process that belongs to that specific library operating
 system. This last entry may correspond to the
 addressing context that is the location of
-the handler for page fault service the,
+the handler for page fault service the
 in the library operating system. So in
-a nutshell, this PE data structure that is
-unique for every library operating system, contains
+a nutshell this PE data structure that is
+unique for every library operating system contains
 the handler entry points for different types
 of events that are fielded by exokernel.
-In this sense, the PE and the associated
+In this sense the PE and the associated
 exokernel action of calling the appropriated handler
-entry point, when a particular event is
-triggered, is very similar to the event
+entry point when a particular event is
+triggered is very similar to the event
 handler mechanism that we discussed in the spin
 operating system. In addition to the PE
-data structure, we already mentioned the software
-TLB, that exokernel maintains on behalf of
+data structure we already mentioned the software
+TLB that exokernel maintains on behalf of
 every operating system. So this is in software
-TLB for OS1, software TLB for OS2 and
-these are what are called a guaranteed mappings. In other words, I mentioned
+TLB for OS1 software TLB for OS2 and
+these are what are called a guaranteed mappings. In other words I mentioned
 that on a context switch exokernel when it goes from one operating system to
-another, it saves the current TLB in the hardware,
+another it saves the current TLB in the hardware
 the hardware TLB in the software TLB that is associated with
 this particular operating system. And here is
 where this entry point is important. This
 actually is specifying to exokernel the set
 of guaranteed mappings that a particular library
 operating system wants exokernel to maintain on
-its behalf, every time it is scheduled.
+its behalf every time it is scheduled.
 And that's the set of TLB entries that are dumped into the software TLB
 data structure at the point of a context
-switch. Not all of the hardware TLB entries, but
+switch. Not all of the hardware TLB entries but
 only the entries that have been guaranteed to
 be kept on behalf of a particular operating system
 are dumped into a software TLB data structure.
@@ -681,10 +657,10 @@ And those are the ones that will be repopulated
 into the hardware TLB when the same operating
 system is scheduled on the hardware. I mentioned an
 external interrupt is another source of discontinuity
-for the currently executing process. Well, note that
+for the currently executing process. Well note that
 an external interrupt may not always be
 for the currently scheduled operating system. It may
-be for some other operating system, maybe
+be for some other operating system maybe
 this operating system scheduled a disk IO. And
 the disk IO got complete. And that interrupt
 that came into exokernel is on behalf of
@@ -693,55 +669,55 @@ for this operating system. Exokernel has to
 have a way of associating the interrupt
 that is coming in with a correct
 operating system which is expecting it. Downloading
-code into the kernel, which I mentioned
-as one of the mechanism that exokernel provides,
+code into the kernel which I mentioned
+as one of the mechanism that exokernel provides
 allows first level interrupt handling on behalf of a library operating system.
 
-### Video 15
-https://www.youtube.com/watch?v=MVIbgLUUWtk&list=PLAwxTw4SYaPkKfusBLVfklgfdcB3BNpwX&index=89
+## L02c-088: The Exokernel Approach - Performance Results of Spin and Exokernel ##
 
 Systems research is 1% inspiration and 99% perspiration. The only way
-to convince someone of your ideas is to build a system and evaluate it. Now, how
+to convince someone of your ideas is to build a system and evaluate it. Now how
 do you go about evaluating a system such as Spin or ExoKernel? You
 can qualitatively argue that you're achieving extensibility
 without sacrificing safety. Simply by the way
 the system is constructed. But you also have to show that you're not losing
-out on performance, due to the extensability
+out on performance due to the extensability
 hooks. There's an interesting dilemma when you're
 reading research papers. How do you make
 sense out of the quantitative results from
 a data research paper? When you research
-papers, remember that absolute numbers are meaningless.
+papers remember that absolute numbers are meaningless.
 It is the trends that are meaningful. While doing any performance study of a
-new system that you're proposing, you have
+new system that you're proposing you have
 to identify what the competition is. Remember
 that spin and exokernel were done in the early to mid 90s. For spin
-and exokernel, the competition is a monolithic
+and exokernel the competition is a monolithic
 operating system and a microkernel based operating system.
 And the competition at that time for both Spin and exokernel was UNIX as
-a monolithic example, and Mach [INAUDIBLE] as
+a monolithic example and Mach [INAUDIBLE] as
 a micro kernel example. And the performance
-questions always center around space and time. For example,
-how much better timewise, is the extended
-kernel, whether it is a spin approach or exokernel approach, compared to
+questions always center around space and time. For example
+how much better timewise is the extended
+kernel whether it is a spin approach or exokernel approach compared to
 a microkernel-based approach in terms of performance.
 And since we know an extended kernel may
 have to incur loss of locality and
 border crossing overhead and so on compared to
-a monolithic kernel, another question that we
-may want to ask is, is the extended kernel
+a monolithic kernel another question that we
+may want to ask is is the extended kernel
 at least as good as a monolithic kernel? What is the code size of implementing a
-standard operating system, say Unix, as a
-monolithic operating system, or a micro kernel based
+standard operating system say Unix as a
+monolithic operating system or a micro kernel based
 operating system or an extended kernel operating system.
-So that's a space question. And so, we
-can have time questions, as well as space questions when we propose a new way of
+So that's a space question. And so we
+can have time questions as well as space questions when we propose a new way of
 doing any particular system component. I encourage you
 to read the performacne results in the papers.
 Key take away that you will see when you read the performance results reported
-by both SPIN and exokernel, is that they do much better than Mach, microkernel.
-For protected procedure call. That is, when you go from one protection domain to
-another, how well are you doing? For
-that, both SPIN and exokernel exceed the performance
+by both SPIN and exokernel is that they do much better than Mach microkernel.
+For protected procedure call. That is when you go from one protection domain to
+another how well are you doing? For
+that both SPIN and exokernel exceed the performance
 of Mach. And you also see that both SPIN and exokernel
 do as well for dealing with system calls as a monolithic kernel does.
+

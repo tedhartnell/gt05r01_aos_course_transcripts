@@ -1,0 +1,549 @@
+## L04a-149: Shared Memory Machines - Shared Memory Machine Model ##
+
+In this day and age parallelism has
+become fundamental to computer systems. Any general purpose
+CPU chip has multiple cores in it.
+Every general purpose operating system is designed to
+take advantage of such hardware parallelism. In
+this unit we will study the basic algorithms
+for synchronization communication and scheduling in a
+shared memory multiprocessor. Leading up to the structure
+of the operating system for parallel machines.
+We'll start today's lecture with a discussion
+of the model of a parallel machine. A shared memory multi-processor or a shared
+memory machine we can think of three
+different structures for this shared memory machine.
+The first structure is what we call a dance hall architecture and a dance
+hall architecture is one in which you have CPUs on
+one side and the memory on the other side of an
+interconnection network and let me say something that is common
+to all the three structures that I'm going to describe to
+you. The common things are that in every one of
+these structures there's going to be CPUs and there going to be memory
+and there's going to be an interconnection network. And the key
+thing is it's a shared memory machine. What that means is
+that the entire address space defined by the memories is
+accessible from any of the CPUs. So that's one common
+thing that you see in all the three styles that
+I'm going to talk to you about. And in addition to that
+you'll see that there is a cache that is associated
+with each of these CPUs. So there's a Dance Hall
+Architecture. And the next style is what is called an
+SMP architecture or a Symmetric multiprocessor. Here what you see is
+the interconnection network hat I showed you from the
+dance hall architecture. I simplified it considerably showing a
+simple bus. A system bus that connects all the
+CPU's to talk to the main memory. And and
+it is symmetric because the access time from any
+of the CPUs to memory is the same. And
+that's the idea of the system bus that allows
+all of these CPUs to talk to the main memory.
+The other thing that you'll notice that I already
+mentioned is that every CPU comes equipped with a
+cache and we'll talk more about the shared memory
+machine the caches in a minute. So the third style
+of architecture is what is called a distributor shared
+memory architecture. So in this distributor shared memory architecture what
+you have or DSM for short is that. You
+have memory and a piece of memory that is associated
+with each CPU. At the same time each CPU is able to access all of
+the memories through the interconnection network. It
+is just that the access to memory that
+is close to this guy is going to be obviously faster than trying to access
+memory that is farther from here that
+has to be accessed from the interconnection network.
+
+## L04a-150: Shared Memory Machines - Shared Memory and Caches ##
+
+Now let's start discussing shared memory and private caches.
+And in order to simplify the discussion what I've
+done is I'm using the simplest form of the
+shared memory machine that I told you about. That is
+an SMP where there's a single system bus that
+connects all these processes to talk to the main
+memory. Now cache that is associated with the CPU
+Serves exactly the same purpose in a multiprocessor like this
+as it does in a uniprocessor. And that is the CPU
+when it wants to access some memor memory location of course it
+is going to go to the cache and see if it
+is there. If it is there life is good it can get
+it from the c from the cache. If it is not
+in the cache then it has to go to the main memory.
+And fetch it from main memory and put it into the cache
+so it can reuse it later and that's the purpose that cache
+performs in a uniprocessor. In a multiprocessor
+performs exactly the same function as in
+a uniprocessor. By cacheing data that is
+pulled in or instructions that are pulled
+in from memory into the cache so that CPU can re-use it later. When
+cache in a multiprocessor associated with each
+of these CPUs performs exactly the same role.
+As it does in [UNKNOWN] process. And that is if the CPU
+goes to main memory and pulls in some data it's going to come
+and sit in the cache. So obviously when the CPU is looking
+for something first it is going to come and look at the cache.
+If it is not there it's going to go to main memory. And
+fetch the data and put it into the cache so that in
+the future the CPU doesn't have to go to the main memory
+but get it from the cache itself. That's the purpose of the cache
+in a uni-processor. Exactly the same purpose a
+cache performs in a multiprocessor as well. However
+there's a unique problem with a multiprocessor. The
+fact that there are private caches associated with
+each one of these CPUs and the memory
+itself is shared across all of these processors.
+Let me explain that. Let's say that there's
+a memory location y that is currently in the
+private caches of all the processors. Well maybe y
+is a hot memory location so all the processes
+happen to fetch it and therefore it is sitting
+in the private caches of all the processes. Let's say
+that process P1 decides to write to this memory
+location y now y is changed to y prime.
+Now what should happen to the value of y
+that is sitting in all the p caches. And clearly
+you know in a multiprocessor a multi-threaded program there
+could be a shared data structure that is being
+shared with all the processors. And therefore if this
+guy writes to a particular memory location it is possible
+that that same memory location is in the private
+caches of the peers. So this is referred to as
+the cache coherence problem. Now someone has to ensure
+that if at a little point of time if process
+of p two or p three or any of these processes that happen to have this
+memory location y in the private caches decide
+to access it. They should get y prime and
+not y. Now who should ensure this consistency?
+Here again there's a partnership between hardware and
+software. In other words the hardware and software
+have to agree as to what is called the
+memory consistency model. That is this memory consistency
+model is a contract between hardware and software
+as to what behavior a programmer can expect
+writing a multi threaded application running on this
+multiprocessor. An analogy that you may be familiar
+with is a contract between hardware and software.
+If you just think about a uniprocessor if
+you think about a uniprocessor. There's a compiler
+writer that knows about the instruction set provided by
+the CPU. And the architect goes and builds a
+CPU and he has no idea how this instruction
+set is going to be used but there is an
+expectation that the instruction set the semantics of that
+instruction set. Is going to be adhered to in the implementation
+of the processor. So that the compiler writer can
+use that instruction set in order to compile high level
+language programs. Similarly when you're writing a multithreaded
+application you need a contract between the software
+and the hardware as to the behavior of
+the hardware when. Processors are accessing the same
+memory location. And that is what is called
+the memory consistency model. And what we're going
+to do now is in order to get your creative juices flowing I'm going to ask you
+a question.
+
+## L04a-151: Shared Memory Machines - Processes Question ##
+
+Let's say that initially you've got through
+two memory locations a and b and both
+these memory locations have been initialized to
+zero. And let's say that there are two
+processes executing on two different processes P1 and P2 and so a and b c
+and d they're all shared memory locations.
+And let's say that process P1 is executing
+this piece of code. It's assigning a + 1 to a b + 1 to b and there is another
+process P2 that is using the values b and a and assigning them
+to variables d and c. Now one thing you have to recognize is that the process
+of P1 and process of P2 are working
+completely independently right? They're completely independent of each other.
+It is just that these memory locations a b c and d are all shared memory
+locations. And but we have no way of
+knowing the relative ordering of all of these instructions
+that we're seeing here. When you think about
+a uniprocessor program there is an expectation that instructions
+are textually the way they're ordered is the
+order in which the processor is executing. But what
+we're looking at is instructions that are happening on
+different processes. There's a set of instructions here. Set
+of instructions here. All manipulating the same shared memory.
+So the question to you is what possible values
+do you expect to see for d and c? Do you expect that when let's say that you
+know process P1 completes process P2 completes. We don't
+know what order they executed. Both have completed executions.
+At the end of that would you expect to see c and d to be equal to 0
+c and d to be both equal to 1 c to be equal to 1 and d to be equal to
+0 c to be equal to be 0 and d to be equal to 1 okay? Basically I've given
+you all the permutation combinations of the four possibilities for
+the values that c and d can assume. Given this
+set of instructions that is happening partially on P1 partially on P2.
+
+## L04a-152: Shared Memory Machines - Processes Solution ##
+
+Now let's talk through what possible values d and
+c can have. You may have picked several of
+these choices but it is okay you know whatever
+you picked it's okay. Let's talk through these different choices
+to see what are possible given this set of
+instructions and the fact that. Processing speed one and
+speed two are executing independently on two different processors
+and we have no way of knowing what is going
+on with the shared memory. Now the first possibility is that these two
+instructions assignment of a B to D and C to A they happen. In time
+order before any of these instructions executed.
+That's possible because if these shared memory
+accesses happen before these guys they're responsible
+that both of these instructions are executed before
+any of these instructions executed. In that case what you would get into DNC
+are the old values of a and b namely zero. The second possibility is that
+the both these instructions that is executed on P2 they're
+executed after both the instructions on P1 have completed
+execution. So in this case both a has gotten new value b has gotten a new
+value and so when we go here and make the assignments. Then both d and c are
+going to have new values that are in b and
+a respectively. And so this is a possibility right?
+There is a possibility that both c and d have a value of one in them. Let's see
+if the third possibility can happen. The third possibility
+for it to happen it is conceivable that we insert
+these two instructions in the middle of this. Or
+in other words Process P1 executed this instruction and and
+in time order it so happens that these two
+instructions got executed and then this this instruction got executed.
+And therefore once you get into d is the old value of b that is
+zero. And once you get into c is the old value of a. I'm sorry the new value of
+a. Because this instruction is executed. And therefore
+you get one into c. And that's why this
+possibility is also is also perfectly valid. Now
+let's look at this last choice that I have.
+C gets zero and D gets one. Can this
+happen? C getting a zero and d getting a one.
+And the reason I ask you this question is because
+if you look at this piece of code and this
+piece of code here. If d were to get
+one what that means is that this assignment of b
+gets b plus one has already happened on P1. That's
+how the new value of b has gotten into d.
+But yet we're saying when this process completes
+c has a value of zero. What does
+that mean? It means that the new value
+of a hasn't come into the processor P2. How
+can this happen? It can happen if messages go out of order. You have to remember
+that if you recall the picture of the
+shared memory machine you've got an interconnection network that
+is connecting all these processors. And a write
+that happens on this processor has to go
+through the interconnection network and get to this
+other processor. Now it is conceivable that if message
+go out of order. It is possible that
+when this process executes this statement. This new
+value of b has arrived the message that
+contains a new value you b has arived and
+there for this assignment gets a new value of
+of b but when the process execute this statement. The
+new value of a hasn't arrived yet and it
+can happen if the messages go out of order and
+in that case you can end up with this
+particular choice of c having a value of zero and
+d having a value of one when this process
+completes execution. Do you want it to happen? Now intuitively
+you would see that this is not something
+you expect to happen. As a programmer you don't
+want surprises right? And if you don't want surprises
+perhaps if it is a non-intuitive result that's something
+that should not be allowed by the model.
+So when we talk about memory consistency model we're
+saying what is the contract between the programmer and
+system? And what we are seeing through this example
+is that this particular outcome is counter-intuitive and
+therefore the model should not allow this particular outcome
+to be possible in the execution. And this
+is the reason why you have memory consistency model.
+
+## L04a-153: Shared Memory Machines - Memory Consistency Model ##
+
+So here I'm showing you a set of accesses memory accesses down on processor P1
+read access and write access and so on
+and these are the memory location being touched
+by these accesses on P1. And on P2 I'm showing some real set of accesses to
+shared memory locations and we know that Processor
+P1 accessing memory and processor P2 accessing memory
+are completely independent of one another And therefore it is possible that
+in one execution of P1 and P2 this particular
+access of of writing it to memory location
+A Happens after reading a memory location a happens
+on P1 in one execution. And if you run the same program again
+P2 and P1 constituting the program run it again. It's possible that
+another execution of the same program the write of a happens before the
+read of a. It's perfectly feasible for this to happen because there
+is no guarantee on the ordering of these axises going to main memory.
+And if you think about it both of
+these executions whether it is earlier execution where write
+happened after this read or this execution in
+which the write is happening before the read. Both
+these executions are reasonable and correct and something that the programmer
+can live with. It's acceptable to the programmer. Now in other
+words what the programmer needs to know is what to expect from
+the system in terms of the behaviour of shared memory reads and writes that
+can be emanating from several different processors.
+And this is what is called the memory
+consistency model. So the expectation of the
+programmer is is is what is engrained
+in this memory consistency model. As a
+programmer you don't want any surprises. And there's
+a purpose of the memory consistency model to
+sort of satisfy the expectation of the programmer.
+So I'm going to talk to you about one
+particular memory consistency model which is called a sequential
+consistency memory model. And you consider the axises
+from P1 and P2. Well. One expectation that you
+have of the programmer is that the accesses
+that you have on a particular processor is going
+to be exactly in the order in which your radiant
+or in other words if you look at these sequences
+of accesses you have the right of b here and
+the need of b here. You know that your one expect
+to see when you do this V whatever you wrote
+here is what you expect to see. That's what's called
+a program order. What you expect is the program order
+to be maintained namely the order in which you've generated memory
+axises should be maintained by the execution on
+that processor. That's program order. And in addition to
+that there is this interleaving of memory accesses between
+P1 and P2. And this is where we said
+we have no way of controlling the the
+order in which these accesses are going to be
+satisfied by the memory. Because it depends on the
+execution of P1 on processor P1. And the execution
+on P2 and how that each memory and so on. And so this interleving can be
+arbatrary. That is interleaving between axises that you
+see here and the axises that you see here
+can be arbitrary. So that's the sequencal consistency
+memory model which has two parts to it.
+One is the program order. That is the
+order that you see textually in every individual processes.
+I' m showing you two here but you can have
+any of these processes. But in each one of these
+processes the textual order in which memory axises are generated
+they're going to be satisfied. That's the program order. On the
+other hand the interleaving of these memory access has occurred
+all of the processes is going to be obituary. So
+those are the two properties of the sequential memory consistency
+model. In order an analogy that will drive home the
+point about the sequential consistency and what you
+might see In a casino and if you
+if you watch a a casino card shark shuffle cards. He might take a card deck
+and split it into two halves and then he'll do a merge shuffle of two splits
+and and and create a complete deck. Exactly
+what's going on with sequential consistency. You have
+Splits of memory axis's on serveral
+different processors and they're getting interlinked in
+some fashion. Just like card shuffler is
+interweaving the cards from two decks and
+creating one card deck. All of it.
+By the way this particular memory consistency
+model's sequential consistency Was proposed by Leslie
+Lamport and this is a popular guy.
+You're going to see him again later on when
+we talk about distributor systems. But he came
+up with this idea of sequential consisting memory
+model back in 1977. And since then there have
+been a lot of different consistency models that
+have been proposed. And in future lessons on
+distributed systems we will see other forms of
+memory consistency models such as release consistency and lazy
+release consistency and eventual consistency. But hold on.
+We will come back to that later. on.
+
+## L04a-154: Shared Memory Machines - Memory Consistency and Cache Coherence ##
+
+So now having seen the sequential memory consistency model what we can do is go
+back to our original example and ask the
+question what are all the possible outcomes for
+this particular set of memory accesses performed on
+p1 and p2? Now what possible values can
+d and c get? Well obviously you can get the first choice no problem with that.
+Can get the second choice it can get
+the third choice and as we illustrated earlier
+all of these are just interleaving of these
+memory accesses on P1 and P2. But the fourth
+one Is not possible with sequential consistency because
+there's no interleaving of these memory axes and these
+memory axes that'll result in this particular outcome.
+That's comforting that's exactly what we thought would be
+a useful thing to have in a
+memory-consistency model that gives only intuitive results and
+and makes sure that non-intuitive results don't happen.
+Memory consistency model is what the application programmer
+needs to be aware of to develop his
+code and know that it will execute correctly
+on the shared memory machine. As operating system
+designers however we need to help make sure
+that this code runs quickly. To do that
+we need to understand how to implement the model
+efficiently. And also the relationship between hardware and software
+that makes it possible to achieve this goal. So
+now we understand the memory consistency model. What
+is the model that is presented to the programmer?
+That's what memory consistency model is. On the other
+hand cache coherence is how is the system implementing
+the model in the presence of private
+caches? So this is a handshake a partnership
+between hardware and software between the application
+programmer and the system in order to make
+sure that the consistency model is actually
+implemented correctly by the cache coherence mechanism that
+is ingrained in the system. And the system
+implementation of cache coherence. Is itself a hardware-software
+trade off. Now for instance one possibility is
+that the hardware is only giving shared address
+space. It's not giving you any way of
+making sure that the caches are coherent but it
+is giving you the shared address space. And
+it is letting the software the system software
+ensure that this contract is somewhat satisfied. And
+the working of the cache coherence maintained in software
+by the system. That's one possibility and that is what is called a non-cache
+coherent shared address multiprocessor. Meaning that There
+is shared address space that's available for all
+the processors there is private caches for holding data that you bring from
+memory but if you modify data it is a problem of the system software to make
+sure that the caches remain coherent. So it's non-cache coherent. That is called
+NCC shared memory multi-processor. The other possibility
+of course is that the hardware does
+everything. It provides the shared address space
+but it also maintains cache coherence in
+hardware. And that's what is called a
+cache coherent multi-processor or a CC multi-processor.
+
+## L04a-155: Shared Memory Machines - Hardware Cache Coherence ##
+
+Now let's focus on the hardware implementing cache
+coherence entirely in addition to giving the shared
+address space. There are two possibilities if the
+hardware is going to maintain the cache coherence. One
+possibility is what is called write invalidate scheme.
+And here the idea is if a particular
+memory location is contained in all the caches
+all these processes have fetched this particular memory location
+Y and it's been sitting in the private
+caches of all these processes. And if now
+process of P one decides to write to
+this particular memory location it changes to from y
+to y prime. When that happens what we're
+going to do is the hardware is going to ensure that
+all of these caches are invalidated. So the
+way it's done is that the hardware as soon
+as this change happens is going to broadcast a
+signal on the bus. Called invaldidate memeory location Y.
+So that's something that propagates on the system bus
+and all these process of caches are observing the
+caches and this is sometimes referred to as snoopy
+caches in a in a lighter vein these caches
+are snooping on the bus to see if there's
+any change to memory locations that are cached locally.
+And in this case if an invalidation signal goes out
+for a particular memory location y then each of these caches
+are going to say do I have that particular memory
+location? If I do let me invalidate it. So that particular
+memory location gets invalidated. So the idea is if you
+have that particular memory location invalidate it. If you don't have
+that memory location ignore it. Right? So if you don't
+have it you don't have to bother but if you particularly
+happen to have this memory location cached in your
+private cache and if you observe an invalidation for
+that particular memory location you go ahead and invalidate
+it. That's what is called write invalidate cache coherence
+scheme. You may already be one step ahead of
+me and you may be thinking what would be
+an alternative to doing this invalidation? And and you
+may be you may be right. You thought of perhaps
+updating the caches. That's what is called write update
+scheme. The idea here is if this guy is going to
+write to this particular memory location modify to y
+prime what we do is instead of invalidating it on
+the bus if there is a capability in hardware
+to send an update for this particular memory location on
+on the bus. You send it out saying that
+I modified this particular memory location this is a new
+value and if these caches happen to have the same
+memory location they all modify it from y to y prime.
+And now all of these caches have the new value
+of y and the old values disappear from the system. So
+in this case what we are doing is if you
+have it update it. Once again you're snooping on the bus.
+Each of these process of caches is snooping on the bus
+and if they see an update for a particular memory location
+they're saying well let me modify it so that
+future accesses by my CPU will get the most
+recent value that had been written into this particular
+cache line. That's the idea behind write update scheme.
+Now whether we're talking about write update scheme or
+the earlier write invalidate scheme one thing should become
+very clear in your mind and that is there
+is work to be done whenever you change some
+memory location that could conceivably be cached in the
+other private caches of the CPUs. And the invalidate
+scheme has sent out an invalidate message. If it's
+an update scheme it sends out an update message. And
+that kind of transaction that's going on is is
+an overhead. And as as a system designer one
+of the thing that we've been emphasizing all along
+is that we want to keep the overhead to a minimum.
+But you can also see immediately that the overhead is going to be something
+that grows as you increase the number
+of processors. As you change this inter-connection
+network from a simple bus to a more exotic network. And also depending on
+the amount of sharing that is happening for a particular shared memory location.
+
+## L04a-156: Shared Memory Machines - Scalability ##
+
+Now as a programmer you have a certain expectation
+as you add more processors to the system. Your
+expectation is natural if you think that if you
+add if you add more processors your performance should go
+up. So this is expectation. This is what is
+called scalability. That the performance of a parallel machine
+is going to scale up as you increase the number
+of processes. Reasonable. Reasonable to expect that. However I mentioned
+just now that the overhead associated with
+increasing the number of processes in terms
+of maintaining cache coherence when you have
+sharing that is happening for shared data. And
+so therefore the pro in adding more processors is the fact that you can
+exploit parallelism. That's the reason why you're
+able to get this expectation of increased performance
+with processors. But unfortunately as you increase the
+number of processors there is increased overhead. And
+and the increased overhead also grows. As you
+increase the number of processors more overhead is
+going to be incurred by the system. If we have an eight processor SMP the
+overhead for cash coherence is less than if we have a 16 processor SMP or a 32
+processor or a 64 processor so the overhead is
+going to grow. As a result you can see that you
+have the pro of exploiting parallelism but you have
+the con of increased overhead and you end up with
+an actual performance that's somewhere in the middle between
+your expectation and the overhead. So in some sense this
+is a difference between what your expectation is and
+what the overhead you're paying. And that becomes the actual
+delivered performance of a parallel machine. And this
+is very important to remember that your delivered
+performance may not necessarily be linear in the
+number of processors that you add to the
+system. So what should we do to get
+good performance? Don't share memory across threads as
+much as possible If you want good performance
+from the parallel machine. A quote that is attributed
+to a famous computer scientist Chuck Thacker
+comes to mind shared memory machines scale well
+when you don't share memory. Of course as
+operating system designers we have no control over
+what the application programmer does. All we can
+do is to ensure that the users share
+data structures is kept to a minimum and
+the implementation of the oppressing system caught itself.
+You will see how relevant Chuck Thackers quote is as we visit operating
+system synchronization communication and scheduling algotithums and
+more generally. The structure of the operating
+system itself in this lesson. See if you can remind yourself of this
+quote and how often it permeates our discussion as we go through this lesson.
+

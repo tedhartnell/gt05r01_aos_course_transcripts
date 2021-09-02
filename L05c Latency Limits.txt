@@ -1,0 +1,828 @@
+## L05c-308: Latency Limits - Introduction ##
+
+Lamport's clock gave a fundamental ordering mechanism for events in a
+distributed system. This theoretical basis is all the more important in this day
+and age when so many everyday services email social networks e-commerce and
+now even online education are becoming
+distributive. Incidentally this is the same Lamport
+who gave us a way to order
+memory accesses in a shared memory multi-processors through
+the sequential consistency memory model. In the next
+part of the lesson we turn our attention
+to more practical matters in distributed systems. Specifically
+given that network communication is the key to
+performance for distributed services the operating system has
+to strive hard to reduce the latency incurred
+in the system software for network services. Lamport's clock serves as the
+theoretical underpinning for achieving deterministic execution
+in a distributed system despite the non
+determinism that exists due to the vagaries of a network. In this lesson we
+will discuss techniques for making the operating system softwares tag efficient
+for network communication. Both by looking
+at application interface to the kernel as
+well as inside the kernel in the protocol stack itself but first a quiz.
+
+## L05c-309: Latency Limits - Latency Question ##
+
+let's say it takes me one minute to go
+from my office to the classroom but the hallway is
+wide enough that five of us can walk side-by-side going
+to my office to the classroom. So the question to
+you is to illustrate the difference between latency and
+throughput. The question is what is the latency incurred by
+me to get to the classroom? And the second part
+of the question is asking you what is the throughput
+achieved if I walk with four other
+students side-by-side to get to the classroom?
+
+## L05c-310: Latency Limits - Latency Solution ##
+
+This is just a fun quiz to get you thinking
+about latency and throughput. I am sure that most of
+you would have gotten that the time to get to
+the classroom after all from my office is one minute
+so that's the latency I'm going to observe getting to my
+classroom. The interesting thing is the throughput. The throughput is
+five per minute because the hallway is wide enough. For
+five of us to walk side by side so the throughput
+that we can get is five per minute. The important
+thing I want you to see is that the latency
+is not the inverse of throughput. On other words if
+tomorrow I widen the hallway to make 10 people walk
+side by side to get to the classroom from my
+office that's going to increase the throughput but it does nothing
+to the latency the latency is always going to be the
+time it takes for me to get from my office
+to the classroom.
+
+## L05c-311: Latency Limits - Latency vs Throughput ##
+
+So it's important to understand these two concepts
+of latency and throughput. Latency is the elapsed time
+from an event. If it takes me one minute
+to walk from my office to the classroom that's
+the latency that I'm going to experience for that event
+of walking from my office to the classroom. That's
+the elapsed time. Throughput is the number of events
+that can be executed per unit time. Bandwidth is
+a measure of throughput. So once again with this
+analogy of walking to the classroom from my office if
+the hallway is wide enough to allow five ten
+of us to walk in parallel side by side to
+the classroom increases the throughput but it does nothing
+to the latency. The latency is going to be determined by
+how fast I can walk from my office to
+the classroom. So the difference between latency and and throughput
+is very important to understand. In other
+words I can increase the bandwidth and that'll
+improve the throughput but it is not going
+to do anything to the latency itself. So
+in other words higher bandwidth does not
+necessarily imply lower latency. You'll work hard to
+lower the latency. RPC is a basis for
+client server based distributed systems. And performance of
+RPC is crucial specifically in the context of this lesson. Latency refers to
+the time it takes for an application
+generated message to reach it's destination. So
+for instance if you're doing an RPC call from a client to the server then the
+RPC call entails sending the argument from the client to the server.
+And there is work to be done here work
+to be done in sending the message work to
+be done here before the server can actually execute
+the server procedure. So it's the latency that we
+are concerned about. And what we will see is
+all the software components that comprise the latency for
+RPC based communication. And performance of RPC is very
+crucial in building client server systems. There are two components
+to the latency that is observed for message communication in a distributive
+system. The first component is the hardware overhead and the second component is
+the software overhead. The hardware overhead is really dependent on how the
+network is interfaced to the computer. So typically in
+any computer what you have is a network controller that interfaces
+the network to the CPU. And typically the
+network controller operates by moving the bits of
+the message from the system memory of the
+node into it's private buffer which is inside the
+network controller. And this part of it moving
+the bits from the memory of the node
+into the internal buffer of the network controller
+is accomplished using what is called direct memory access.
+Meaning the network controller is smart enough to move the
+bits directly using the bus that connects the memory to
+the network controller without the intervention of the CPU. And
+this is what is called dir direct memory access. And that's
+how the bits are moved from the memory of the
+system into the buffer of the network controller and once it
+comes here the network controller can then put the bits
+out on the wire and this is where the bandwidth that
+you have connecting your node to the network comes
+into play. But there are also other types of
+network controllers where the CPU may actually be involved
+in the data movement and in that case the
+CPU does program I/O to move the bits from
+the memory into the buffer of the network controller
+from which the network controller will then put it
+out on the network. But modern network controllers tend to
+be built using DMA technique meaning that the
+network controller once the CPU tells the network controller
+were in memory the messages to be sent
+on the wire network controller does the rest in
+terms of moving the bits into it's internal
+buffer and then from the buffer putting it out
+onto the network. The software overhead is what the
+operating system tax on to the hardware overhead of
+moving the bits out onto the network. So
+the latency if you think about the latency
+as a whole for doing a network transmission
+there is the software overhead incurred in the
+layers of the operating system to make the
+message available in the memory of the processor
+ready for transmission. Once it is ready for
+transmission the hardware overhead kicks in and the
+hardware the network controller in particular moves the bits
+from the memory into it's buffer and then out on
+the wire. The focus of course being an operating
+system designers work is to reduce the software overhead and
+take what the hardware gives you and think about
+how you can reduce the software overhead so that we
+can overall reduce the latency involved in transmission. Which
+is a sum of the hardware overhead and software overhead.
+
+## L05c-312: Latency Limits - Components of RPC Latency ##
+
+Let's now discuss the components of the RPC latency.
+By now we are all familiar with the semantics
+of RPC namely in RPC the client is making
+a remote procedure call to a server and it
+has to send the arguments of the call to
+the server so that the server can execute the
+server procedure and return the results back to the
+client. So if you look at the components of the
+RPC latency it starts with the client with a
+client call. So the client call subsumes a number
+of things. Number one it is setting up the
+arguments for the call. The client has to set up
+the arguments for the procedure call. And then it
+makes a call into the kernel. And once the
+kernel is being informed that it wants to make
+this call the kernel validates the call and then marshals
+the arguments into a network packet and sets
+up the controller to actually do the network
+transmission. That entire set of activities that the
+client program and the kernel is involved in in
+getting ready a network packet to send out
+is subsumed in this one line which I say
+is the client call. The second part of
+the latency is the controller latency and this is
+the part where the controller says well there is
+a message to be sent out. I know where
+it is in memory. I have to first DMA
+that message into my buffer and then put the
+message out on the wire. That's the controller latency
+and so this part of it is in hardware
+and as operating system designer we're going to take what
+the hardware gives us. Controller latency is what you have
+that given by the hardware. The third part of the
+latency is the time on the wire. Now this really
+depends as one might imagine on the distance between the
+client and the server. The limiting factor of course is
+speed of light. So depending on the bandwidth that's available
+between the source and the destination perhaps if you have
+to go through intermediate routers and so on. It is
+going to take a certain amount of time to go from
+the client to the server machine and that we
+call as the time on the wire. So then the
+message arrives over on the destination node and it
+arrives in the form of an interrupt to the operating
+system. So the interrupt has to be handled by
+the operating system and part of handling the interrupt is
+moving the bits that come in on the wire
+into the controller buffer. And from the controller buffer into
+the memory of the node. So all of
+that activity is subsumed in this item number four
+which I call the interrupt handling. So once the
+interrupt handling is complete then we can set up
+the server procedure to execute the original call. Now
+what is involved in that? Well you have to
+locate the server procedure and once you locate the
+server procedure you have to dispatch the server procedure.
+And once you dispatch the server procedure you
+have to unmarshal the network packet that comes in
+as the actual arguments for the call that the
+server procedure has to execute. So all of that
+setup is first done and then the server procedure
+can actually execute the call. So this is the
+five-step process. From the time the client says I
+want to make a RPC call to the point
+of actually executing the call these are the layers
+of software and of course hardware and time on
+the wire by which time you're ready to execute
+the server procedure. So even though it looks like a
+simple procedure call from the clients point of view
+there is all this latency to be incurred in
+executing a remote procedure call. So at the end
+of step five the server is all set to execute
+the procedure. Let's see what happens then. So step
+number six is server execution meaning that it is actually
+executing the procedure. And of course this is not under
+our control as operating system designer because at this point
+the amount of time that the server is going
+to execute this procedure depends really on the logic of
+the program that has been written as a client server
+program. And then finally once the server procedure has completed
+execution then it says okay I am ready to
+send the reply back to the client and that's
+where we pick up again so what happens is
+that at that point you are receiving the results. So
+once again just like when the client wanted to
+send the arguments you have to convert the actual
+arguments into a network packet and send it out
+on the wire. Similarlywhen the server is ready to reply
+you have to take that reply which is the results
+of the execution of this procedure and make it into a
+network packet. And at this point once it has been made
+into a network packet it has to be handed over to
+the controller and the controller does exactly what we did
+on this side which is to say the controller latency is
+gon is going to be incurred. So that's why you see
+item number two appearing all over again in the return path.
+Similar to sending the arguments over to the server
+on the wire the results have to be sent on
+the wire back to the client. And so you
+see that item number three which is the time on
+the wire is reappearing on the return path as
+well. Come over to this side. The incoming result message
+is going to result in a an interrupt on the
+receiving node the client node. And that is exactly similar
+to what happened on the server side item number four.
+So you see number item number four reappearing on the
+return path as well. So that is the interrupt handling
+part. And once that interrupt is handled the operating system on
+the client side said oh this was on behalf of
+this client let me redispatch the client set up the
+client so that the client can then receive the results
+and restart execution where it left off. So the only two
+new things that we added in the return path
+was item number six and seven. Two three and
+four was exactly the same as what we saw
+on the way over to the server that is being
+repeated on the way back to the client. So
+that's the seven step latency involved in the RPC not
+worrying about the actual execution time of the server
+core itself because that is not in the purview of
+the operating system it is in the purview of
+the client server program that the app developer has done.
+
+## L05c-313: Latency Limits - Sources of Overhead on RPC ##
+
+Now that we understand the components of RPC
+latency let's understand the sources of overhead that creeps
+in in carrying out all the different functions going
+from the client to the server and back to
+the client. So far as the client is
+concerned this looks like an innocuous procedure call right?
+So it just says I want to call a
+procedure S.foo and here are the arguments. Well unfortunately
+this call is not a simple procedure call but
+it is a remote procedure call. And the sources
+of overhead that creeps in in a remote procedure
+call are marshaling data copying control transfer and protocol
+processing. So we'll look at each one of these
+things in more detail. Now how can we reduce
+the overhead in the kernel? What we want to
+do is think what the hardware gives you in order
+to reduce the latency incurred for each of these components of the RPC latency.
+
+## L05c-314: Latency Limits - Marshaling and Data Copying ##
+
+First let's look at how we can reduce
+the overhead and marshaling the arguments and the
+data copying. Just to jog your memory marshaling
+refers to the fact that the semantics of
+the RPC call being made between the client
+and the server. It's something that the operating
+system doesn't have any clue about. So in
+other words the arguments that are actually passed
+between the client and the server has semantic meaning
+only between the client and the server. The operating system
+has no knowledge of it. And therefore marshaling is
+the term that is used to say let's accumulate. All
+of the arguments that is there in the call
+and make one contiguous network packet out of it so
+that we can give it to the kernel and the
+kernel can send it out. That's what is being described
+as marshaling and the biggest source of overhead in marshaling
+is the data copying that's going to happen and I'll explain
+that in a minute. Potentially in doing the marshaling there
+could be three copies involved. Where are these three copies coming
+aboard? Well first of all the client is executing. When
+a client is executing a procedure all the arguments for
+the procedure call that it wants to do is living
+on the stack of the client. And there is an entity
+we'll introduce this terminology even before called the
+client stub and the role of the client stub
+is to take the arguments of the call which
+are living on the stack. And convert it into
+a contiguous sequence of bytes called an RPC
+message so the RPC message has no semantic meaning
+and it's just a contiguous string of bytes which
+you can pass to the kernel and the kernel
+can then send it out on the wire just
+like any other message. So that's the first thing that
+the stub does and that's the first source of overhead.
+The client stub is making the first copy from the
+stack in order to create an RPC message. Now remember
+that the client is a user program so it is
+living in the user space outside the kernel and so
+this RPC message which is being created by the stub
+it is pulled off the client's address space.
+Which is living outside the kernel. So this RPC
+message is in user space and the kernel has
+to make a copy of the RPC message from
+the user space into its own buffer the kernel
+buffer. And that's a second source of overhead. The
+second source of copy in doing the marshalling of
+the arguments. So now it is in the buffer
+of the operating system kernel now the operating system can
+kick the network controller and say hey go ahead take
+this buffer send it out in the wire to the
+desired destination. And the network controller at that point is going
+to move the bits from the buffer which is in
+the system memory of the operating system into its internal
+buffer using DMA. And this is the third copy that
+is happening. The copy that is done by the network controller
+using DMA to move the bits of the
+RPC message copied from the user space into the
+internal buffer of the kernel. And now this movement
+is being orchestrated by the hardware to move it
+from the kernel buffer into the internal buffer of
+the network controller so that it can then get
+out on the wire. So those are the three
+copies involved in marshaling the arguments of the call
+before it can be put out on the wire.
+And the copying overhead is the biggest source of overhead
+for RPC latency. Now how do we reduce the
+number of copies? Well it turns out that the third
+copy that you're looking at here moving the bits
+from the system memory into the network controller there's a
+hardware action. That is unavoidable and therefore we're going to
+live with it. Unless the network controller is completely redesigned
+if the network controller is saying well I need
+to DMA the bits from the system memory into my
+buffer. Well I have to DMA the bits from
+the system memory into my internal buffer before I can
+put it all on the wire. Then this third
+copy is inevitable so we live with it. But we
+would like to see if we can try to reduce
+the number of copies involved here. The first idea is
+can we eliminate this copy that is done by
+the client stub? Why is that happening? Well it has
+to create a network message in order to send it
+out on the wire. As we said. That the semantics
+of this call is only known to the client and
+the server and the client stub is taking the argument
+and making a network packet out of it. And it
+was doing it in user space. And so what we're
+going to do is we're going to marshal it directly
+into the kernel buffer. In other words we've now
+moved this stub the client side stub from
+the user space down into the kernel. If you
+can move it into the kernel then from
+the stack a stub can directly marshal it into
+the kernel buffer. And so that intermediate copy
+that we had here creating an RPC message and
+copying it. Again into the kernel buffer is avoided if the stub can
+directly work on the stack and write it into the kernel memory. So what this
+means is that at instantiation time the client stub is installed inside the
+kernel. At bind time when the client binds with the server at the bind time
+what we going to do is we going to say that
+here is the client stub please put it inside
+the kernel so that later on you can use
+that in order to do the marshaling. So the synthesized
+procedure is installing the kernel for each client call
+so for each client server relationship. We synthesize the
+procedure which is the client's job install it in
+the kernel for use every time I make this call.
+This stub can be invoked to convert the argument
+that are living on the stack into a network
+message and directly put it into the kernel buffer.
+So this obviously will eliminate. From the two copies
+down to one copy because the intermediate copy of
+converting the arguments into an RPC message is now
+eliminated. Now the problem with this idea is that
+we're seeing let's dump some code into the kernel and
+that may not be something that is so palatable. So this is a solution
+that's possible if the RPC service that is being provided between the client and
+the server the trusted service and therefore we can trust who is putting the
+stub into the kernel. In that case the solution maybe a reasonable one to adopt.
+
+## L05c-315: Latency Limits - Marshaling and Data Copying Continued ##
+
+An alternative to dumping code into the kernel is
+to leave the stub in the users piece itself.
+But have a structured mechanism for communication between the
+client stub and the kernel. And that structured mechanism is
+a shared descriptor. And the shared descriptor is a
+way by a which the sub can describe to the
+kernel that here is some stuff sitting in the
+user space. And I am going to tell you how exactly
+you can extract this information from the user space
+and construct it into this buffer for transmission on
+the wire. Recall what I told you earlier and
+that is the kernel has no idea of the semantics
+of this call and therefore it has no knowledge
+of the actual arguments. The data structures that are
+being used in the call. So what we're going to
+do is use the shared descriptor as a vehicle for
+the stub to communicate to the kernel the data structures
+that need to be passed. So for instance let's say
+that the argument for the call has four parameters. Then
+this descriptor has four entries and each entry is saying
+this is a starting point of a particular Data item
+and this is the length of the data item. This
+is the starting point of the second data item and
+this is the length of the data item. Third data
+item fourth data item. Kernel doesn't have to know the semantics
+of these data items. All it needs to know is what
+is the starting address for a particular data item and what
+is the length of the data item. That's all it needs to
+know. And this is the descriptor that. Allows the stub to
+inform the kernel about the arguments how many arguments there are
+and what are the size of each argument. It doesn't have
+to tell the kernel oh here is an integer here's a floating
+point here's an array. No none of that. All
+that the stub is doing is it's saying. Here is
+the starting address for an argument and here is the
+length of that argument. Because usually data structures are organized
+contiguously so if you have a an integer it is
+occupying full contiguous bytes and memory. If you have floating
+point number it is occupying some number of contiguous bytes
+in memory and therefore. What the stub is doing is
+is creating the shared descriptor that is providing the
+information of the kernel in the layer of the
+arguments on the stack and once the layer of
+the arguments and the stack are known to the kernel
+then the kernel can use these contiguous data items.
+That are living on the stack describe the shared
+descriptor and create a contiguous packet in its internal
+buffer. That's a second way you can do in order
+to reduce the number of copies from two to
+one. So in both cases what we have done
+is either the first approach of pushing the client
+stub into the kernel or the second approach of having
+a shared descriptor between the user stub which is
+living. In user space and the kernel in order to
+describe the layout of the data structures that need
+to be assembled into a data packet by the kernel
+using the shared descriptor. Both of these allow
+us to reduce the number of copies from
+three down to two. Either the one copy
+that is happening Going from this stack into the
+kernel buffer and this second copy as I
+said is unavailable if the network controller is
+requiring DMA to be done from the system
+memory into its internal buffer before the bits can
+be pushed out of the wire. So that's the
+first source of overhead these are techniques that we
+have looked at. Two differnet techniquest for reducign the
+copying overhead that is the dominate part of marshalling
+the arguments. And this happens on both sides. It
+happens when the client has to push the arguments
+to the server side. And it happens again on
+the server side when the server has to push
+the results back to the client. So the marshalling is happening on both
+ends and for both ends we can Use this technique of using a
+shared descriptor or pushing the clients dub or the service dub into the
+kernel in order to reduce the number of copies from two down to one.
+
+## L05c-316: Latency Limits - Control Transfer ##
+
+So the second source of overhead is the control
+transfer overhead. And that is the context switches that have
+to happen in order to effect an RPC call and
+return. And let's now look at the context switches that
+happen in doing the RPC. Let's say this is the
+client machine and on the client machine the client is
+making a call. So they're making the call Another call
+is made. The kernel has to say oh this client
+wants to make an RPC call and we know that
+the semantics of RPC is that the client is blocked
+until the results are returned. And therefore the operating system
+on the client side will switch from the current client
+that is making the call to another process let's call
+it C1. So this is the first context which that's
+going to happen. On the client box the RPC call is
+sent out in the wire reaches the server machine and
+when it reaches the server machine the server
+machine is executing some arbitrary process let's call it
+S1 so when the call comes in the kernel
+has to switch to the particular server process that
+is going to handle this incoming RPC call. So
+this is the second context switch. So the server
+machine and the operating system on the server machine
+is currently executing some process S1. So it has
+to S in order to answer the incoming
+RPC call. So that is the second context switch
+that happens. Then the server procedure executes. And once
+the server procedure is completed execution it's now going to
+send the results out and when it wants to
+send the results out at that point the work
+is done for the server. And so the server
+operating system has to switch from S to some
+other process S 2 so that's again a context
+which that's going to happen because the server is done
+with whatever it has to do. So that's the
+third contact switch. Then the RPC result is coming over
+the wire. Come to the client side. Exactly similar
+to what happened over here. When it comes back to
+the client side the kernel at that point is
+executing some process C2. And this particular result message is
+coming back saying well the original call sent out
+on behalf of this client's seed the result have come
+back. Now it is time to reschedule this client
+so that this client can receive the results and continue
+with his execution. Remember that the semantic it's like
+a procedural call but it is a remote procedural call
+the client is blocked For the result to come
+back and when the result comes back. The kernel can
+schedule the client to continue with its execution. So
+that's what is going on. So potentially there are
+four contact switches that are going on. Now let's
+look at these contact switches and figure out what
+contact switches are critical. Now this contact switch is
+essentially to make sure that the client box is
+not being underutilized right? So once the client has
+made this call til the result comes back the client
+box is underutalized and therefore the operating system says well
+let me switch to some other process that can lose
+some useful work on this node. So that is this
+contact switch. Not critical from the point of view of the
+latency for RPC. Now when the message comes over here.
+This context switch is crucial because at this point when the
+RPC call comes in this guy the server box is
+executing some of the process S1. So it has to switch
+to this server process S which can actually
+execute the RPC call. So this is an
+essential part of the RPC latency. And similarly
+to this context which that I talked about
+This contact switch is happening in order to
+make sure that the server's machine is not
+underutilized. When the server is done with the
+RPC call it's going to send the results back
+and therefore we need the contact switch out of this server
+process. To some of the process that we can utilize this server
+box. That's this contact switch. Again similar to this context switch
+this context switch is not in the critical path of RPC latency.
+
+## L05c-317: Latency Limits - Control Transfer Continued ##
+
+The result comes back and when the result comes
+back the client box is executing some process C2. The
+kernel has to switch to this client so that is
+can see the results an continue with it's execution. So
+this context switch is again in the critical path of
+RPC latency. So if you look at RPC call the
+two contact switches that are in the critcal path of
+RPC latency. There's a context switch that happens here and
+the context switch that happens here. So only two
+context switches are in the critical path of the latency
+the context switch that happens on the server machine
+when the call comes in and similarity the context switch
+that happens on the client machine when the results
+come in. So this context switch that happens on the
+client machine to keep the client machine Utilizied can be
+overlapped with the network communication to send the call out.
+So in other words this context which is
+not the critical path of RPC latency and
+therefore do this context which while the RPC
+call. Is in transmission on the wire. So while
+overlapping the context switch that happens on the
+client box after the call has been sent
+out with the communication time on the wire
+for the opposite call. Similarly on the server side
+once the server is completed execution and it is
+ready to send the results out send it out of
+the wire and in parallel with sending it out
+in the wire it can overlap The contact that happens
+here in order to keep the server box busy
+doing useful stuff S2 S2 that can be overlapped with
+this network communication. So only this contact switch and
+this contact switch are in the critical path of latency.
+So we can reduce the number of contact switches
+down to two. Originally we started with 4 we
+can reduce it down to 2. By observing that
+the context which is that happened on the client end
+box and the server box to keep them utilized
+can be overlapped with a network communication for sending
+the arguments over to the server or sending the
+results over to the client. Of course we are greedy.
+Can we reduce it to one? Can we actually
+reduce the number of context switches Down to one. Let's
+think about this. So we said that when this RPC
+call was made the operating system on the client side
+said well this is a blocking semantic and therefore
+this guy is not going to do any useful work so
+I'm going to block him and wait for the results to
+come in. So this context switch that c the operating
+system did on the client side Was essentially to
+keep this client box from being under-utilized but do we
+really need to do the switch? Well it really
+depends. If the server procedure is going to execute for
+a long time then you know this client box
+is going to be under-utilized for a long time. And
+in that case it might be a good thing
+to context which in order to make sure that we
+are utilizing the resources that we have. But on
+the other hand If suppose this RPC call we know
+that this RPC call is going to come back very
+soon. And if it is on a local area network
+and the server procedure that is going to be executed
+is not going to take a long time. Then perhaps
+that RPC call will come back very quickly. If that
+is the case we can get rid of this context
+switch that we talked about here. In order to
+keep the client box busy we did this context switch.
+Don't do that. We can spin instead of switching
+on the client side. And if you do that then
+the client is reading but is not being context
+restored. It is just that the box is underutilized so
+the only context which that we incur. Is the context
+which on the server because you never know when an
+RPC call is going to come in. So when an RPC
+call comes in you obviously have to contact switch into
+the server context in order to execute the call. That's
+the necessary evil. We'll incur that. But on the client side
+what we're going to do is we're going to spin instead of
+switching so that. Even though the box is underutilized you're not
+doing anything on the client side just sending the call
+out and waiting. And in that case we've gotten rid of
+the second context switch that you need to incur. Because
+another context was stalled and therefore this context switch which we
+said is in inevitable because. It has to be done
+in order to receive the results for the client. Well we
+can get rid of it if we never switched in
+the first place and that's the trick here. To reduce the
+number of conflicts which is down to one we can
+spin on the client side instead of switching so that we
+can be ready to receive. The results of
+the RPC call execution when the server is done.
+Again the intent here is that we wanted to
+the latency that is incurred in the RPC call.
+And since these two contract switches were in the
+critical path of the latency we would really like
+to see how we can elimintate at least one
+of them. And this context which is inevitable and
+this context which we can eliminate by spinning on
+the client side instead of switching in the first place.
+
+## L05c-318: Latency Limits - Protocol Processing ##
+
+So we talked about marshalling data copying and content
+switches and the fourth component that adds to the latency
+of the RPC transmission is protocol processing and that's
+the next thing that we're going to look at. Now the
+question is what transport should we use for the
+RPC? And this is where we want to see how
+we can take advantage of what the hardware is
+giving us. If we are working in a local area
+network the local area network is reliable and therefore
+our focus should really be on reducing the latency
+and not worry so much about reliability. It is
+often the case that performance and reliability are at
+odds with each other. If you focus on reliability
+then performance may take a back seat. So here
+since the RPC performance is the most critical thing
+that we are worried about we're going to focus on reducing
+the latency. And we're going to assume that the
+LAN is reliable and therefore let's not worry about
+the reliability of message transmission in a local
+area network. That's the idea behind the next thing
+that we're going to look at. Let's think about
+all the thing that could go wrong in message
+transmission and see why some of those things may
+not be that important given that we have a
+reliable local area network. The first thing is you
+send a message it might get lost. But if in
+a local area network the chances that messages will
+actually get lost is not very high. It happens in
+wide area internet because messages have have to go
+out through several different routers and they maybe queuing in
+the routers and there may be loss of packets in
+the wire and so on. But that's not something that
+you have to worry about in a local area
+network. So that assumption that messages may not get lost
+suggests that there's no need for low level acknowledgements. Why?
+Because you're sending a call and the call is going to
+be executed and the result is going to come back. And
+usually in network transmission we send acknowledgements to say that
+yes I received the message. Now in this case because
+the semantics of RPC says that the act of receiving
+the RPC call is going to result in server procedure
+execution and the result is going to come back the result
+itself serves as the ACK. And therefore we don't need
+low level ACKs to say oh I received you arguments
+of the call. You don't have to do that. And
+similarly you don't have to have a low level ACK
+that says oh I received the results. Because the results
+were not received the caller the client is going to resend
+the client call. So the high level semantic of RPC can itself serve as a way
+we can coordinate between the client and the
+server and we can eliminate low level ACKs and
+if we eliminate low level ACKs that reduces
+a latency in the transport. The second thing is
+in message transmission on the Internet we worry
+about messages getting corrupted. Not maliciously or anything like
+that but just due to vagaries of the
+network messages may get corrupted in going on the
+wire that connects the source and destination. And
+for that reason it's typical to employ checksum in
+the messages to indicate the integrity of the
+message that checksum is usually computed in software and
+appended to the message and sent on wire.
+But in a local area network things are reliable
+we don't have to do extra overhead and
+software for generating the checksum just use hardware
+checksum if it is available just use hardware
+checksum for packet integrity. Don't worry about adding an
+extra layer of software in the protocol processing
+for doing software checksum. So that's the second optimization
+that you can make to make the protocol
+processing leaner. The third source of overhead that comes
+about in message transmission is once again related to the fact that
+messages may get lost in transmission. And therefore in order to make sure
+that if messages are lost in transmission you usually buffer the packets. So
+that if the message is lost in transmission you can re-transmit the package.
+
+## L05c-319: Latency Limits - Protocol Processing Continued ##
+
+Now once again let's think about the semantics of RPC.
+The client has made the call and the client is
+blocked and since the client is blocked we don't need
+to buffer the message on the client's side. If the
+message gets lost for some reason you don't hear back
+the result of the RPC from the destination in a
+certain amount of time you can resend the call from
+the client side. And therefore you don't have to buffer
+the client side RPC message but it can
+reconstruct the client side message and resend the call.
+Therefore client side buffering is something that you
+can get rid of once again because the LAN
+is reliable. The next source of overhead similar
+to client side buffering happens on the server side
+and that is the server is sending the
+results and the results may get lost. LAN reliable
+may not happen that often but it could happen
+and therefore we do want do the buffering. On
+the server side because if we don't buffer it
+then you have to reexecute the server procedure to
+produce a result and that's not something that you
+want to do because it involves reexecuting the server procedure
+which may be much more latency intensive then simply
+buffering the packet that corresponds to the result of
+executing the server procedure so you do want to buffer
+on the server site but. The buffering on the
+server side can be overlapped with the transmission of
+the message. So in other words the result has been
+computed by the server procedure. Now go ahead and
+send the result. While you are sending the result back
+to the client do the buffering. That you can
+overlap the service side buffering with the result transmission and
+get it out of the critical path
+of the latency for protocol processing. So removing
+low level asks employing hardware check sum and
+not doing check sum in software. Eliminating client
+side buffering all together. And overlapping the
+server side buffering with the result transmission are
+optimizations that you can do. In protocol processing
+recognizing that the LAN is reliable and therefore
+we don't have to focus so much on
+the reliability of message transmission. But focus rather on
+the latency and how we can reduce the
+latency by making the protocol processing lean and mean
+
+## L05c-320: Latency Limits - Conclusion ##
+
+So once again recapping what we said. The sources of RPC latency are
+the following. Marshaling and data copying. Context switches
+both at the client side and the server side. Similarly marshaling and
+data copying also happens both in the client
+side and the server side. And the actual protocol
+processing in order to send the packet on
+the wire. These are all the things that are
+happening in software. Those are the things that
+as OS designers we have a chance to
+do something about. And what we saw were
+techniques that we can employ for each one of
+those reduce the number of copies reduce the
+number of context switches and make the protocol
+processing lean and mean so that the latency
+involved in RPC is reduced to as minimum as
+possible from the software side. And we are going
+to take whatever the hardware gives us. If the
+hardware gives us an ability to to do DMA
+from the client buffer we'll use that but if it
+doesn't then we have to anchor that. So that's
+what we are seeing here. As the opportunities for
+reducing the total latency in going from the client
+to the server and back to the client in RPC.
+

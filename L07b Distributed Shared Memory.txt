@@ -1,0 +1,1549 @@
+## L07b-404: Distributed Shared Memory - Introduction ##
+
+In an earlier part of this lesson module we saw how to build a subsystem
+that takes advantage of idle memory in peer nodes on a local area network
+namely using remote memory as a paging device instead of the local disk. The
+intuition behind that idea was the fact
+that networks have gotten faster. And therefore access
+to remote memory may be faster than access to an electromechanical local disk.
+Continuing with this lesson we will look
+at another way to exploit remote memories
+namely software implementation of distributed shared
+memory. That is create an operating system
+abstraction that provides an illusion of shared
+memory to the applications even though the
+nodes in the local area network do not physically share memory. So distributed
+shared memory asks the question if
+shared memory makes life simple for application
+development in a multiprocessor can we try to provide that same abstraction
+in a distributed system and make the cluster look like a shared memory machine?
+
+## L07b-405: Distributed Shared Memory - Cluster as a Parallel Machine Sequential Program ##
+
+Now suppose the starting point is a sequential
+program. How can we exploit the cluster? We
+have multiple processors how do we exploit the
+cluster if the starting point is a sequential
+program? One possibility is to do what is
+called automatic parallelization. That is instead of writing
+an explicitly parallel program we write a sequential
+program. And let somebody else do the heavy lifting
+in terms of identifying opportunities for parallelism that
+exist in the program and map it to
+the underlying cluster. And this is what is
+called an implicitly parallel program. There are opportunities for
+parallelism but the program itself is not written
+as a parallel program. And now it is
+the onus of the tool in this case
+an automatic parallelizing compiler to look at the sequential
+program and identify opportunities for parallelism
+and exploit that by using the resources
+that are available in the cluster. So
+high-performance FORTRAN is an example of a
+programming language that does automatic parallelization
+but it is user-assisted parallelization in the
+sense that the user who is writing
+the sequential program is using directives for
+distribution of data and computation. And those
+directives are then used by this parallelizing
+compiler to say oh these are opportunities
+for mapping these computations onto the resources of
+a cluster. So it puts it on different nodes on the cluster and that
+way it exploits the parallelism that is
+there in the hardware starting from the sequential
+program and doing the heavy lifting in
+terms of converting the sequential program to a
+parallel program to extract performance for this
+application. This kind of automatic parallelization or implicitly
+parallel programming works really well for certain
+classes of program called data parallel programs. In
+such programs for the most part the data accesses are fairly static and it is
+determinable at compile time. So in other words there is limited potential for
+exploiting the available parallelism in the cluster
+if we resort to implicitly parallel programming.
+
+## L07b-406: Distributed Shared Memory - Cluster as a Parallel Machine Message Passing ##
+
+So we write the program as a truly parallel program or in other words
+the application programmer is going to think
+about his application and write the program as
+an explicitly parallel program. And there are
+two styles of writing explicitly parallel programs. And
+correspondingly system support for those two tiles
+of explicitly pavalled programs. One is called message
+passing style of explicitly pavalled program. The
+run time system is going to provide a message
+passing laterally which has primitives for. An
+application thread to do sends and receives to
+its peers that are executing on other
+nodes of the cluster. So this message passing
+style of explicitly parallel program is true to
+the physical nature of the cluster. The physical
+nature of the cluster is the fact that
+every processor has its private memory. And this memory
+is not shared across all the processors. So
+the only way a processor can communicate with another
+processor is by sending a message through the
+network that this processor can receive. This processor cannot
+directly reach into the memory of this processor. Because
+that is not the way a cluster is architected.
+So the messaging passing library is true
+to the physical nature of the cluster. That
+there is no physically shared memory. And
+lots of examples of message passing libraries that
+have been written to support explicit parallel
+programming. In a cluster they include MPI message
+passing interface MPI for short PVM CLF
+from digital equipment corporations. So these are all
+examples of message passing libraries that have been built with the intent of
+allowing application programmer to write explicitly parallel
+programs using this message passing style. And
+to this day many scientific applications
+running on large scale clusters in national
+labs like Lawrence Livermore and Argonne National
+Labs and so on use this style
+of programming using MPI as the message
+passing fabric. Now the only downside to the
+message-passing style of programming is that it is
+difficult to program using this style. If you're
+a programmer who's written sequential programs the transitions
+paths to writing an explicitly parallel program is
+easier if there is this. Notion of shared
+memory because it is natural to think of
+shared data structures among different threads of
+an application. And that's the reason making the
+transition from sequential program to parallel programming using
+for instance the P thread library or SMP
+is fairly intuitive and easy pathway. On
+the other hand If the programmer has to
+think in terms of coordinating the activities on
+different processes by explicitly descending and desisting messages
+from their peers. That is calling for a failuratical change
+of thinking in terms of how to structure a program.
+
+## L07b-407: Distributed Shared Memory - Cluster as a Parallel Machine DSM ##
+
+This was the motivation for coming up
+with this abstraction of distributed shared memory
+in a cluster. The idea is that we want to give the illusion to the application
+programmer writing and explicitly parallel program. That
+all of the memory that's in the
+entire cluster is shared. They are not
+physically shared but the DSM library is going to
+give the illusion to the threads running on each
+one of these processes that all of this memory
+is shared. And therefore they have an easier transition
+path for instance from going from a sequential program or
+going from a program that they've written on an
+SMP. To a program that runs on the cluster because
+they don't have to think in terms of message
+passing. But they can think in terms of shared memory
+sharing pointers across the entire cluster and
+so on. Also since we are providing a
+shared memory semantic in the DSM library for
+the application program There is no need for
+marshalling and unmarshalling arguments that are being passed
+from one processor to another and so on.
+All of that is being handled by the fact that there is shared memory. So when
+you make a procedure call and that procedure
+call is touching Some portion of memory that
+happens to be on a remote memory. That
+memory is going to magically become available to the thread
+that is making the procedure call. In other
+words the DSM abstraction gives the same level
+of comfort to a programmer who's used to
+programming on a true shared memory machine when they
+moved to cluster. Because they can use same set of primitives
+like locks and barriers for synchronization and the Pthread [GUESS] style of
+creating threads that will run on different nodes of the cluster. And that's
+the advantage of DSM style of writing an explicitly parallel program.
+
+## L07b-408: Distributed Shared Memory - History of Shared Memory Systems ##
+
+Now having introduced distributed shared memory I want to give sort of a
+birds eye view of the history of shared memory systems over
+the last oh 20 plus years. My intent is not
+to go into the details of everyone of
+these different systems because that can take forever but
+it is just to give you sort of the space occupied by all the efforts that have
+gone on in building shared memory systems both
+in hardware and in software. I encourage you
+to surf the web to identify papers and
+literature on these different systems that have been built
+over time just to get a perspective on how far we have come in the space of
+building shared memory systems. A few thoughts on
+the software side software DSM was very first thought
+of in the mid 80s. The Ivy system that was built at Yale University by Kai
+Li and the Clouds Operating System that was
+built at Georgia Tech and there were similar systems
+built at UPenn. This I would say is
+the beginning of Software Distributed Shared Memory. Later
+on in the early' 90s systems like Munin
+and TreadMarks were built. I would call them perhaps
+a second generation of Distributed Shared Memory
+systems. And in the later half of the
+90s there were systems like Blizzard Shasta
+Cashmere and Beehive. That took some of the
+ideas from the early 90s even further. And in parallel with the software DSM I
+would say there was also a completely different
+track that was being pursued. And that is
+providing structured objects in a cluster for
+programming. And systems such as Linda and Orca
+were done in the early 90s. Stampede at
+Georgia Tech was done in concert with the
+Digital Equipment Corporation in the mid 90s
+and continued on later on into Stampede Rt
+and PTS and in fact in a later
+lesson we'll talk about Persistent Temporal Streams. And
+this particular axis of development of structured
+distributed shared memory is attractive because it
+gives a higher level abstraction than just
+memory to computations that needs to be
+built on a cluster. Early hardware shared
+memory systems such as BBN Butterfly and
+Sequent Symmetry appeared in the market in
+the mid 80s and the synchronization paper
+that we saw earlier by Mellor-Crummey and
+Scott used BBN Butterfly and Sequent Symmetry as
+the experimental platform for the evaluation of
+the different synchronization algorithms. KSR-1 was another shared
+memory machine that was built in the
+early 90s. Alewife was a research prototype that
+was built at MIT DASH was a research prototype that was built at Stanford and
+both of them looked at how to scale up beyond an SMP and
+build a truly distributed shared memory machine.
+And commercial versions of that started appearing.
+SGI silicon graphics built SGI origin 2000
+as a scalable version of a distributed
+shared memory machine. SGI Altix later on
+took it even further thousands of processors
+exist in SGI Altix as a large-scale shared
+memory machine. IBM Bluegene is another example. And today
+if you look at what is going on
+in the space of high performance computing. It is
+clusters of SMPs which have become the work
+horses in data centers. I very much want you
+to reflect on the progress that has been
+made in shared memory systems. And invite you to
+look at some of the details of machines
+that have been built in the past either
+in the hardware or in software so that
+you can learn the progress that has been made.
+
+## L07b-409: Distributed Shared Memory - Shared Memory Programming ##
+
+I've already introduced you to shared memory synchronization.
+Lock is a primitive and particularly the mutual exclusion
+lock is a primitive that is used ubiquitously
+in writing shared memory parallel programs to protect data
+structure so that one thread can exclusively modify
+the data and release the lock so that another
+thread can inspect the data later on and
+so on. And similarly barrier synchronization is another synchronization
+primitive that is very popular in scientific programs and
+we have covered both of these in fairly great detail
+in talking about what the operating system has to
+do in order to have efficient implementation of locks as
+well as barriers. Now the up shot is if
+you are writing a shared memory program there are two
+types of memory accesses that are going to happen.
+One type of memory access is the normal reads and
+writes to shared data that is being manipulated
+by a particular thread. The second kind of
+memory access is going to be for synchronization
+variables that are used in implementing locks and barriers
+by the operating system itself. It may be
+the operating system or it could be a user
+level threads library that is providing these mutual
+exclusion locks or barrier primitives but in implementing those
+synchronization primitives those algorithms are going to use reads and writes
+to shared memory. So there are two types of shared memory accesses
+going on in the execution of a parallel program. One is access
+to normal shared data and the other is access to synchronization variables.
+
+## L07b-410: Distributed Shared Memory - Memory Consistency and Cache Coherence ##
+
+Recall that in one of our earlier lectures we discussed memory consistency
+model and the relationship of memory consistency model to cache
+coherence in the context of shared memory systems. Memory consistency model is
+a contract between the application programmer and the
+system. It answers the when question that is when a shared
+memory location is modified by one processor when that is how soon that
+change is going to be made visible to other processes that have the same memory
+location in their respective private caches. That's
+the question that is being answered by
+the memory consistency model. Cache coherence on
+the other hand is answering the how question
+that is how is the system by system we mean the system software plus the
+hardware working together implementing the contract of
+the memory consistency model? In other words the
+guarantee that has been made by the
+memory consistency model to the application programmer has
+to be fulfilled by the cache coherence
+mechanism. So coming back to writing a parallel
+program when accesses are made to the shared memory
+the underlying coherence mechanism has to ensure that all
+the processes see the changes that are being made
+to shared memory commensurate with the memory consistency model.
+
+## L07b-411: Distributed Shared Memory - Sequential Consistency ##
+
+I want you to recall one particular
+memory consistency model that I've discussed with you
+before that is sequential consistency. And in sequential
+consistency the idea is very simple. The idea
+is that every process is making some memory
+accesses all of these let's say are shared
+memory accesses. And from the perspective of the
+programmer the expectation is that these memory accesses
+are happening in the textual order that you see
+here and that's the expecation so far as this
+programmer is concerned. Similarly if you see the set
+of memory accesses that are happening on a different process
+of p2. Once again the expectation is that the
+order in which these memory accesses are happening are
+the textual order. Now the real question is what
+happens to the accesses that are happening on one processor
+with respect to the accesses that are happening
+on another processor if they are accessing exactly
+the same memory location? For instance P1 is
+reading memory location a P2 is writing to
+memory location a. What is the order between this read by P1 and this write by
+P2? This is where sequential consitency model says
+that the interleaving of memory accesses between multiple processors
+here I'm showing you two but you can have n number of those processors. Making
+accesses to shared memory all in parallel.
+When that happens you want to observe the textual
+program order for the accesses and the
+individual processes but the interleaving of the memory
+accesses coming from the different processors is arbitrary.
+So in other words the sequential memory consistency
+model builds on the atomicity for individual read-write
+operations and says that individual read-write operations are atomic
+on any given processor and the program order has
+to be preserved. And in order to think about
+the in interleaving of the memory axises that are
+happening on different processors. That can be arbitrary and
+that should be consistent with the thinking of the
+programmer. And I also gave you the analogy of
+a card shark to illustrate what is going on with a sequential consistency model.
+So the card shark is taking two splits of a card deck and doing a perfect
+merge shuffle of the two splits and
+that's exactly what's going on with sequential consistency.
+If you can think of these memory accesses on an individual processor as the card
+split but instead of a two-way split you have
+an n-way split and we are doing a merge
+way shuffle of all the n-ways. Splits off the
+memory accesses to get the sequentially consistent memory model.
+
+## L07b-412: Distributed Shared Memory - SC Memory Model ##
+
+With the sequentially consistent memory model let's
+come back to a parallel program. So a
+parallel program is making read write accesses
+to shared memory some of them offer data
+and some of them offer synchronization. Now
+so far as the sequentially consistent memory model
+it does not distinguish between accesses coming from
+the processors as data accesses or synchronization accesses.
+It has no idea it only looks at
+the read write accesses coming from an individual
+processor and honoring them in the order in
+which it appears and making sure that they can
+merged across all these processors to preserve the
+SC guarantee. So the upshot is that there's
+going to be coherence action on every read write
+access that the model sees. If this guy writes
+to a memory location then the sequentially
+consistent memory model has to ensure that this
+write is inserted into this global order
+somewhere. In order to insert that in the
+global order somewhere it has to perform
+the coherence action with respect to all the
+other processors. That's the upshot of not
+distinguishing between normal data accesses and synchronization accesses
+that is inherent in the SC memory model.
+
+## L07b-413: Distributed Shared Memory - Typical Parallel Program ##
+
+Now let's see what happens in a typical
+parallel program. In a typical parallel program that you
+might write you probably get a lock and you
+have mentally an association between that lock and the
+data structures that are governed by that lock.
+Or in other words in writing your parallel program
+you decided that access to variables a and b
+are governed by this lock. So if I wanted
+to read or write variables a and b I'll
+get a lock and then I will mess with the
+variables that are governed by this lock. Once I'm
+done with whatever I want to do with these shared variables
+I'll unlock indicating that I'm done. And this is
+my critical section. So within the critical section and we're
+allowed to do whatever I want on these data
+structures that are governed by this particular lock because that
+is an association I as the programmer has made
+in writing the parallel program. So if another processor
+let's say P2 gets the same lock. It's going
+to get the lock only after I release it. So
+only after I release the lock this guy can
+get this lock because the semantics of the lock it
+is a mutually exclusive lock. And therefore only one
+person can have the lock at a time. And consequently
+if you look at the structure of this critical section
+for P2 it gets a lock. And it is messing
+with the same set of data structures that I was
+messing with over here. But by design we know that either
+P1 or P2 can be messing with the data structure
+at any point of time. And that's a guarantee that
+I know comes from the fact that I designed the
+pilot program. And the lock is associated with these data structures.
+So in other words p2 is not going to access any of the data that that
+is inside this critical section until p1 releases the lock. We know this because
+we designed this program but the sc
+memory model does not know about the association
+between these data structures and this lock.
+And in particular doesn't even know that memory
+accesses emanating from the processor due to
+this lock primitive is a different animal compared
+to the memory accesses coming from the
+processor as a result of accessing normal data
+structures. So the cash coherence mechanism that
+is provided by the system for implementing the
+memory consistency model is going to be doing
+more work than it needs to do because
+it's going to be taking actions on every
+one of these accesses even though the coherence
+actions are not warranted for these guys until
+I release the lock. So what that means
+is that there's going to be more overhead for
+maintaining the coherence [UNKNOWN] with the SC memory
+model which means it's going to lead to
+a poorer scalability of the shared memory system.
+So in this particular example since P2 is not
+going to access any of these data structures until P1
+has released the lock there's no need for coherence action
+for a and b until the lock is actually released.
+
+## L07b-414: Distributed Shared Memory - Release Consistency ##
+
+This is the motivation for a memory
+consistency model which is called release consistency. I'm
+sure just from the keyword release some of you may have already formed a mental
+model of what I'm going to say. Basically
+we're going to look at the structure of the
+program As follows that the Peddler program
+consists of several different Peddler threads P1 is
+one such and if it wants to mess with
+some shared data structures it is going to acquire
+a lock we'll call it A1 and in the
+mind of the programmer there is an association between this
+lock and the data structures governed by it. So
+so long as they hold the lock they can
+modify the data structure and r1 is the release
+of this lock. So every critical section you can think
+of as composed of and acquire followed by data accesses governed
+by the lock and then release. If the same lock is used
+by some other process at P2 and if the critical section
+of P1 preceded the critical section of P2 or in other
+words P1's release operation P1 r1. The release
+operation and P1 happened before this most be familiar to you from our
+discussion of Lampert's logical clock. P1 R1 happens before P2 R2 that
+is the acquire operation that is being done by P2 if this acquire operation
+for the same lock happened after the release by P1 R1.
+All we have to ensure is that all the coherence
+actions prior to this release of the lock by P1
+has to be complete before we allow P2 to
+acquire this lock before we allow P2 to acquire the same lock
+L. That's the idea of release consistency. So we take the synchronization
+operations that are provided by the system
+whether it is hardware or software And
+we label them as either an acquired operation or a release operation. So it's
+very straight forward when you think about
+mutual explosion law acquiring the log primitive
+is an acquire operation. And the un log primitive is a release operation. So if
+there is a lock primitive and there is
+a PCD unlock primitive so we have to ensure
+that all the coherence actions happen before I
+do the unlock so that when this guy gets
+the lock and accesses the data the data that he is going to see are going to
+be data that is consistent with whatever modifications may
+have been made over here. That's the idea behind
+the least consistent memory operation. Other synchronization operations
+can also be mapped to acquiring release. If
+you think about barrier arriving at a barrier
+is equivalent to an acquire and leaving the
+barrier is equivalent to a release. So before
+leaving the barrier we have to make sure
+that any changes that we made to shared
+data structures is reflected through all the other processes
+through the cache coherence mechanism. Then we can leave
+the barrier. So leaving the barrier is a release
+operation in the case of barrier synchronization. So what
+that means is that if I do a shared
+memory access within this group of sections and that
+shared memory access would normally result in some coherence
+actions on the interconnect reaching to the other processes
+and so on and if we use the SC
+memory model you will block processes if you
+want until That particular memory access is complete
+with respect to all the processors and the
+shared memory machine. But if we use the least
+consistent memory model we do not have to
+block P1 in order for coherence actions to be
+complete to let the processor continue on with
+its computation. We only have to block a processor
+at a release point to make sure that
+any coherent actions that may have been initiated
+up until this point are all complete before
+we perform this release operation. That's the key
+point that I want you to get out of this release consistent memory model. So the
+least consistent memory model allows exploitation of computation
+on P1 with communication that may be happening through
+the coherence mechanism for completing the coherence actions corresponding to
+the memory accesses that you're making inside the critical section.
+
+## L07b-415: Distributed Shared Memory - RC Memory Model ##
+
+So now we come back to our original parallel program and the parallel program is
+making normal data accesses and synchronization accesses.
+There are different threads running on all these
+processors. They're all making these normal data
+accesses and synchronization accesses. And if the underlying
+memory model is an RC memory model it
+distinguishes between normal data accesses and synchronization accesses.
+And it knows that if there are normal read/write data accesses it doesn't have
+to do anything in terms of blocking
+the processes. It may start initiating coherence actions
+corresponding to these data accesses but it
+won't block the processor for coherence actions
+to be complete until it encounters a
+synchronization operation which is of the release category.
+If a synchronization operation which is a release
+operation hits this RC memory model it's going
+to say ah-ha. In that case all the
+data accesses that I've seen from this guy I
+want to make sure that they're all complete
+globally communicated to all the processors. It's going to
+ensure that before allowing the synchronization operation to
+complete. So the coherence action is only when the
+lock is released.
+
+## L07b-416: Distributed Shared Memory - An Example ##
+
+So let's understand how the RC memory model works with a concrete
+example. So let's say the programmer's intent is that one
+thread of his program is going to modify a structure A. And there
+is another thread that is going to wait
+for the modification and then it is going to
+use the structure A. So this is the
+programmer's intent. Right? So P2 is going to wait for
+the modification use it and this guy is
+the guy that is modifying that particular structure
+A. And of course these are running different
+on processors and therefore we don't know who
+may be getting to their code first. So let's say that P2 executes the code that
+corresponds to this semantic. That is it wants
+to wait for the modification. So in order to
+do that it has a flag and this flag has a semantic that is 0 indicating the
+modification is not done and 1 when the modification
+is actually done. And to make sure that we
+don't do busy waiting we use a mutual exclusion
+lock. We lock a synchronization variable let's call it
+L. And if the flag is 0 then it
+is going to execute the equivalent of a pthread_cond_wait.
+You know pthread_cond_wait has the semantic that
+you're waiting on a condition variable and you're
+also releasing the lock that is associated with
+this condition variable. So you execute this pthread
+wait call and the semantic you know is that at this point thread P2 is
+blocked here the lock is released and he's
+basically waiting for a signal on this condition
+variable c. Who's going to do that well of course
+P1 is the guy that is modifying the structure
+so its the responsibility of P1 to signal him.
+So let's see what happens. So P1 is executing the
+code for modifying the data structure A and once
+it is done with all the modification then it
+is going to inform P2. So in order to
+inform P2 what it does is acquires this lock L
+and it sets the flag to 1. And the flag is the one that I inspected over here
+to know that oh the modification is not yet
+done here and I'm waiting on this condition variable.
+So P1 sets the flag to 1 and signals
+on the condition variable c. And you know that
+signaling on the condition variable is going to wake up
+P2. And of course it cannot start executing here until
+P1 has released the lock and once the lock has been released that lock will be
+acquired implicitly by the operating system on behalf
+of P2 because that is a semantic of this
+condition wait here. So when I wake up
+I'll go back and as a defensive mechanism
+I'll recheck the flag to ensure that the
+flag is now not 0 indicating that the modification
+has been done so I'm now ready to get
+out of this critical section. I unlock L come
+out of the critical section. Now I can use
+this modified data structure. So that's the semantic that
+I wanted and I got that with this code
+fragment that I'm showing you here. So the important
+thing is if you have an RC memory model
+then all the modifications that I'm making here that
+are modifying shared data structures can go on in
+parallel. With all this waiting that may be going
+on here I don't have to block the processor
+to do every one of these modifications. The only
+point at which I have to make sure that
+these modifications have been made globally visible is when
+I hit the unlock point in my code. So just before I unlock L I have to make
+sure that all the read write accesses to shared variables that I've made here in
+my program have all been taken care of
+in terms of the coherence actions being communicated
+to all my peers. Only then I have to unlock it. So in other words
+this code fragment is giving you pictorially the
+opportunity for exploiting computation in parallel with communication.
+If the model was an SC memory model then
+for every read-write accesses that are being done in
+modifying this data structure A there would have been
+coherence actions that would have gone on and those coherence
+actions each of them has to complete before you
+can do the next one and so on. But
+with the RC memory model what it is allowing
+you to do is you can do the data structure
+modification you want and the coherence actions inherent in
+those modifications may be going on in the background
+but you can continue with your computation until you
+hit this unlock point. At this point the memory
+model will ensure that all the coherence actions are
+complete before releasing the lock because once the lock
+is released this guy's going to get it and immediately
+he'll start using the data structure that has been modified
+by me. So it is important that all the coherence actions
+be complete prior to unlocking. So that's the intent of the RC
+memory model. And that's how you can exploit computation going on in
+parallel with communication if the memory model is an RC memory model.
+
+## L07b-417: Distributed Shared Memory - Advantage of RC over SC ##
+
+So to summarize the advantage of RC over SC is that there is no waiting for
+coherence actions on every memory access. So you can overlap computation with
+communication. So the expectation is that you
+will get better performance in a shared
+memory machine if you use the RC memory model compared to an SC memory model.
+
+## L07b-418: Distributed Shared Memory - Lazy RC ##
+
+Now I'm going to introduce you to a
+lazy version of the RC memory model. And it's
+called LRC stands for lazy RC. Now this is
+the structure of your pilot program so a thread
+acquires a lot does the data accessing releases the
+lock. Another thread may acquire the same lock. And
+if the critical section for P1 Precedes the critical
+section for P2 then the RC memory model requires
+that at the point of release you
+ensure that all the modifications that have been
+made on processor P1 that is the
+coherence actions. That are commensurate with those data
+acceses are all communicated to all the
+peer processes including P2. Then you release the
+lock. That's the semantic. And this is
+what is called eager release consistency meaning that
+at the point of release you're insuring that the
+whole system is cache coherent The whole system is
+cache coherent at the point of release then you
+release from the lock. And the cache coherence is
+with respect to the set of data accesses that
+have gone on on this process up to this
+point that's what we are ensuring has been communicated
+and made consistent on all the processes. Now let's
+say that the timeline looks like this and P1's
+release happened at this point. And P2's acquire of
+the same lock happened at a much later point
+in time. That's the luck of the draw in
+terms of how the computation went and so there
+is this time window between P1's release of the
+lock and P2's acquisition of the same lock. Now
+if you think about it there's an opportunity for procrastination.
+Now we saw that procrastination often helps in
+system design. We've seen this in mutual exclusion locks.
+If you insert delay between successive trials of
+trying to get the lock that actually results in
+better performance. We saw that in processes scheduling
+too. Instead of eagerly scheduling the next available task
+Maybe you want to wait for a task
+that has more affinity to your processor. That results
+in performance advantage. So procrastination often is
+a good friend of system design. So
+here again there is an opportunity for
+procrastination. So Lazy RC is another instance
+where procrastination may actually help in optimizing
+the system performance. The idea is that
+rather than performing all the coherence actions
+at the point of release. Don't do it
+procrastinate. Wait till the acquire actually happens.
+At the point of acquire take all the
+coherence actions before allowing this acquire to succeed.
+So the key point is that you're deafening
+the point at which you ensure that all
+the coherence actions are complete to the point
+of acquisition as opposed to the point of
+release. Even if all the coherence actions commensurate
+with the data accesses that have gone on
+up until this release point are not yet
+complete when we hit the release go ahead.
+Release the lock but if the next lock acquisition
+happens at that point make sure that all
+the coherence actions are complete. So in other words
+you get an opportunity to overlap computation with
+communication once again in this window of time between
+release of a lock and the acquisition of the same lock.
+
+## L07b-419: Distributed Shared Memory - Eager vs Lazy RC ##
+
+So the Vanilla RC is what is called
+the eager release consistent memory model and the
+new memory model is called LRC or Lazy
+release consistent memory model. Let's see the pros
+and cons of LRC with respect to Vanilla RC or Lazy RC with respect to Eager
+RC. So what I am showing you here
+are timelines of processor actions on three different processors
+P1 P2 and P3. And this picture is showing you what happens in the Eager
+version of the RC model in terms
+of communication among the processors. So when processor
+P1 has completed its critical section does
+the release operation at the release point what
+we're going to do is all the changes that we made in this example I'm showing
+you to make it simple I'm showing you that
+in this critical section that I wrote in this
+variable x so the changes to x is going
+to be communicated to all the processors P2 and P3.
+It could be depending on whether it is an
+invalidation based protocol or an update based protocol what
+we are saying is we are communicating the coherence
+action to all the other processors. That's what these arrows
+are indicating. Now then P2 acquires the lock
+and after it acquires the lock it does its
+own critical section. Again let's say we're writing
+to the same variable X and it releases the
+lock. And at the point of release once
+again we broadcast the changes that we made. Notice
+what is going on. P1 makes modifications broadcasts
+it to everybody. But who really needs it? Well
+only P2 needs it. But unfortunately the RC memory
+model is Eager and it says I'm going to
+tell everybody that has a copy of X that
+I have modified X. And so it's going to tell
+it to P2. It's going to tell it to
+P3 as well. P3 doesn't care because it's not using
+that variable yet and P2 cares and it of
+course is using that. But when it releases its critical
+section it's once again going to do exactly
+the same thing that happened over here and that
+is it's going to broadcast the changes it made
+to shared memory locations to all the other processes
+in this case P1 and P2. And then
+finally P3 does its acquire and then reads the
+variable. So all these areas are showing you the
+coherence actions that are inherent in the completion of
+shared memory accesses that are happening in the
+critical section of programs. Now let's move over to
+the Lazy version. In the Lazy version what we
+are doing is when we release a lock we
+are not doing any global communication. We simply
+release a lock. Later on the next process that
+happens to acquire that same lock. The RC memory
+model. The first thing it's going to say is
+oh you want to get this lock? I have
+to go and make sure that I complete all the
+coherence actions that I've associated with that particular lock. In
+this case the previous lock holder had made changes to
+the variable x so I'm going to pull it from
+this guy and then I can execute my critical section.
+And then when P3 executes its critical section it's going
+to pull it from P2 and complete what it needs
+to do. So the important thing that you see is
+that there is no broadcast anymore. It's only point-to-point communication
+that's happening between the processors that are passing the lock
+between one to the other. So in other words the
+number of arrows that you see are communication events. You
+can see that there's a lot more arrows here. Forget
+about the arrows that I introduced. But the black arrows
+that you see are the arrows that are indicating communications
+commensurate with the coherence actions needed for this
+set of critical section actions. And correspondingly the
+black arrows here are showing the communication actions
+for the same set of critical section actions
+shown in both the top and the bottom
+half of this particular figure. You can see
+there's a lot less communication happening with the
+Lazy model. It's also called a pull model
+because what we're doing is at the
+point of acquisition we're pulling the coherence
+actions that need to be completed over here. Whereas this is the push model in
+the sense that we're pushing all the
+coherence actions to everybody at the point of
+release. Having introduced the Eager and the
+Lazy RC models it's time for a quiz.
+
+## L07b-420: Distributed Shared Memory - Pros and Cons of Lazy and Eager Question ##
+
+So the question is what are the pros of the Lazy RC model
+over the Eager RC model and I want you to write in free form
+what you think are the pros. And I want you to think about
+what are the cons of the Lazy over the Eager in memory consistency model.
+
+## L07b-421: Distributed Shared Memory - Pros and Cons of Lazy and Eager Solution ##
+
+So in the lazy model as we saw
+in the picture there were less communication events. Which
+means you have less messages that are flowing
+through the network in order to carry out the
+coherence actions compared to the eager model. But
+there is a downside to the lazy model as
+well. And that is at the point of
+acquisition you don't have all the coherence actions complete.
+And therefore you may have to incur more latency at the point of acquire to
+wait for all the coherence actions to get
+complete. So that's the cons one might think
+about for the lazy model compared to the
+eager model. Procrastination helps in releasing the number
+of messages. But it could result in more
+latency at the point of acquiring the lock.
+
+## L07b-422: Distributed Shared Memory - Software DSM ##
+
+So far we've seen three different memory consistency
+models. One is the sequential consistent memory model the
+release consistent memory model. And strictly speaking I would
+say the eager version and the lazy version are
+just variants of the same memory model namely
+the release consistent memory model. And now we're going to
+transition and talk about software distributed shared memory and
+how these memory models come into play in building
+software distributed shared memory. So we're dealing
+with a computational cluster that is in
+the cluster each node of the cluster has its own private physical memory but
+there is no physically shared memory. And
+therefore the system meaning the system software
+has to implement the consistency model to
+the programmer. In a tightly coupled multiprocessor
+coherence is maintained at individual memory access level by the
+hardware. Unfortunately that fine grain of
+maintaining coherence at individual memory access level will lead to too
+much overhead in a cluster. Why? Because on every load or store instruction that
+is happening on any one of these processors the system software has to butt
+in and implement the coherence action
+in software through the entire cluster. And
+this is simply infeasible. So what do
+we do to implement software distributed shared
+memory? So first part is to implement this sharing and coherence maintenance at
+the level of pages. So the granularity of coherence maintenance is at the level
+of a page. Now even in a simple processor or in a true multiprocessor the
+unit of coherence maintenance is not simply a single word that a processor is
+doing a load or a store on. Because in order to exploit spatial locality the
+block size used in caches in processors tend to be bigger than the granularity
+of memory access that is possible from individual instructions in the processor.
+So we're taking this up a level and saying if you're going to do it all in
+software let's keep the granularity of coherence
+maintenance to be an entire page. And
+you're going to maintain the coherence of the
+distributed shared memory in software by cooperating
+with the operating system that is running
+on every node of the processor. So what
+we're going to do is we're providing a
+global virtual memory abstraction to the application program
+running on the cluster. So the application
+programmer views the entire cluster as a globally
+shared virtual memory. Under the cover what the
+DSM software is doing is it is partitioning
+this global address space into chunks that are
+managed individually on the nodes of the different
+processors of the cluster. From the application point
+of view what this global virtual memory abstraction
+is giving is address equivalence. And that is
+if I access a memory location x in
+my program that means exactly the same thing
+whether I access the memory location x from processor
+1 processor 2 and so on and so forth. That's the idea in providing
+a global virtual memory abstraction. And the
+way the DSM software is going to handle maintenance
+of coherence is by having distributed ownership
+for the different virtual pages that constitute this
+global virtual address space. So you can
+think of this global virtual address space as
+constituted by several pages and we're going to
+say some number of these pages are owned
+by processor 1. Some number of these pages are owned by processor 2. Some number
+by processor 3 and so on. So we split the ownership responsibility into
+individual processors. Now what that means is that the owner
+particular page is also responsible for keeping complete
+coherence information for that particular page
+and taking the coherence actions commensurate with
+that page. And the local physical memories are available in each one of this
+processors is being used for hosting portions of the global virtual memory space
+in the individual processors commensurate with the
+access pattern that is being displayed by
+the application on the different processors. So for
+instance if processor 1 accesses this portion of the
+global virtual memory space then this portion of the
+address space is mapped into the local physical memory
+of this processor. So that a thread that
+is running on this processor can access this portion
+of the global address space. And it might be
+that same page is being shared with some other
+processor n over here. In that case a copy of this page is existing in both
+this processor as well as this processor. Now it is up to the processor that is
+responsible for the ownership of this particular page
+to worry about the consistency of this page
+that is now resident in multiple locations. For
+instance if this node let's say is the owner
+for this page. Then this node will have metadata that indicates that this
+particular page is currently shared by both p 1 and p n. So that
+is the directory that is associated with the portion of the global virtual
+memory space that is being owned and
+managed by this particular processor. So statically
+we are making an association between a portion of
+the address space and the owner for that portion
+of the address space in terms of coherence maintenance
+for that portion of the global virtual memory space.
+
+## L07b-423: Distributed Shared Memory - Software DSM Continued ##
+
+So this is the abstraction layer seen by the application that is giving this
+illusion of a global virtual memory. This layer is the DSM software
+implementation layer that implements this global
+virtual memory abstraction. In particular this DSM
+software layer which exists on every one
+of these processors knows that the point
+of access to a page by a processor who
+exactly to contact as the owner of the page
+to get the current copy of the page. For
+instance let's say that there was a page fault on
+this processor one. For a particular portion of the
+global address space. That portion of the global address space
+is currently not resident here in the physical memory
+of processor one. So there is a page fault over
+here and there is cooperation as I mentioned earlier
+between the operating system and the DSM. So when
+the page fault happens that page fault is going
+to be communicated by the operating system to the DSM
+software saying that here is the page fault you
+handle it. What the DSM software is going to do
+is it knows the owner of the page and
+so it's going to contact the owner of the page.
+And ask the owner of the page to get the current
+copy of the page. So the current copy of the page
+resides over here. So the owner either it itself has the
+current copy of the page or it knows which node currently has
+the current copy of the page and so it's going to
+send the page over to the node that is requesting it. The
+current copy of the page is over here. It's going to
+come over to this guy and recall what I said about ownership
+of the pages. The residency of this page doesn't
+necessarily mean that this is the owner of the page.
+The owner of this page could have been this
+node so the DSM software would have contacted the owner.
+And the owner would have said oh you know
+what. That particular place to cut and copy is on
+this node. So the DSM software would go to
+this note and fetch this page and put it into
+this processor. So that this processor is happy.
+So once the page has been brought in to
+the physical memory then the DSN software contacts the
+virtual memory manager and says I've completed now processing
+the page fault brought the page that is missing
+and put it into a particular location in the
+physical memory. Would you please update the page table
+for this guy so that he can resume execution?
+Well then the VM manager gets into action.
+And updates to page table for this thread
+to indicate that the faulty virtual page is
+now mapped to a physical page and then
+the process or the thread can resume its
+execution. So this is a way coherence is
+going to be maintained by the DSM software. The
+cooperation between DSM software and the VM manager.
+And the coherence maintenance is happening at the level of individual pages. An
+early examples of systems that built software DSM include
+Ivy from Yale Clouds from Georgia Tech
+Mirage from UPenn and Munin from Rice. All of
+these are distributed shared memory systems and they all used coherence
+maintenance at the granularity of an individual page and they
+used a protocol which is often referred to as a single writer protocol. That
+is I mentioned that the directory associated with the portion
+of the virtual memory space managed by each one of these nodes
+and the directory has information as to who all are sharing a page at any point
+of time. Multiple readers can share a page
+at any point of time but a single writer
+is only allowed to have the page at any
+point of time. So if there is the writer
+for a particular page let's say that loose page
+which is now currently in the memory of two
+different processors if this guy wants to write to
+this page then he has to inform through the
+DSM software abstraction inform the owner for this page.
+Let's say this guy is the owner for this
+page that I want to write to this page
+and at that point the owner is going to invalidate
+all copies of that page that exist in the
+entire system so that this guy has exclusive access
+to that page so that they can make modifications
+to it. So this is what is called single writer
+multiple reader protocol. Easy to implement. At the point of
+right to a page what you do is you go
+through the DSM software contact the owner. And the owner
+says I know who all have copies of the page I'll
+invalidate all of them. Once it has invalidated all the
+copies then the guy who wants to write to that
+page can go ahead and write to it because that'll
+be the only copy. Now the problem with the single writer
+protocol is that there is potential for
+what is called fault sharing. We've talked
+about this already in the context of
+shared memory multiprocessors. Basically the idea of fault
+sharing or the concept of fault sharing is that data appears to be shared even
+though programmatically they are not. Let's consider
+this page-based coherence maintenance. In the page-based coherence
+maintenance the coherence maintenance that is done by
+the software DSM software is of the granularity
+of a single page. A page may be
+4K bytes or 8K bytesdepending on the architecture
+we're talking about. And within a page lots
+of different data structures can actually fit. So
+if the coherence maintenance is being done at
+the level of an individual page then we're
+invalidating copies of the page in several nodes
+in order to allow one guy to make
+modifications to some portion of that page. And
+that can be very severe in a page based
+system due to the coarse granularity of the
+coherence information. So for example this one page may
+contain ten different data structures each of which
+is governed by a distinct lock. So far as
+the application programmer is concerned. But even if I get
+a lock which is for a particular data structure that
+happens to be in this page. And this guy has
+a lock for a different data structure which is also on
+the same page. When I get the lock that is
+going to manipulate a particular data structure in this page
+and if I want to make modifications for it I am
+going go and invalidate all the other copies. When he wants
+to make a change he's going to come and invalidate my copy of the page. So
+the page can be ping-ponging between between multiple
+processes. Even though they are modifying different portions
+of the same page still the coherence granularity
+being a page will result in this page
+shuttling back and forth between these two guys
+even though the application program is perfectly well behaved
+in terms of using locks to govern
+access to different data structures. Unfortunately all of
+those data structures happened to fit within
+the same page. Resulting in this fault sharing.
+So page level granularity and single writer
+multiple reader protocol don't live happily together. They
+will lead to fault sharing. And they will lead to ping ponging of the pages
+due to the fault sharing among the
+threads of the application across the entire network.
+
+## L07b-424: Distributed Shared Memory - LRC with Multi Writer Coherence Protocol ##
+
+That brings us to a new coherence protocol
+which is multiple writer protocol. So the idea
+is we want to maintain coherence information still
+at the granularity of pages. Because that is
+the granularity at which the operating system operates
+and therefore the DSM can be integrated with
+the operating system if the granularity of the
+coherence maintenance is at the level of a page.
+But at the same time we want to allow
+multiple writers to be able to write to the
+same page recognizing that an application programmer may have
+packed lots of different data structures within the same
+page. So we are going to see how the
+multiple writer coherence protocol works and in particular we're
+going to use that in concert with these lazy
+release consistency. The background for what I'm going to describe
+is covered in the paper that is assigned for
+you which is the Treadmarks paper. I encourage you
+to read that paper to get all the details.
+But here I'm going to give you a high
+level view of how LRC is integrated with multiple writer protocol in the
+Treadmarks system. So the processor P1 acquires a lock and makes
+modifications. This notation that I'm using is to indicate that these pages
+X Y and Z actually they are data structures
+that are being modified but we are maintaining coherence
+of the level of pages so we'll say that
+the data structures that we're modifying within this critical section
+are contained in pages X Y and Z and
+so those are the pages that are being modified within
+this critical section when processor P1 executes this piece
+of code. Now the operating system has no knowledge of
+the association between the lock L and the
+pages that have been modified. All that it
+knows is that within the critical section these
+are the pages that were modified. That's what the
+operating system knows. And what we're going to
+do is we're going to create a diff
+of the changes that were made to the pages x y and z in this critical section.
+So we know at the beginning of this critical
+section what the contents of the page x y and
+z is. And at the end of this critical
+section we're going to find out what is the difference
+that has been made or what are the changes
+that have made and compute the diffs between the original
+page and the modified page. Xd Yd and Zd
+are the diffs to pages X Y and Z respectively
+as a result of executing this critical
+section. So the coherence protocol we are going
+to use is LRC or lazy release consistency. So the next time the same lock L
+is requested by some other process of
+P2 we're going to first invalidate the pages
+we know were modified by the previous lock
+holder because this is information that is available
+to the DSN that at the point of unlock it knows that these were the pages that
+were modified by this critical section. It doesn't know what part of the pages
+are modified. That's contained in the diffs. But it knows that pages X Y and
+Z are associated with this lock L and
+therefore when P2 makes the lock request L
+the DSN is going to first invalidate. If copies of pages x y and z are locally
+resident in the processor P2 then the DSM software is going to invalidate
+those pages x y and z at the point of lock acquisition. That's consistent with
+the lazy release consistency model. So once
+we've invalidated these pages then you can allow
+this guy to get the lock and start
+getting into its critical section. Now once it is
+in the critical section it can do whatever it
+wants. But if it tries to access page X
+at that point we know that page is invalid
+because we've done that at the beginning of this
+critical section invalidated page X. And at this point
+the DSM software also knows that the previous lock
+holder has the modifications that need to be
+made to the original page to get the current
+version of the page. The current version of
+the page is with some owner for this page.
+I mentioned this ownership based protocol in the
+DSM software. So the DSM software knows who the
+owner of the page is. From the owner of the page I can get the original content
+of X. I'll do that but I'll also go and get the diff that is created by the
+execution of the previous critical section by the previous lock holder. So the
+DSM software brings at the point of access to X Xd and the original version
+of the page from the owner of the page it can then create the current version
+of the page for use by P2.
+
+## L07b-425: Distributed Shared Memory - LRC with Multi Writer Coherence Protocol Continued ##
+
+Some of you may have thought of this
+already and that is prior to P two getting
+its lock it is possible that maybe another processor
+say P three also used the same lock. And
+so when it executed its critical section maybe in
+its critical section it modified the page X again
+and it creates its own def let's call it
+Xd prime. Because all of these locks are the
+same When the DSM software knows that now there are two difs associated with
+this lock L one dif is with the processor P one and another dif is residing
+with processor P three and therefore when processor P two tries to access x
+The DSM software has not only to get the diff from P one but it also needs
+to get the diff from P two and apply it to the original pristine
+version of the page that is with the owner of the page so that it can create
+the current version of the page. And it
+can extend this to any number of processors.
+That may have made modifications their own modifications
+to this page under the provision of the
+lock L. All of those diffs are going to be applied in order for the process of P
+two to access the page as the current page. If after accessing the page
+x and its execution P two. Touches let's say page Z at that point once again
+the [INAUDIBLE] knows that oh I know that
+Z was modified by the previous lock holder
+Zd is the diff I know where to find it I'll bring the original copy of z from...
+The owner of Z and apply the diffs to
+it before letting P two access Z. So you can
+see that even though the invalidation was done right
+at the beginning we're procrastinating getting the this til
+the point of access. So this is what LRC
+allows you to do is just bring in what this
+guy needs. So for instance inside this critical
+section maybe only X is accessed. Y and
+Z are not accessed at all in which case we never bring the diffs from P one
+to P two for y and z.P two On the other hand it is possible that P
+two as part of its execution of its
+critical section. Modifies another page Q different from X
+Y and Z. So now the DSM software knows that this particular lock is associated
+not just with X Y and Z but it is also associated with Q. So future lock
+request for L will result in invalidating X Y Z and Q because all of those
+may have been modified and the next critical
+section that wants to access this lock L has
+to get the current versions of all the pages that were ever associated with L.
+
+## L07b-426: Distributed Shared Memory - LRC with Multi Writer Coherence Protocol ##
+
+So let's talk about the Multiple-Writer part of
+it. Note that it could be multiple user
+data structures present in a given page X.
+If that is the case the programmer probably
+has different locks for accessing different portions of
+the data structures that happened to all fit
+within this page X. So it is conceivable that when all of this was going on.
+There was another processor let's say P4 and
+a thread that is running on the processor
+P4 got a completely different lock let's say
+L2. And it is accessing some data structure that
+happens to be in the same page X. This is perfectly fine. The DSM software Is
+not going to do anything in terms of the
+diffs that it has created with respect to the
+page X because of lock acquisition L. That's
+completely different set of actions compared to a different lock acquisition
+say L2. So if in fact that other thread that is running on P4
+executed in parallel with P1 got its lock say L2
+and modified x. When P2 gets its lock L the liaison
+software is going to bring the dif only from the previous users of the same lock
+L. P4 was not using L. It was using L2 even though it accessed the same page.
+And modifying a different portion of that page.
+And therefore the DSM software is going to assume
+that that change made by P4 to x is irrelevant so far as P2's critical section
+is concerned. So that's the important thing
+and that is where the multiple writer coherence
+protocol semantic comes in. That Simultaneously the
+same page could be modified by several different
+threads on several different processors. And that
+is perfectly fine so long as they're using
+different locks. So the association between the set of changes to a page Is only
+to specific lock which is being used to govern that critical section and this
+is the reason why this is called a Multiple-Writer Coherence Protocol. And we
+saw how this Multiple-Writer Coherence Protocol
+lives in concert with LRC to reduce
+the amount of communication that goes on
+in executing critical sections of an application.
+
+## L07b-427: Distributed Shared Memory - Implementation ##
+
+I've always said that the fun part of
+any systems research is the technical details and implementing
+an idea. So let's look at some of
+the implementation details here. So what's going to happen is
+that when a process or a thread on a processor Tries to write to a page X.
+At the point of writing to that page X
+the operating system is going to say this guy wants
+to write to this X I'm going to make a twin for this page so there's the
+original page and then the twin for the
+same page and the original page is writeable by
+this process. That mapping is there in the
+page table. This new copy a twin has been
+created in physical memory. It's not mapped into the
+page table of any process. It is just additional
+copy of the same page created by the operating system as a twin. So this page
+has been made writable and therefore the thread
+can make changes to the X which is the
+original copy of the page. So the thread reaches the release point.
+So when the thread reaches the release point what the DSM software is going to
+do is compute the depth between the changes
+that have been made and the original
+version. The original version we created a twin
+right? So this is the twin and this is the original page but this original
+page we made modifications to. X has now become x prime and this is the twin
+which is containing the page as it was before The thread started writing to it.
+So the DSM software at the release point is
+going to compute the diff between the original copy of
+the page and the modified copy of the page.
+And the diff is going to be computed as a
+run link encoded diff. Meaning that all of the
+Page is not been modified. It's only this portion
+and this portion of the page that have been
+modified. So the diff is going to be computed as
+oh the page is changed starting from here
+up until here and starting from here up until
+here. This is the starting point for the change
+and this is the amount of change and this
+is the content of the change. The diff in
+the data structure that had been created by the
+DSM software to remember the changes that had been
+made to this data x prior to release as
+you may have imagined already when the same block That governs
+[UNKNOWN] to this page which was released over here is acquired by a
+different processor at the point of acquisition. What we're going to do is we're
+going to invalidate all the pages that were touched In this critical section
+including x. So x will be invalidated at
+the point of acquisition of the same lock
+that is governing this critical section. And when
+that processor has a page fault for page
+x. A DSM software knows that oh there is a Diff lying around on this node
+which is needed in order to update the
+page and give it to the current lock acquirer.
+So that's part of what goes on under
+the covers in the implementation. But so far
+as this node is concerned When the release
+operation is done at that point the DSM
+software is going to compute the diff between
+changes made to this page and its original
+copy of the page and keep that as
+a diff data structure. And there are multiple pages
+all of the diffs will be created. At the
+point of release. And once this thread that was in
+this critical section has completed its release operation we will
+write protect this page X. We're write protecting it to
+indicate that this guy cannot write to it anymore
+unless he gets in the critical section and we have
+to do the coherence actions again. And that's the implementation
+of the protocol. And at this point we write-protect the
+original page and we can also get rid of
+the twin. The use for this twin is complete. We
+only needed it in order to compute this dift.
+We've computed it and we write-protected the original page and
+everything that needs to be done on this node
+is complete and we can get rid of this twin
+and getting rid of this twin essentially means That
+we are freeing up the physical memory that we allocated
+for creating the twin in the first place.
+
+## L07b-428: Distributed Shared Memory - Implementation Continued ##
+
+I mentioned earlier it's a multiple writer protocol
+which means that this action that's going on
+can be happening simultaneously for the same page
+X on different nodes of the cluster. That's
+perfectly fine so far as the protocol is
+concerned because the assumption is that the user
+has an association between locks. And the data
+structures governed by the lock. So even if
+the same page is being modified hopefully
+different portions of the same page has
+been modified because concurrently if a page
+is being modified that means that different locks
+are protecting the portions of the page
+that are being modified by the different processes.
+Now if writes are happening to the same portion of a page under different locks
+that's a user's problem. That's a data race. That's
+not the problem of the DSM software. It's an
+application problem because it represents a data race that
+should not have been there if the application is
+constructed correctly. But if the application is constructed correctly
+and the multiple data structures are hosted in the
+same page and the data structures are all governed
+by different locks. DSM software has a way of ensuring
+that changes made to a critical section under
+a particular lock is propagated from one processor
+to the next processor where the first processor
+is the current owner of the lock and the
+next processor is the next user of the
+lock. So this implementation that I've detailed here
+is an example of the cooperation between the
+distributed shared memory software and the operating system to
+make it all happen. And in particular
+TreadMarks implemented this LRC multiple writer coherence
+protocol on a Unix system. And in
+the Unix system the operating system generates
+an exception called SIGSEGV in the operating system layer when a shared page is
+accessed by a thread. This exception is
+caught by the thread block's runtime handler.
+And at that point the DSM software get
+into gear contacts the owner of the page checks
+the status of the page. And if the page is invalid then it gets the page and
+the difts for that page and once it brings in the contents of the page and the
+difts it creates a current version of the page.
+And if the process that is trying to access
+the page is making a read access then there is
+no problem. But if the process that wants to use
+that page wants to write to it at that point
+it creates a twin and does all the things that
+I just mentioned. So one thing that you will notice
+is that there is space overhead for the creation of
+the twin and the point of the write. You have
+to create a twin. And then at the point of release
+you have to create of course you can get rid of the twin but you're creating
+a dift data structure. So the twin and
+the difts are all data structures. Of the implementation
+of distriuted shared memory. And as time goes
+by there could be a lot of these difts
+that are lying around in different nodes. Imagine
+that a page was touched by ten different processors.
+In that case there are going to be difts lying
+around in ten different processors and if eleven processor wants
+to access the same page the DSM software has
+to go and bring the dift's from this ten prior
+users of the page. Get the original page from
+the owner. Apply the difts to create the new page.
+A lot of latency in is involved before the
+guy who needs the page now can start using it.
+And also there is a lot of space over here in the fact that all these discs are
+lying around. So one of the things that happens
+in in the DSM software Is garbage collection. And that
+is you keep a watermark of what is the
+amount of difts that have been created in the
+entire system. If it exceeds a threshold then you
+start applying these dift's to the original copy of the
+page at the owner so that you can then get
+rid of the dift's completely. Why do you need that
+well the difts that going to be lying it on till
+a long time till the next time the pages access
+by someone you don't want that. So what you're trying
+to do is you're reducing the space overhead in the
+DSM implementation by periodically doing this garbage collection. And applying
+the difts to the original copy of the page so
+that he can get rid of it from the system. You don't
+want to do it too eagerly but you don't want to wait
+too long also because if a page hasn't been accessed for a
+long time difts are going to be lying around for a long
+time. So there will be a demon process in every node that
+every once in a while wakes up and sees how much difts
+have been created in my known. If it exceeds the threshold then
+it says okay time to get to work. Let me go and
+apply this difts to the original copy of the
+page so that I can get rid of the difts.
+
+## L07b-429: Distributed Shared Memory - Non Page Based DSM ##
+
+In this lesson I've covered distributed shared memory
+and particularly I've given you a specific example
+of a distributed shared memory system called Treadmarks
+that uses lazy release consistency and multiple writer
+coherence. I just want to leave you with
+some thoughts about non-page based DSM systems before
+concluding this lesson. There have been systems that
+have been built that do not use granularity
+of a page for coherence maintenance. I
+mentioned earlier that if you want to maintain
+granularity not at the page level then you
+have to track individual reads and writes that
+is happening on a thread. So one approach is what is called a library based
+approach. Here the idea is that the programming
+framework the programming library is going to give
+you a way by which you can annotate
+shared variables that you're going to use in your
+program. Whenever you touch a shared variable part of
+creating the executable is to cause a trap at
+the point of access to the shared variable
+so that the DSM software will be contacted and
+the DSM software can then take the coherence action
+at the point of access to that shared variable.
+So in this case there is no operating
+system support needed because in the binary itself
+we are making sure that at the point of access we're going to result in a trap
+that will get us into the trap handler that is part of DSM software so that it
+can take the coherence actions. And examples of
+systems that use this mechanism include Shasta that was
+done at Digital Equipment Corporation and Beehive which
+was done at Georgia Tech. And because we
+are doing this sharing at the level of
+variables you don't have any fault sharing which
+is possible with page based systems and single
+write or cache coherence protocol. So once the
+DSM software takes the coherence action which might
+include fetching the data that is associated with the
+variable you are trying to access then the
+DSM software can resume this thread that caused
+this trap in the first place. Another approach
+to providing shared abstractions is not at the level
+of memory locations but at the level of
+structures that are meaningful for an application. And
+this is what is called structured DSM. So
+the idea is that there is a programming library
+which actually provides abstractions that can be
+manipulated in an application program. And the
+abstractions can be manipulated using API calls
+that are part of the language runtime. So
+when the application makes the API call
+at that point when an application makes those
+API calls that point the language runtime
+gets into gear and says what coherence actions
+do I need to make in order to satisfy
+this API call. All of those coherence actions are going
+to be taken at the point of that API
+call and that might include fetching data from a remote
+node in the cluster. And once the semantics of
+that API call have been executed by the language runtime
+then it's going to resume this thread that made
+the call in the first place. Again there is no
+OS support needed for this. And the structured DSM is a very popular approach
+that has been used in systems such as Linda Orca and Stampede that was done at
+Georgia Tech and successors to Stampede called
+Stampede RT and and PTS. And in this
+course later on we're going to see PTS
+as an example of a structured DSM system.
+
+## L07b-430: Distributed Shared Memory - Scalability ##
+
+DSM is providing the application developer with a programming model
+on a cluster that is akin to P threads on an SMP. It looks and feels like a
+shared memory threads package. That's good. But
+what about performance? Will the performance of
+a multi-threaded app. Scale up as we
+increase the number of processors in the cluster.
+Now from an application programmer's point of view your
+expectation is that as you add more processors you're
+going to get more performance. That's your expectation. And what
+we are doing is we're exploiting the parallelism that is
+available both in the application because it's structured in
+that way. And in the hardware in order to get
+increase performances as you increase the number of processors.
+But the problem is as you increase the number of
+processors because things are happening in software there
+is increased overhead as well. And this overhead
+increases as the number of processors so the
+actual performance is going to be actually much
+less than your expectation. Mitigated by the increasing
+overhead with the number of processors. And this
+buildup of overhead with a number of processes
+happens in a true memory multi-processors. And this
+is even more true in the case of liason. Which
+is implementing the shared memory extraction in software on a cluster.
+
+## L07b-431: Distributed Shared Memory - DSM and Speedup ##
+
+So we have the allusion of shared
+memory which is implemented by physical memories that
+is strewn all over the entire cluster and
+the hope is that the application that is
+running on the different nodes of this
+cluster will actually get speed up with increasing
+number of processors but such speed up is
+not automatic. If the sharing that we're doing
+even though DSM gives you the ability to
+share memory across the network recall what our
+good friend Chuck Thacker told us. Shared memory
+scales really well when you don't share memory.
+So if the sharing is too fine-grained then
+no hope of speed up especially with DSM
+systems. Because it is only an illusion of
+shared memory via software not even physical shared memory.
+Even physical shared memory can lead to overheads.
+So this illusion through software can result in
+even more overhead so you've gotta be very careful on how you share and what you
+share. So the basic principle is that the
+computation to communication ratio has to be very
+high if you want any hope of speed up. So in other words the critical sections
+that are execute to modify data structures
+better be really really hefty critical structures before
+somebody else needs to access the same portion
+of the data. So what does this mean
+for shared memory codes? Well basically if the code has a lot of dynamic data
+structures that are manipulated with pointers then it
+can lead to a lot of implicit communication
+across the local area network. You think you're
+executing code accessing a pointer but the pointer
+happens to be pointing to memory that's in
+a remote processor. So that implicit access to
+a data structure pointed to by a pointer
+in your program can result in a network
+communication across the network. Fetching something from here
+into your local memory. This is the bane
+of distributed shared memory. That pointer
+codes may result in increasing overhead
+for coherence maintenance for distributed shared
+memory in a local area network. So
+you have to be very careful on how you structure codes that can execute
+efficiently in a cluster using DSM as the vehicle for programming.
+
+## L07b-432: Distributed Shared Memory - Conclusion ##
+
+In reality DSM as originally envisioned that is a threads package for
+a cluster is dead. Structured DSM
+namely providing higher level data abstractions for
+sharing among threads executing on different
+nodes of the cluster is attractive to
+reduce the programming pain for the
+developers of distributed applications on a cluster.
+We will discuss one such system called persistent
+temporal streams as part of a later lesson module.
+

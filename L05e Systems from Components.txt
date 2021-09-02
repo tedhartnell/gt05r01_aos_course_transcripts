@@ -1,0 +1,654 @@
+## L05e-334: Systems from Components - Introduction ##
+
+By now I'm sure you have recognized that an operating system is a complex
+software system. Especially the protocol stack that
+sits within an operating system is several hundred
+thousand lines of code. And developing such
+a complex software system in general Protocol stack
+in particular to meet specs and also
+deliver very good performance is no mean challenge.
+Let's skip over to the other side of the fence and see how complex hardware
+systems for example a CPU chip like this one with billions of
+transistors on it is built. [UNKNOWN] technology uses
+component based approach to building large and complex hardware systems.
+Can we mimic the same method for building large
+complex software systems? That is rather than start with a clean slate. Can
+we reuse software components? It's very tempting
+since component based design will be easier
+to test and optimize at an individual component level and also it'll allow
+for easy evolution and extension through the
+illusion and the leash and of components.
+The idea of component based design is
+orthogonal to the structure of the operating system
+that we've seen in previous lessons. Be it
+a monolithic kernel or a microkernel based design
+the idea of component based design can be
+applied to each subsystem within an operating system.
+Of course there are challenges. Can this lead
+to inefficiencies in performance due to the additional
+component level of function calls? Could it lead to loss of locality when we
+cross boundaries of components? Could it lead
+to unnecessary redundancies such as copying et cetera?
+Is it possible to get the advantages
+of component based design without losing performance? The
+short answer is' yes' if you can
+put theory and practice together. We will explore
+this topic more in this lesson. The
+idea is to synthesize Network Protocol Stack from
+components. How do we do that? But that's what were going to see in this lesson.
+And in this lesson kernel's ensemble project
+is used as a backdrop to illustrate how
+to build complex systems by using components.
+And using a component based approach to putting
+together a large complex hardware system.
+
+## L05e-335: Systems from Components - The Big Picture ##
+
+So the idea is to put theory and practice together in the design cycle. Theory
+is good for expressing abstract specifications of
+the system at the level of individual components.
+For this part of the design cycle
+namely specification of what we want to build.
+A theoretical framework called IO automator is used
+and it's syntax is very similar to C
+like syntax. So in terms of writing the specification it's very intuitive
+in how we go about using IO automator to develop the system requirements and
+specify them using the syntax provided
+by our automator. And more importantly the
+composition operator that's available in IO
+automator allows expressing specification of an entire
+subsystem that we want to build. Example if you want to build a TCPIP protocol
+stack then all of the functional relationship
+between the components of the subsystem can
+be expressed using the powerful specification language
+primitives available in IO automator. The second
+part of the design cycle is converting the specification in IO automator to code
+that can be actually executed. And for
+this purpose the programming language that is used
+is a high level programming language called
+OCaml. Stands for object oriented categorical abstract machine
+language and it has several properties that
+make OCaml a very good candidate for doing
+component based design as we are proposing to
+do in this lesson. Number one the formal
+semantics that is available in OCaml is
+a nice compliment to the specification that we've
+done using IO automator. That's number one
+reason why OCaml is a good vehicle for
+converting the specification into code. The second
+nice property that it has is it's object
+oriented. Being an object-oriented language it has
+some very nice properties such as no side-effects
+for things that you do in the program.
+And in fact this comes from the fact that
+OCaml is a functional programming language so some
+of the properties of the functional programming language including
+no side effects and so on make this
+an appropriate vehicle to convert the specification into code.
+And third perhaps the most important characteristic from an
+operating system designer's point of view is that the
+code that you can generate with OCaml is
+as efficient as C code. This is super important
+when you're developing operating systems. Because you care about
+performance. Object oriented is good. Formal semantics is good.
+But you also want to know that you get
+good performance out of it. And yes you can
+get pretty good performance out of OCaml. Because the
+object code that we can generate from the OCaml
+compiler is very efficient similar to C. All
+of these make OCaml a good vehicle for
+going from specification to actual code. At this
+point what we have is an unoptimized code that
+faithfully implements the specification that we started out
+with. And remember that we are doing component-based
+design so it's going to be highly unoptimized
+because there is a lot of craft that goes
+between these components that you put together like
+level blocks. So we have to optimize it
+before it is ready for prime time. Now
+how do we do that? Well once again return
+to theory. NuPrl is a theoretical framework for optimization of
+OCaml code. The input to this framework is the OCaml code and the
+output that you get is an optimized version of a functionally
+equivalent OCaml code. So that's what this optimization
+framework gives you takes the input unoptimized OCaml code
+and produces optimized Ocaml code. And the optimized
+OCaml code can be theoretically verified to be functionally
+equivalent to the unoptimized input OCaml code. That's
+the beauty of this theoretical framework. And the way
+it does that is a little bit beyond
+the scope of this course. It uses a theorem-proving
+framework in order to do this and verify through theorem proving that
+the resulting code that is generated is equivalent to the input
+code which is unoptimized. I've given you the big picture of
+the design cycle now it is time to go into the weeds
+
+## L05e-336: Systems from Components - Digging Deeper From Spec to Implementation ##
+
+So what I'm showing you here is sort
+of a software engineering road map to synthesizing a
+complex system. So what we're going to do is first
+we're going to go from specification to implementation. And the
+figure shows a workflow in building a complex
+system. In particular what I focused on is a
+TCP/IP network protocol stack using this methodology of the
+design cycle that I presented. So I start with.
+What is called an Abstract Behavioral Spec. Now this is where we use this IoA
+automata. And this abstract behavioral spec is
+where we describe the functionality of the subsystem
+in terms of requirements. And we are
+presenting the high level logical specification of the
+components and the specification is really talking
+about the properties that we want the subsystem
+to adhere to. Not how it is going to
+be accomplished or how how it is going to be executed
+but the properties that it has to adhere to.
+For example in the protocol. If we desire that the
+package should be delivered in order that's a property
+that we want for the subsystem. Those are the behavioral
+properties that are going to express using the I/O Automata. Another
+behavioral specification properties that you can have are things like
+well on every packet there should be an acknowledgement. That's
+another property that you want the protocol to have. You
+can express that using the I/O Automata. So the abstract
+behavioral spec is simply and lends itself to deriving properties
+about the behavior of the system. Not the execution but
+the behavior of the system such as [UNKNOWN] and so
+on. It is not executable code even though I told
+you that the syntax of I/O Automata is similar to C
+it's not executable code. But the interesting thing
+is that Once you've expressed the abstract behavioral
+properties you can actually verify whether the behavioral
+specification meets the properties that you want in
+the sub-system. So proving that the behavioral spec
+meets the properties is facilitated by the I/O
+Automata theoretical framework. That's the nice thing about
+this behavioral spec. Once we know that the
+behavioral spec is meeting the properties that we set
+up for the subsystem then we are ready to roll
+our sleeves and go down the path of implementing
+the behavioral properties. Next step in the process is getting
+to a concrete behavioral spec. We get to this
+concrete behavioral spec from the abstract behavioral spec through a
+whole set of refinements to this abstract behavioral spec.
+For instance the refinement could be that if I have
+a Q Data structure. I want first come first
+serve property how do I make sure that the abstract
+behavioral spec adheres to the additional execution condition that
+I want of first come first serve. Those are the
+kinds of things that I can do and refining
+the abstract behavioral spec to get a concrete behavioral spec.
+This is still not code but it is closer
+to code than abstract behavioral spec. It's closer to implementation.
+And from the concrete behavioral spec we get to
+the actual implementation using OCaml as the programming language.
+And between the implementation and the concrete behavioral spec
+there is not a whole lot of difference. It
+is really the scheduling of the operations that we
+want in the concrete behavioral spec that is being
+detailed. when we go from this step to this
+step and producing OCaml code which is finally an executable
+code for the original abstract behavioral Spec
+that we started with. I already mentioned
+some of the reasons why they chose
+OCaml as the implementation vehicle. Functional programming language
+formal semantics and it also leads to
+compact code. High level operations and data structures
+and also it has features like automatic
+garbage collection automatic memory allocation and marshalling and
+unmarshalling of arguments. This is very important because
+I mentioned that we're going towards Building a complex
+system from a specification using a component based
+design approach which means that we're going to take
+these components and mesh them together just like
+you take Lego blocks to build a toy. Similar
+to that we are taking components and meshing
+them together to get the complex implementation and when
+we do that We are necessarily going across different
+components and when we go across different components you
+have to adhere to the interface specifications of those
+components which means you have to marshall the arguments
+and unmarshall the arguments when you go between these
+components and Ocaml Has facilities for doing these kinds
+of marshalling and unmarshalling built into the language framework
+which makes it an ideal vehicle for Component-based design.
+And also the programmability of Ocaml is similar to C and the definition of the
+primitives in OCaml makes it a good vehicle for developing verifiable code.
+
+## L05e-337: Systems from Components - Digging Deeper From Spec to Implementation Continued ##
+
+At this point what we have is an unoptimized
+version of the abstract behavioral spec. Implemented ready to
+run but it is unoptimized. Remember that as component-based
+design there's going to be a lot of crap that
+is going to be there in terms of the
+interfaces between the components that have been assembled together.
+To build the complex system. One word of caution
+though I mentioned that using IO automata is fantastic
+from the point of view proving that the
+properties that we want in the original subsystem
+is actually met by the behavior spec. That
+is facilitated by the IO automata framework. But this
+path that we took going from the abstract
+to concrete behavior spec to the implementation finally
+ending up with unoptimized version. Which is executable
+there is no guarantee that this an optimized version
+of code that we produced is actually meeting
+this behavioral spec. Or in other words this
+leg of design exercise proving properties. Of the
+spec. That it meets what we set out for
+the original subsystem is in no way guaranteeing
+that those properties are actually in the implementation. There's
+no easy way to show that the OCAML
+implementation is the same as the IO autometer specification.
+This brings to mind a famous quote that is attributed
+to Don Knuth. Many of you. We know him as
+an expert in algorithm development. He's written several books on
+it. And a quote that is attributed to him is beware
+of bugs in the above quote. I've only proved it
+connects not tried it. [LAUGH] So in other words he is
+he's and expert in developing algorithm but he's saying I
+need convert the algorithm to code. There's no way to prove
+that the code is actually faithfully reproducing the
+algorithm. That's sort of the same thing that is
+going on here as well. That we have an
+abstract behavioral spec. We can prove properties about the
+behavioral spec and we can convince that whatever
+we set out for the subsystem is actually met
+in terms of the specification but there is no
+way to prove. That this implementation is actually faithfully
+reproducing the behavioral spec. This is the software
+originating road map for synthesizing a complex system
+starting from the behavioral spec all the way
+to an un-optimized implementation of the system. So
+those are the first two pieces of the
+puzzle namely specification. And then implementation. And the
+third piece of the puzzle of course is
+going from this unoptimized version to the optimized version.
+
+## L05e-338: Systems from Components - Digging Deeper ##
+
+As I mentioned earlier for going from
+the implementation to optimization we once again
+turn to the theoretical framework. And in
+this case we're going to use this Nuprl theorem
+proving framework. The Nuprl theorem proving framework
+is a vehicle by which you can make
+some assertions and prove some theorems about
+the equality of optimized and unoptimized code and
+let me elaborate. First of all you start
+with this OCaml code which is unoptimized and
+there is a tool that converts this unoptimized
+OCaml code to Nuprl Code. This is once
+again an unoptimized version of the original OCaml
+code but it is a Nuprl code and
+this Nuprl code is one which is at
+the base of this theorem proving framework and
+what we can do with this theorem proving framework is convert this Nuprl code to
+optimized Nuprl code. And through a whole
+series of optimization theorems that are in this
+framework we can actually show that the
+optimized Nuprl code is equivalent to the unoptimized
+Nuprl code. So we showed so far
+as the operating system design experience is concerned
+we're going to treat this as magic. And if
+you are interested in digging deeper I welcome you
+to do that. But for the purposes of this
+lesson we're not going to go into the theoretical
+details of how this theorem proving framework does
+its work of ensuring that the optimized Nuprl code
+is the same as the unoptimized Nuprl code. Now
+once this step is completed then there is another
+tool that converts this optimized Nuprl code
+back into the optimized OCaml code. Now
+we are ready to deploy this. So this is sort of the design cycle going
+one full round going from specification to
+implementation implementation to optimization and from optimization
+back to deployable code that we can then take and put it on the system.
+
+## L05e-339: Systems from Components - Putting the Methodology to Work ##
+
+Okay now let's put this methodology to
+work. Specifically we're going to look at how to
+synthesize a TCP IP protocol stack using
+this methodology. Starting point of course is the
+IO otometer. We specify the protocol in
+all the detail that we want abstractly. That's
+the abstract specification of the protocol. And
+we can prove that this abstract specification meets
+the properties that we want in the protocol using
+the IOA framework. And from the abstract specification through
+a whole bunch of refinements we can get to
+the concrete specification. We saw that already. Those are
+the two steps that we already mentioned how we
+take and synthesize in complex software. The next part
+how do we synthesize the stack from the concrete
+spec? In other words how do we generate this code
+the O comma code. That represents this abstract specification for the TCP/IP
+protocol stack. So we need to have a starting point for that. The starting point
+to get an unoptimized Ocaml implementation starting
+from this concrete spec is to use
+this on symbol suite of microprotocols. That
+the authors of this ensemble paper that
+I've assigned to you have synthesized at Cornell. Why use
+ensemble? Well remember our goal is to mimic the
+methodology that is used in building real site large-scale
+realized circuits. I mentioned at the outset that today
+building a billion transistor CPU chip the way it works is they
+use a component-based design taking components of hardware
+structures that have already been implemented And assemble them
+together in order to realize this big mammoth
+chip. And we are trying to do the same
+thing for building complex software systems. So the
+starting point has got to be a set of
+components and that's what Ensemble Suite of microprotocols
+give you. Now if you think about a protocol
+like TCP IP that protocol has a lot of features in it and each of those
+features require nontrivial amount of code building. So for instance TCP IP has
+mechanisms for sliding window management... Flow control
+congestion control scattering and gathering packets in
+order to assemble messages into units that
+can be delivered to the application. All of
+these things are features of the TCP/IP
+protocol. And the ensemble suite of microprotocols
+has components for each of those functionalities.
+That you might have in any complex transport
+protocol like TCPIP. And if you recall the paper that we read earlier by Tacket
+and Levey about optimizing RPC in a local area network we said that one size
+fits all is not a good way to
+think about designing complex software systems. Depending on what
+the environment is you have to adapt what the
+layers of systems off it do. And therefore even
+though the TCP/IP protocol is well laid out in
+terms of what the functional requirements are whether we
+need all of the components in a particular implementation
+of TCP/IP or not is something that is up
+for the designer to decide. And having
+a suite of micro protocols gives you that
+freedom to mix and match the components that
+make sense in this specific environment for which
+to building a protocol stack. And that's the
+reason for using the ensemble suite of micro
+protocols. It has about 60 protocols that makeup
+the whole ensemble suite. The suite of micro
+protocols of ensemble written in Ocaml and
+[UNKNOWN] component based design of a complex
+system such as TCPIP protocol stack. And
+the micro protocols have well defined interfaces that
+allows composition. Every micro protocol has an
+interface for the layers that sit on
+top of it. An interface for interacting with layers that sit below it. And this
+is exactly the kind of component that you want
+so that you can actually assemble these components layer
+by layer in order to get the functionality that
+you want for the original protocol stack that you
+intended to build. Just to reiterate what we said
+in the as the just to reiterate what we
+set as the original goal we want to mimic
+VLSI design in building a complex software system. And this
+well defined interfaces of the on
+symbol microprotocol suite facilitates component based design.
+
+## L05e-340: Systems from Components - How to Optimize the Protocol Stack ##
+
+Given a behavior spec for a protocol say TCP/IP can a stack be synthesized
+as a composition of the ensemble micro protocols? Given 60
+micro protocols in the ensemble suite there are way too many combinations for a
+brute force approach. Instead. In the ensemble approach the user heuristic
+algorithm for synthesizing the stack given
+the desired behavioral spec and designer's knowledge
+of the micro protocols. The result is a protocol stack which is functional but
+not optimized for performance. Of course as
+operating system designers we're always worried about
+perf performance. And we naturally have to
+think about how to optimize the protocol
+stack so that it is not only
+functional but also performant. In particular the
+fact that we've assembled this protocol stack
+like Lego blocks. Putting together all these
+micro protocols leads to layering and layering
+leads to inefficiencies. Now this is where
+the analogy to VLSI component based design
+breaks down. And the reason is because in
+VLSI component based design even though we
+are building a complex chi like a CPU.
+By putting together components the components just
+fit together very nicely. There is there is
+no inefficiency in going between these components.
+But in software components unfortunately they have interfaces.
+And interfaces usually mean that that there
+is well defined boundaries between these components and
+so to cross the component boundary you may have
+to copy parameters at here to interface specifications of the
+components and so on. All of those things leads to
+inefficiencies and this where the VLSI component based design idea
+breaks down little bit when we just put together
+the components of software in order to build the the
+large scale system. So we have to do the extra
+work that is needed in order to optimize the component-based
+design so that it can perform well. Fortunately there
+are several sources of optimization that are possible. For
+instance I mentioned that OCaml has implicit garbage collection.
+Now it is good that it has implicit garbage collection
+as a fall-back. But maybe we don't want to use
+it all the time and we want to be
+explicit about how we manage our own memory that
+can be more efficient that is a source of optimization.
+I mentioned that OCaml has ability for doing
+marshaling and unmarshaling of arguments to go across
+layers but is also a very good thing to do in order to have a component-based
+design. But when you're going across layers these
+things can add overheads and this is another
+source of optimization that is possible by avoiding
+these marshalling and unmarshalling across the layers but collapsing
+the layers. Another opportunity that exists especially in networking
+systems is the fact that there's going to be
+communication and computation. If you think about TCPIP Protocol
+it has to necessarily buffer the packets that it's sending
+out. Because if the packets are lost for some
+reason it may have to re-transmit it. This is again
+a situation where we can overlap this buffering which
+is computation on the node that is sending the packet
+with the actual transmission. So we can overlap that.
+That's another opportunity for optimization.
+Another opportunity is compressing the
+header especially when we have this layering at every
+layer it might add a new header specific to that
+layer and that may have common fields for instance
+size of the packet or check sum for the packet
+and so on. Those are common things that you can
+eliminate when we are going across these layers. So the
+header compression is another possibility for optimization. Another thing
+that we always have to worry about is making
+sure that the code that we execute fits in
+the caches and this has been something that we've talked
+about all along when we talked about single node
+systems to parallel systems. That locality enhancement making sure that
+the working set of whatever code that is executing
+on a processor fits in the cache is very important.
+So this again is an opportunity by identifying common
+code path across the different layers of the protocol
+stack and co-locating that common code path across the
+layers. In order to make sure that we can
+enhance locality for processing is another source of optimization
+that is possible. This is all good. So there
+are lots of opportunities for optimization but do it
+by hand manually that's tedious. So how do we
+automate the process of optimization so that we don't have to do it manually?
+
+## L05e-341: Systems from Components - NuPrl to the Rescue ##
+
+So this is where we turn to NuPrl. As
+I mentioned already NuPrl is a theoretical framework. And there
+is a way by which the OCaml code can
+be converted to NuPrl code. There is a tool that
+allows that transformation to be done very simply. We
+use that tool to convert the unoptimized OCaml code to
+the NuPrl code and once you have the NuPrl
+code then we can roll up our sleeves and say
+how do we go about optimizing this NuPrl
+code. There are two step process for this.
+The first step is what is called static
+optimization and this requires that a NuPrl expert
+and the OCaml expert sit together and in
+a semi-automatic manner they go layer by layer
+in the protocol stack and identify what transformation
+code can be applied in order to optimize
+each of the layers. We're not going across
+layers but for every layer we're asking the
+question is it possible to simplify the functionality
+of what is happening in one layer by
+looking at the NuPrl code and using the
+NuPrl framework and the optimization theorems that is
+part of that framework to come up with
+a more optimized implementation of each and every one
+of these layers. That's what we're doing in this
+first step. This is where both the NuPrl expert and
+the OCaml expert have to sit together because you want
+the NuPrl expert to know whether the optimization that they
+are attempting to do is kosher with respect to the
+functionality that is desired in the OCaml code. And that's
+why this is semi-automatic. Because the optimization itself can be
+done using the theorem proving framework. But whether that optimization
+is an appropriate one or not is something that
+has to be verified with manual intervention. And the kinds
+of code transformation that can be done are things
+like function inlining. If you have function calls then you
+can make them inline. And that is one way
+of optimizing it within a layer. And directed equality substitution
+is another optimization that can be done. There are some
+things that are very specific to functional programming leading to
+code simplicity. And all of those things are
+what is being done in the static optimization
+of every layer in the protocol stack. Remember
+we are not going across layers but every layer
+we're doing the static optimization. This is good
+but unfortunately that's not enough. Because we have lots
+of layers between a message arriving and the
+application getting that message or vice versa. And what
+we want to be able to do is if possible collapse all these layers. Because
+when you go through these multiple layers we're adding latency to the overall
+processing of any message. And this is where we are going to turn to
+the power of the NuPrl theorem proving
+framework. So the next step is dynamic optimization.
+Which is attempting to collapse these multiple layers and
+it is completely automatic. The previous one I said layer
+by layer we're doing semi automatic fashion there's completely automatic
+and it is the power of that theorem proving framework
+which is actually going do that for you. And in
+order for that theorem proving framework to do this work
+what we need to identify is what are common things
+that happen in order to do this collapsing of layers.
+
+## L05e-342: Systems from Components - NuPrl to the Rescue Continued ##
+
+The trick to this dynamic optimization is recognizing what
+the state of the protocol is at any point of
+time and how the protocol has to react to
+an input event. Whether the event is coming from the
+top or from the bottom how the protocol has
+to react to that event is the trick and this
+is what is called the common case predicate. CCP
+for short. For example if we receive a packet and
+the state of the protocol says that if a
+particular sequence number is received then we are ready
+to deliver the packet to the application. If that
+is the state of the protocol that is what
+is called a Common Case Predicate. These Common Case
+Predicates are predicates that can be derived From the
+state of the protocol by looking at the conditional
+statement. So from the conditional statements in the microprotocol
+that have been implemented and available to you. We
+can actually synthesize these common case predicates. And once these
+common case predicates have been synthesized then we can say
+well if the common case predicate is satisfied then you
+don't have to go through all the craft indicated by
+the multiple layers of the micro protocols assembled on top
+of one another. But instead we can do a much
+simpler processing and that's what is called a bypass code.
+So in the dynamic optimization once these
+common case predicates have been identified by
+looking at the conditional statements in the
+micro protocol dynamic optimization framework generates these bypass
+code and inserts it into this framework.
+So I'm going to complicate this picture a little
+bit now so what we have is A Common Case predicate. For instance it says
+is the sequence number in the packet what I
+am expecting it to be. Is this the particular sequence
+number? And if that is the sequence number I am
+looking for then I can execute this bypass code and
+completely eliminate all these multiple layers of protocol and
+go directly to the upper layer perhaps all the way
+up to the application. On the other hand if it
+is not the common case predicate that is being satisfied
+then you have to do the normal processing of giving
+the packet to this micro protocol and it does its
+own thing. And you can see that this kind of
+framework can be applied to every layer. So you can
+take this is a single layer and find out what
+the common case predicate for this micro-protocol and use that
+common case predicate to signify whether we want to use the
+bypass code or whether we want to go to the micro-protocol.
+And we can collapse multiple layers like this. And
+derive a common case predicate that collapses all of
+these layers into a single predicate and if it
+is satisfied then it can eliminate processing the packet to
+all of these layers and simply go through the
+bypass code to get to the upper layers. That's
+the beauty of the dynamic optimization and it's completely
+automated. And it comes from the power of the theorem
+proving framework of Nuprl. And the optimization
+theorem that is in the Nuprl framework proves
+the equivalence of the bypass code to
+the layers of protocol that it is replacing.
+That's the beauty of the Nuprl framework
+that in the theoretical world of the theorem
+proving framework we can actually prove through
+optimization theorems. That this bypass code does exactly
+the same job as all of these multiple layers of micro protocols that were to
+process this message. So once we have done
+this dynamic optimization and collapsing the layers generating
+the bypass code starting of course with
+the common case predicate derived from the micro
+protocols then we are ready to convert the
+optimized new Pearl called back to OCaml. And
+again I mentioned that there is a tool
+that that's available. Straight forward tool that converts
+the new Pearl code to the OCaml code and the final OCaml code that we generate
+through this conversion process is the optimized version of the original Ocaml
+code and the theorem proving framework can assert that the original
+unoptimized ocaml code is equivalent. To the new optimized Ocaml
+call because of the power of the
+theorem proving framework. This is where we've sort
+of put together theory and practice to get the best of both worlds. A word of
+caution however. There's a difference between optimization and verification.
+All that the NuPrl framework is doing is optimization not verifying whether the
+Ocaml code is adhering to behavioral spec of ioatometer.
+That's not what is being done. What we're doing here is saying that. We've
+taken unoptimized Ocamel code and produce an
+optimized Ocamel code. And through the theoretical
+framework we can assert that the two
+are functionally equivalent. So this exercise has
+shown the path to synthesizing complex system
+software starting from specification to implementation to
+optimization putting theory and practice together.
+
+## L05e-343: Systems from Components - Conclusion ##
+
+As operating system designers the natural question
+that comes up is okay all this sounds
+good. But do I lose out on
+performance for the convenience of component-based design? This
+is the same question that came up when we wanted to go for a microkernel-based
+design away from a monolithic design of
+an operating system. The Cornell experiment takes it
+one step further and argues for
+synthesizing individual subsystems of an operating system
+from modular components. Just like putting
+together lego blocks to get the desired
+functionality. I encourage you to read the paper from Cornell in full. That
+shows that this methodology applied to
+one specific subsystem results in a performance
+competitive implementation of the protocol
+stack compared to a monolithic implementation.
+

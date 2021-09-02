@@ -1,0 +1,1027 @@
+## L05b-289: Lamport Clocks - Introduction ##
+
+Now that you have learned the basics of distributive systems in particular
+the happen before relationshipt. We are now ready to talk about Lamport's clock.
+
+## L05b-290: Lamport Clocks - Lamports Logical Clock ##
+
+What does each node in the distributed
+system know? Every node knows its own events
+meaning what are the computational events that are
+happening in its own execution. It also knows
+about its communication events with the rest
+of the nodes in the distributed system. So
+for instance if this process Pi sends a
+message to process Pj that's a send event.
+Pi knows about that. And similarly Pj when it gets this event it's a
+receive event. It knows about that. So these are the only two kinds of events
+that every node knows about its own
+computational events and its communication events with its
+peers. For instance process Pj has no
+idea about the local computational events of Pi.
+Lamport's logical clock builds on this very simple
+idea and the idea is that we want to
+associate a timestamp with every one of the
+events that are happening in every process in the
+entire distributed system. How are we going to
+do that? Well we're going to have a local
+clock Ci over here And Cj over here. And
+this local clock can be anything can be counter
+it can be a simple counter and what we
+are doing is when I want to associate a timestamp
+with a particular event that's happening in my process what
+I'm going to do is I'm going to look at
+this counter and see what the value of the counter is associate that counter
+value as a timestamp for this event A. So for this instance here I've said that
+timestamp for a is two. And this counter monotonically increases
+as we pile up events in our system. So
+once I've associated this timestamp two with this event
+a I cannot associate the same timestamp with other
+meaningful events that are happening in my process. And
+therefore I'll increment the timestamp. It's completely up to
+your implementation as to whether you want to increase
+this counter value by one or two by a
+thousand it doesn't really matter. So in this case
+for instance I've incremented the timestamp counter by two
+and so the next even that I'm going to
+have in my process B is going to have
+a timestamp of 4. So that's the idea behind
+having a monotonically increasing counter to associate logical timestamps
+with the events that are happening in my process.
+Now what about these communication events? Well in particular
+let's look at this case here. A is a communication
+event on process Pi. And this communication event
+is going to have a timestamp of two associated
+with it because that's the time that I
+generated this communication event sent this message over. Comes
+over to process Pj. When process Pj receives
+this that's an event. And so let's say we
+call it event number d. And we have
+to associate now a timestamp with with event d.
+How do I go about assigning a timestamp with
+this? Well we know that this timestamp that I'm going
+to associate with this event d has to be
+greater than the timestamp associated with the send of that
+message right? Obviously you cannot receive a message that
+has not been sent yet. And therefore we're going to
+say that d should have a timestamp which is
+at least greater than a for sure. Now what else
+does d depend on? Well it depends on other things
+that are happening in my own process. For that I
+need to know what the current state of my local
+counter is. So for instance in my execution as I'm showing
+you here I haven't done anything meaningful yet and therefore
+my local counter is still pointing to zero indicating that
+there have been no meaningful events here. So when this
+message comes that's the first time I'm going to do something
+meaningful in this process. And I have to associate
+a timestamp with d but I cannot associate the timestamp
+of zero with it because the timestamp that I associate
+with d has got to be greater than the timestamp
+that is associated with the send event on process Pi.
+And since the send event has this timestamp two I
+have to associate something higher than that. And so I
+associate a timestamp three with the receipt of this message.
+That is this particular event is going to have
+a timestamp of of three. So the two conditions that
+we have talked about. One is that events that are
+happening in the same process I'm going to have a monotonically
+increasing counter and I'm going to use that to associate
+timestamps with the events that are happening in the same
+process. That's the first thing. That is if I have
+two events a and b in the same process and
+I know that a happened before b because textually
+in the process because the process is sequential a
+happened before b and therefore the condition is that
+the timestamp associated with a has got to be less
+than the timestamp associated with b. Pretty straightforward. And
+similarly the second condition is that if I have
+two events a and b and a happens to
+be a send event on some process and d happens
+to be the receive event on another process then
+we know that the receive event has to be
+after the send event. And therefore the second condition
+is that Ci(a) that is a timestamp associated with
+a send event has got to be less than
+the timestamp associated with the receipt of the same
+message Cj(d). So in order to make this condition
+the second condition valid we're going to choose the
+timestamp to associate with the receipt of a message
+d as the max of the timestamp that is
+associated with the send event incremented by some quantity.
+Ci(a) plus plus. So in this case it happens
+to be two. So increment it and then say three and then you want to know what the
+local counter is saying. So Cj so what we
+pick as a timestamp to associate with d is
+the max of the incoming timestamp with the
+message and the local counter whatever it is
+pointing to. So that's how I'll pick the
+timestamp to associate with a receive event. This brings
+up a very interesting question and that is
+what about timestamps of events are happening concurrently in
+a distributed system and before I talk about
+that I want to give you a little quiz.
+
+## L05b-291: Lamport Clocks - Events Question ##
+
+Let's say in the distributed system there are two events. I don't
+know where they are happening. There's an event called a and there's
+an event called b. Somewhere in the distributed system these two events
+are happening. And it so happens when I look at the record
+of all the time stamp associated with the events I see that
+the time stamp associated with a is less than the time stamp
+associated with b. So I want to make sure that you understand
+the premise of the problem here. What I am saying is that the
+time stamp that is associated with the event a happens
+to be less than time stamp associated with the event
+b. That's what I am observing by looking at sort
+of a log record of all the events that took
+place in the system and now my question to you is. If C of a is less than C of
+b does that mean that a happened before b or
+does it mean b happened before a or does it mean
+a happened before b with the condition that it's either the case that
+a and b are events in the same process or a is the
+act of sending a message and b is the act of receiving the
+corresponding message. So you have to pick
+the right choice among these three choices.
+
+## L05b-292: Lamport Clocks - Events Solution ##
+
+This conditional statement is the right choice and the reason is because of the
+fact that the time stamps themselves don't give the whole story because all that
+we have are partial events happening on every node in the system. And we'll
+elaborate that a little bit more when
+we describe Lamport's logical clock in its entirety.
+
+## L05b-293: Lamport Clocks - Logical Clock Conditions ##
+
+So now we're ready to describe the conditions for
+the logical clock proposed by Lamport. First of all
+the first condition is that if I have two
+events A and B in the same process the
+first condition says that the clock value associated or
+the time stamp that it associated with event A
+has to be less than the time stamp associated
+with event B. In other words we have this
+counter or a logical clock on every node
+of the distributed system that is monotonically increasing
+as events happen on that process. The second
+condition is that when we have a receipt of
+a message we want to make sure that the receipt of the message has a time stamp
+that is greater for sure than the sending time span. So in other words if A and
+D are the act of sending a message from process I and D is the act of
+receiving the same message on process J then
+what we are saying is the time stamp associated
+with the event A has to be less than the time stamp that is associated with the
+event D. In other words we want to choose the
+time stamp associated with D as the max of
+the time stamp that I see in the incoming message
+incremented by some value. Whatever the local counter is saying. These
+are the two things that I'm going to look at and decide
+the max of that as the time stamp to associate with
+event D. And if the events are concurrent in this
+case if I look at this picture here A is the
+act of sending the message D is the act of receiving
+the same message. B is an independent event that's happening on
+process PI it has nothing to do with this
+event D that is happening on process PJ. And
+these are concurrent events. So the concurrent events we've
+already seen this when we talked about the happened
+before relationship. In the case of concurrent events the
+timestamps are arbitrary. Just by looking at the time
+stamp I cannot say that B happened before D
+because if I see the time stamp associated with B
+here happens to be four. Over here we picked the time
+stamp for D by saying that it has to be at
+least greater than the incoming time stamp. So we gave it
+a time stamp of 3. And so if I look at
+these two events B and D D has a time stamp
+that is smaller than B but that does not mean that
+D happened before B because these two are concurrent events and
+therefore there's no way to know which event happened before the other.
+So in other words just because we find that there is an event X which has
+a time stamp that is smaller than a
+time stamp associated with another event Y doesn't mean
+that X happened before Y. So while this
+condition is an important condition the condition that
+if an event A happened before B as we show in this picture we have to ensure
+that the time stamp associated with event A is
+less than the time stamp associated with event B.
+But the converse is not true. Or in other
+words if I have two events and it so happens
+that the time stamp associated with this event X
+is less than the time stamp associated with this event
+Y that does not mean that X happened before
+Y. This is very very important. What that means is
+that Lamport's logical clock gives us a partial
+order of events happening in the entire distributed
+system. So if I take any one process I know all the events the ordering of all
+the events that happened on this process both
+the events that happened sequentially in this process
+itself as well as events that happened in
+which this process happened to communicate with other processes.
+In this case it sends a message over
+here. Similarly by looking at the record of all
+the events accumulated on process Pj I can know
+the order in which the events happened in this
+process in which process PJ had a part to
+play meaning all the local events as well as
+communication events that PJ participated in when it communicated
+with the other nodes in the entire distributed system.
+This is what the Lamport's logical clock gives you is a
+partial order of all the events that happened in the distributed system.
+
+## L05b-294: Lamport Clocks - Need For a Total Order ##
+
+Is partial order good enough for constructing deterministic
+distributed algorithms? It turns out it may be
+sufficient for many situations. The airline reservation example
+I started with would work fine with a
+partial order of events dictated by Lamport's clock.
+But there are situations where there maybe a
+need for a total order of events in
+the distributed system. Let's look at an example.
+Here is an example to illustrate the need for
+a total order. I'm going to use my own personal
+life example to illustrate the need for total order.
+I have one car and my family consists of
+my wife my son and my daughter and we
+share this single car. And what we want to do
+is make sure that we can make local decision
+on who gets dibs on using the car at any
+point of time. And we're going to use Lamport's clock for this.
+So what we do is whenever we want to get the
+car for our personal use we're going to text everyone with a
+time stamp. I'm going to associate a time stamp if I'm if I'm
+requesting the car I'm going to text every one and associate a
+time stamp with that request. And it is a logical time-stamp
+and similarly my wife would do the same thing son and
+daughter all of us do the same thing. And how do we
+pick the winner well locally we can look at the
+time-stamp of request that have come in from others and my
+own request. And whoever has the earliest time stamp wins. Pretty
+simple right? So pretty simple everybody is going to make a
+local decision looking at the time stamps of request that
+have come in from others and say well you know right
+now it's my son's turn to use the car or my
+daughter's turn to use the car and so on. But what
+if the time stamp because these are locally generated by
+each one of us happens to be the same. So for
+instance let's say my son makes a request. Takes sends a
+text message. My son makes a request sends a text message
+with a time stamp ten to all of us. So this
+is the blue arrow that's going everywhere so that's indicating to
+all three of us that he wants the car and timestamp
+ten is when he generated the request. So happens my wife
+also makes a request for using the car exactly
+with the same timestamp ten. And that's the purple
+arrow that you see. So now we have a problem. And the problem is all of us are
+looking at these text messages and trying to make
+a decision who's got the dibs on using the
+car? How will my son and my wife know
+given that both the time stamp is the same
+which one is the winner for using this car?
+Now what we do is we're going to break the
+tie and I'm going to stipulate that age wins. And
+therefore in this case if the time stamp happens to
+be exactly the same then my wife by seniority is
+the winner. She gets the car. So that's how we
+break the tie. You can see through this example that
+there is a need for total order in decision making
+when you have a distributed system. And you want
+to make local decisions without bothering anyone based on
+information that you have but you have to make
+that local decision unambiguously because you cannot have both
+my son and wife thinking that they have the
+car at the same time. That'll be a problem.
+So whenever there is a tie we have to
+break that and that's the need for the total order.
+
+## L05b-295: Lamport Clocks - Lamports Total Order ##
+
+So having seen the need for total order and
+an ambiguous decision making in the distributed system let's now
+introduce Lamport's Total Order formulation. This is the notation we're
+going to use for Lamport's Total Order. And so what we
+are saying here is that if there are two
+events A and B in the distributed system A happens
+to be an event in this case on PI And
+B happens to be an event on process PJ. If
+we want to assert that a totally is ordered
+ahead of b that is a precedes b in the total order. This
+is true only under the condition that either the time stamp
+associated with A is less than B or the time stamp
+happens to be the same and there is some arbitrary other
+function that helps us to un ambiguously decide
+which event precedes the other and for instance I might say that
+the process ID that I associated with PI and PJ that maybe
+the one that I use to break the tie. In my family car example I told
+you that the seniority of the family member
+makes the decision in terms of how we break
+the tie. So for instance in this in this
+case if process Pi has a process ID 100
+and process Pj has a process ID 200 then
+we could say that the arbitrary decision making in the
+case of a tie is that whichever process has
+a lower process ID that's going to be the winner. So
+we might we might decide that in this case
+if time stamp happens to be the same then since
+Pi is less than Pj I'm going to say that
+a preceeds b. So it's an arbitrary well-known condition
+for breaking a tie. So every process in the
+entire distributive system is going to use the same well-known arbitrary
+condition in order to break to tie. So that
+also brings up another interesting point and that is there
+is no single total order. The single total order
+comes from the choice of the arbitraty well known condition.
+I gave you the example of my family car
+we broke the tie in the family car situation
+by saying that the seniority is the winner. Tomorrow
+as a family we could make the decision that the
+youngest person is going to win. In that case my
+daughter will have dibs over the car over everybody
+else in the case of a tie. The other
+important point to understand is that all of this idea
+of associating logical time stamps with events and
+then deriving a total order from the logical time
+stamp using this kind of a a method
+of saying we going to just believe the time stamp
+associated with the respective events. We going to believe
+that time standard are associated with the events and
+use those time stand as a way of
+ordering them so that we can develop total order.
+And if it happens to be a tie everybody
+uses a well known arbitrary condition to break the tie
+and that's how we derive a total order and
+once we have derived the total order the time stamps
+are meaningless after that. We don't care about them
+anymore. The whole idea of having these logical time stamps.
+Creating a partial order. And from the partial order
+deriving a total order using this formulation. For total ordering.
+Is so that we can get a particular total order.
+And once we get the total order timestamps are meaningless.
+
+## L05b-296: Lamport Clocks - Total Order Question ##
+
+So in this question I'm showing you three processes
+P1 P2 and P3. And these are the events
+that you can see happening in these three processes.
+And what I want you to do is to
+derive a total order and in deriving the total
+order we're going to use Process ID to break the
+tie. And smaller the Process ID the higher the
+priority. In other words P1 dominates P2 dominates P3.
+So using that go ahead and derive a total order for this
+set of events that I'm showing you happening in the distributed system.
+
+## L05b-297: Lamport Clocks - Total Order Solution ##
+
+So first we can write down the partial
+orders that we see in the distributed system.
+You can see that 'a' happens before 'b'
+'b' happens before 'c' 'c' happens before 'e' and
+these are purely coming from the chain of
+communication and local events that are happening over here.
+When we come over here we also observe
+that 'f' happens before 'e' that's because of sequentiality
+Of this process. And similarly we can see that
+in process P1 a happens before d. So these
+are the partial orders and we already have an
+ordering for the events that follow this chain because the
+logical time stamp are assigned in this fashion. And
+in order to derive a total order we said
+we basically will believe the event time stamps. To
+order them totally. So we can order these events totally.
+A1 B2 C3 E5. We can order them totally.
+Now let's look at the concurrent events that are
+happening. The concurrent events that are happening is d
+over here is concurrent with all the other events
+in the other processes. D is concurrent with b
+and c. It is concurrent with f and e.
+And similarly if you look at this event f
+it's concurrent with all the events that are happening
+in process P2 and P1 right. So this is
+what you as the concurrent events. So now what we
+have to do is given that these concurrent events we
+have to somehow Fit them into a total order. As
+I said before no problem in fitting these guys
+into a total order because they already have time stamps
+that distinguish them from one another. The time stamp associated
+with a is 1 b is 2 c is 3
+e is 5. No problem with that. So the real problem comes with f and d. Now the
+sequentiality of this process is what made the time stamp associated with e to
+be 5 because the message that came over here had a time stamp of 3 but we
+associated a time stamp of 5 with e. Because the local event preceding e have
+a time stamp of 4 so we pick 5 as the time stamp to associate with e so that
+the sequentiality of this process p3 is respected. So we've
+got this and now we've got f and d and
+so f obviously is going to sneak in Before e that
+that's no problem that is coming from the sequentiality but
+where will we put d do we should be put d after e? Or should we put d before e?
+In the total order. This is where the
+breaking the tie using process id comes into
+play Because these two guys are concurrent events
+in the system we are breaking the tie using
+the process ID. P1 happens to be less
+than P3 in process ID space and therefore we
+are going to say in the total order
+dis going to be ahead totally ordered before e.
+So the final ordering that we end up with the total order that we end up with
+is a0 b c F and then d. And then
+e so that's the total order that we come up with. Respecting the logical
+time stamp associated with the events and
+breaking the tie using the process ID.
+
+## L05b-298: Lamport Clocks - Distributed ME Lock Algorithm ##
+
+Now low let's put Lamport's clock to work
+for implementing a distributed mutual exclusion lock algorithm and
+it is going to be very similar to
+the car-sharing example that I showed you before. And
+also you will notice that we've talked about
+locks in a shared memory multiprocessor where we have
+shared memory to implement the lock. But now
+in a distributed system we don't have shared memory.
+And we have to implement a mutual exclusion
+lock using Lamport's Logical Clock. So essentially what is
+going to happen is that any Process that
+needs to acquire this lock is going to send
+the message to all the Processes. And of
+course the intent to get a lock may may
+emanate simultaneously from several processes. That's perfectly feasible.
+So the algorithm is as follows. Every process has
+a data structure a queue data structure. And those
+are the queue's that are associated with process P1. This
+is the queue that is associated with process P2. And
+this is the queue that is asssociated with process Pn.
+Every process has its own private queue. And the private
+queue is ordered by the happened-before relationship that we have
+discussed so far. So requests for a lock are going
+to be time stamped and the protocol is as follows.
+To request a lock what a process is going to
+do is send a message to all the other
+Processes that I want this lock and my time
+stamp is such and so. So it's going to associate the
+local timestamp that it has from its counter which
+is its logical timestamp. It's going to associate that timestamp
+as the request time for the lock and send
+the message to all its peers. And all the peers
+what are they going to do? Well two things.
+One is they're going to stick that request into the
+local queue. When a request comes from process Pn
+P1 puts it into its queue appropriate place in
+the queue because it is ordered by the
+timestamp. The smallest time stamp being the highest priority
+request pending. So it puts it in its queue.
+And the second thing it does is every process
+when it gets a request puts it in its
+queue and then acknowledges the request to its peers. So
+let's look at the process P2 here and P2 generated
+it's request at timestamp 10. What it did was first
+put its request in its local queue and then it
+sends a message to its peers. And these guys when
+they get the request they look at their own local
+queue and say well you know there is a request
+pending In my queue which has a time stamp
+of 5 and this request that I just got from
+P2 has a time stamp of 10 so I'm going to
+order that behind the previous request. I put it over
+here. I put it over here and once I
+do that I'm going to acknowledge this request by sending a
+message back to P2. And similarly this guy sends an
+acknowledgement back to P2. So that's how the protocol works.
+Every request is sent to all the other processors
+and every process when it receives a request it
+puts it ordered by Lamport's clock in its own
+local queue. And then acknowledges the request with an
+act message. Now what happens when there is a
+tie? Well when we have a tie we break
+the tie by giving priority to the process that
+has a lower process ID so that's how this
+algorithm works so that every process can unambiguously make
+a decision as to where to place an incoming
+request in the queue. So an example of the
+state of the queue is as shown. The thing that
+should jump out at you immediately is that the
+state of the queue is not the same in
+all the processes. For instance Process 1's queue contains
+its request that it generated at time 2 but I
+don't see it yet in the other queues. Is this
+possible that the queue can be inconsistent with one another?
+Of course it is possible. The reason it is possible
+is because a Process when it generates a request puts it
+in it's queue and then sends a message out. This
+message is going to take some time to reach the other
+nodes in the distributed system. So it sent the message
+and after it sent the message it got requests from other
+Processes and it has put it in its queue.
+And it is possible that this message all the messages
+may not take the same amount of time to
+traverse a network. We have no idea what's going on
+in the network and therefore it so happens that P1's message is
+still in transit. Whereas the request messages from P2 and Pn
+have already made it everywhere and it is in the queues of all the Processes
+but P1's message unfortunately it's taking a
+slow route throught the network and it is
+still in transit. And in fact P1 has
+subsequently received P2's and PN's message and put
+them into its its local queue. It is
+just that P1's message hasn't reached its peers
+yet and that's how you get this situation.
+So the whole purpose of this exercise is
+to unambiguously get the mutual exclusion lock for some
+process that is competing for it simultaneously. Now how does
+a process know that it has the lock? So I
+have to make the decision that I have the lock.
+How do I make that decision? Two things have
+to be true for me to think that I have
+gotten the lock. So the first thing is that my
+request has to be at the top of the queue.
+So now you see the messages that I talked about that is P1's message to P2
+and Pn not having reached the destination eventually
+they reach the destination. And they have acknowledged
+it. And as a result of that the queues are consistent now. P1's request is at
+the top and it also has received acknowledgements
+from everybody else. So the way you can
+make a decision that you have the lock
+unambiguously in the entire distributed system. Two conditions. First
+thing my request is at the top of the
+queue. The second thing is I've received acknowledgments from
+all the other nodes in the system. In this
+case all the other nodes were not requesting this
+lock so they've sent me acknowledgments. And I've received
+all the acknowledgements and there is no other request
+that is ahead of me. I've also received lock requests
+from P2 and Pn and they are later than mine and
+that's how they've been ordered in the queue. So the two
+conditions I'm going to look for to make a decision locally
+that I have the lock is my request is at the
+top of the queue and I've either received acknowledgements from all
+the other nodes in the system if nobody else is competing
+for the lock at the same time or all the requests
+that I've gotten so far are later than
+my own lock request. Let's say that I haven't
+received the acknowledgement for my request from Q Q2
+and Qn. Can I go ahead and assume I
+have the lock? Yes I can. Why? Because Even
+though these guys have not sent me the acknowledgment
+yet it's coming slowly coming. But I've received lock
+requests from them with timestamps 5 and 10 respectively.
+Therefore I can make an unambiguous decision that my lock request precedes all
+the other lock requests at this point of time. And I can go ahead and get the
+lock. I'm sure you've figured it our
+already but since we are following Lamport's cCock
+in implementing this mutual execution lock algorithm
+the ACK message for a particular lock request
+is going to have a later timestamp than the time stamp associated with the
+request itself. So you can see that
+Lamport's Logical Clock with the addition of
+a way of deriving a total order from the partial orders given by the Lamport's
+clock allows us to unambiguously make a decision locally based on the state
+of local queue as to whether I have the lock or not.
+Now let's talk about how I go about releasing the lock. So if
+I have the lock. I have used it for a while and
+now I am ready to say well I am done with a lock
+I can release it. What do I do? Well I am going to
+send an unlock message to all the other guys. The first thing that
+I do of course is get rid of the entry that I have
+in my queue because I am done with the lock. I can remove
+it from my queue. Once I remove it from
+my queue I am going to send an unlock message
+to everybody else. So the state of the queue
+indicates that the unlocked message hasn't reached yet. It is
+in transit. It is going to eventually reach these
+guys. And when the peers receive the unlocked message they're
+going to basically remove the entry the corresponding entry from
+the respective queues. So P1's turn with using the lock
+is complete now. It has done its lock and has done its unlock and
+now other Processes in the system if they're competing for the same lock can
+use the same decision making process to figure out whether they are the winners
+for getting the lock next and using
+it and entering the respective critical sections.
+
+## L05b-299: Lamport Clocks - Distributed ME Lock Algorithm Continued ##
+
+So we can informally talk about the correctness
+of the distributed mutual exclusion lock algorithm. The correctness
+is based partially on some assumptions and partially on
+the construction. The construction is that the Q's totally
+ordered by Lamport's logical clocks and the PID to
+break the ties. But that's part of the construction
+of the algorithm. But it also is based on
+some assumptions that we make and the assumption is
+messages between any two processes arrive in order.
+So messages don't crisscross each other but if I
+send a message and I send another message
+the first message is going to reach the destination first
+second message is going to reach the destination second.
+And that's what is meant by saying that messages
+arrive in order at every node in the
+distributed system. And the second assumption is that there
+is no loss of messages. So every message that is sent
+is definitely received in order. So these are two fundamental assumptions
+that are responsible for this algorithm being correct. Now that you
+have seen Lamport's mutual exclusion lock algorithm time for another quiz.
+
+## L05b-300: Lamport Clocks - Messages Question ##
+
+So the question for you is how many messages
+are exchanged among all the nodes for each lock
+acquisition followed by a lock release? Every process what
+it is doing is making a lock request and
+it follows the algorithm that we just mentioned uses
+the lock in the critical section. And once it
+is done with that it unlocks by sending messages
+again as you saw. And the question to you
+is how many messages are exchanged among
+all the nodes for each lock acquisition followed
+by a lock release? That is combination of
+lock plus unlock. How many messages does it
+generate? Is it N minus one messages? 2 to the n minus 1? Or 3
+to the n minus 1 where n is the number of nodes in the distributed system.
+
+## L05b-301: Lamport Clocks - Messages Solution ##
+
+The right answer is 3 times N minus
+1 and we'll explain that in the next frame.
+
+## L05b-302: Lamport Clocks - Message Complexity ##
+
+So let's look at the messaging complexity of the
+mutual exclusion lock algorithm. The lock primitive when a
+process makes a lock request it sends N minus
+1 request messages. Because there are N nodes in
+the distributed system there are N minus 1 peers
+and so every node has to send a request
+message to all its peers so N minus 1
+messages are the request messages sent out. And in response
+to these request messages every peer is going to
+acknowledge a request message. So they're going to be
+N minus 1 messages traversing the network which
+are the acknowledgement message for this lock request. And
+then the process is happy using the lock
+for the critical section. And it gets to
+the unlock primitive and the unlock primitive once
+again we're going to send N minus 1 unlock
+messages through the unlock primitive and while sending a
+unlock message to every one of the peers in the
+distributive system so N minus 1 messages are sent
+over the network. Interesting thing that you notice is that
+there's no acknowledgment for the unlock message because of
+the assumption that we make that messages are never lost.
+And therefore when I send an unlock message I
+know that everybody will get it everybody will remove my
+request from the respective queues and go on with
+life. And therefore there is no acknowledgment for that. And
+so if you count the number of messages that are
+involved and a lock plus unlock totally we have 3
+to the N minus 1. That's the total number of
+messages that are incurred that is a message in complexity
+of the distributed mutual exclusion lock algorithm. That begs the
+question can we do better? And the answer is yes
+and the reason is going back to the condition that I said that is used
+in making a decision as to whether I want the lock or not. If you recall I
+told you that the condition is my request has to be at the top of the
+queue and second I should have either gotten
+acknowledgements for that request from everybody else or I've
+received a lock request from my peers that
+have a time stamp that is later than my
+own lock request. If the lock request that
+I received from my peers have time stamps that
+are later than mine I know that they are going to wait for me to be served
+before they're going to use the lock. And therefore
+what I can do if I am a receiving
+node for a lock request when I see a lock request normally I would go ahead
+and do an acknoweldgement. But when I get
+a lock request and I see hey this guy's
+lock request is going to be after mine so
+I don't have to send an acknowledgement yet. What
+I can do is wait til I'm actually
+going to unlock. My unlock itself can serve as the
+acknowledgement for that particular node that has
+made a lock request that is later
+in time than my own. So in other words we can defer the acknowledgements if
+my lock request precedes my peers lock
+request. So we're combining the acknowledgement for
+a lock request with the unlock. So if I do that then I can bring
+the message complexity down to 2 the N minus 1. So what we're doing is to gather
+the acknowledgement messages if in fact our own
+lock request is ahead of an incoming request that
+I see from up here. That's how we
+can reduce the messaging complexity of this algorithm to
+be 2 to the N minus 1. By the
+way the distributed mutual exclusion lock problem have been
+a fertile ground for researchers to think
+about new algorithms that can shave the
+messaging complexity even further from this 2 to the N minus 1 and I invite
+you to look at the literature to see other works that have been done
+to reduce the message complexity to even smaller numbers than 2 times N minus 1.
+
+## L05b-303: Lamport Clocks - Real World Scenario ##
+
+So far we've been dealing with this
+funny virtual time or logical time. But there
+are many real-world scenarios where this logical time
+may not be good enough. And in such
+situations this logical clock may not be sufficient. I'll give you an example.
+Let's say that I owe you some money. And I tell you by calling you on the phone
+that I'm going to credit my account in my local
+branch at 5 p.m. I'm telling you on the phone
+that I'm going to credit my account at 5 p.m.
+and so any time after 5 p.m. you can withdraw
+money from my bank and we'll be square. Now
+you're a nice guy so you want to give me
+some leeway. So you tell your branch that you
+know at 8:00 PM go ahead and debit from Kishore's
+account the money that he owes me. So your branch is
+going to basically do a debit call to the central bank
+server asking for the money that is owed by Kishore to
+be transferred to your account so that's what is going to happen. And
+so you schedule that at 8 p.m. You've given me enough
+time to make sure that you have indicated to your bank
+you have enough money so that my debit transaction can go
+through. And you would think it should go through right? But it
+turns out that your branch's local time is
+far ahead of real time. Well it thought it
+was 8 p.m. it was not quite 8 p.m.
+yet. Because it's way ahead of real time. And
+so I am exactly at 5 p.m. keeping my
+word exactly at 5 p.m. my branch happens to
+be good with the time. It's it's in sync with the real time. And so at 5 p.m.
+I've done the credit of the amount that I
+owe you to my central bank server. But unfortunately
+the central bank server in real time it got
+your message much earlier than the time at which I
+sent my message. It's not looking at any logical
+time. It is looking at real time saying well there's
+a debit transaction coming in. Is there money in
+the bank for paying those debit transactions? No it isn't.
+So your request is declined. And this is coming about because of the fact that
+in real world scenarios logical clocks are not
+good enough. And in particular what caused this
+problem is the fact that your notion
+your branch's notion of real time is completely
+at odds with real time. And the reason
+that can happen is because the computer at
+your local bank may have a clock that is drifting
+with respect to real time. So is drifting meaning that it
+is not keeping up with the real time. It's either
+going faster than real time or it is going slower than
+the real time. It so happens that my my branch's
+time is is perfectly in sync with the real time but
+that doesn't help me. And this is a real world
+scenario that you have to worry about. And such anomalies occur
+due to two things. One is individual clock drifts. Because if you think about a
+clock clock is a piece of circuitry and
+you expect that for every second of real
+time your clock is also going to click a tick by the same one second. But
+if it doesn't your idea of real time
+is going to slowly drift. That is called individual
+clock drift. And also there is a possibility that
+there could be a relative drift between the clocks
+that are there in different processors. This clock can
+be ticking at a particular rate and this clock
+would be ticking at a different rate from my
+clock and that can cause a second source of
+discrepancy. And these anomalies are nasty things that we
+have to avoid in order to make sure that in
+real world we can have some guarantees about what goes on.
+
+## L05b-304: Lamport Clocks - Lamports Physical Clock ##
+
+So that brings us to Lamport's Physical Clock
+and the notation we're going to use for that is
+this funny symbol here. So this is saying
+that in physical time in real time event a
+in the distributed system happened before b. So
+if I want to make sure that that an
+event a in the distributed system anywhere happened in
+absolute real time before b so Pi there's a
+process Pj. Event a is happening on Pi and event b is happening on Pj. And what
+we want to make sure is that the time
+stamp associated with a has to be less than
+the time stamp associate with b. If I want
+to guarantee that a in real time happened before
+b so a in real time happened before b
+that is how you have to read this notation
+that in real time the event a happened before
+b. And in order to satisfy that the condition
+is the time stamp associated with a has to
+be less than the time stamp associated with b.
+So to guarantee this and we are talking about
+real time here so real time stamp associated with
+a and b. In order to ensure that the
+real time associated with these events give you this guarantee
+you have to have certain conditions associated with the
+clocks that are on the machines Pi and Pj.
+And the first condition which I'll call PC1 I'll
+refer to that as PC1 later on the condition
+is a bound on individual clock drift. So PC1
+is a condition which gives a bound on individual
+clock drift. Informally what this condition is going to tell
+you is that the clocks don't drift that much.
+So let's talk about this. If what is the time that is read on process P1 at
+time t? If t is the real time at time t real time t I look at the clock on
+my machine and that is Ci of t what
+should it read? Well it should read t. Now if
+it doesn't that's when we are saying it is
+drifting with respect to t. And so what this equation
+is saying is dci over dt is the clock drift. The absolute value of that drift is
+a very very small. So in other words what we are saying is all the
+clocks in the distributed system whether we are talking about Ci on Pi or
+Cj on Pi all these clocks are running approximately
+correctly. So that the clock individual drift is very
+very small. So k is the individual clock drift and
+we are hoping that it is very very small. And you
+can see that if Ci of t is equal to t.
+Then dCi of dt should be equal to 1 and therefore
+this would be a 0. So the left hand side of
+this will be a zero and so that's why we're saying
+that k has to be a very small number. The second
+condition is that the mutual drift between the clocks on different
+nodes of the distributed system should be very small.
+Should there should be a bound on mutual clock drift
+so that is captured in this condition saying that.
+For all ij any pair of nodes in the entire
+distributed system the difference between the time that I
+read on my clock and the time that I read
+on somebody else's clock is very very small. because
+this is the mutual clock drift. As I said earlier
+at real time t my clock should also
+be reading t. This guy also should be reading
+t. If it doesn't that's when you have
+a drift. What we're seeing is the mutual clock
+drift between any two nodes in the entire
+distributed system is bound by a small quantity epsilon.
+So k and epsilon are the two important parameters
+In the physical clock condition. Intuitively we're going to
+argue that these values the absolute values of these individual clock drift and
+mutual clock drift has to be
+negligible compared to the inter-process communication time.
+
+## L05b-305: Lamport Clocks - IPC Time and Clock Dirft ##
+
+So what we're going to look at now is
+the relationship between the inter process communication time and
+both the individual and the mutual clock drift that
+I described to you. Let Mu be the lower
+bound on the inter process communication time. So
+let's now derive the conditions under which we can
+assert that if we have an event A on P I. And in real time it's supposed to
+precede an event B on Pj. What are the conditions that should hold in terms of
+mu k the individual clock drift time and
+epsilon that is the mutual clock drift time?
+This first condition is pretty straightforward It is
+coming from the fact that Ideally the clocks
+are perfectly synchronized. You know that at time real time t ci of t and cj
+of t should be exactly the same right? You expect that
+if it is if the clocks are perfectly synchronized and it is
+keeping with real time ci of t is equal to cj
+of t equal to t where t is the real time. But
+they could be in the original clock drift and user clock
+drift which makes them different from each other. And all that you're
+seeing through this first one is that this is the act of
+sending a message and this is the act of receiving the message.
+The time stamp that I'm going to give to this
+the real time that I'm going to give to this
+by reading my clock it better be higher than the
+time at which the message is actually sent. And in
+order to guarantee that we have to look at what
+would be the time that it takes for this message
+to go from here to here. That's coming from this
+mu this lower bound on IPC. So if the message
+is sent at Ci of t with respect to Pi. Then the time on PI when this message
+is received over here is going to be CI T plus mu. This is a local reading
+of the clock when the message would have
+arrived at PJ. So this is the time elapsed
+between sending the message and when my peers should
+have received the message. So what we are saying
+is in order for making sure that pj will have a time stamp that is at least
+greater than Ci you want to make sure that the the time reading that I have
+on my local clock t plus mu should
+be greater than the time reading at the time
+that I sent the message. So the time that I sent the message from Pi my pierce
+time was CG of t and and all that we are saying is in order to make sure that
+there is no anomaly the first condition has to hold that says that. The
+disparity between the two clocks is within this
+interprocess communication plane. That's all this is saying that
+the disparity of the mutual drift is within
+this interprocess communication plane. And the second equation is
+basically a difference equation formulation of the formula that
+I gave you which I called PC1. And this
+is basically saying that if K is zero when I read the clock at time key plus new
+and see the difference between the clock reading now
+and the clock reading when I read it at
+time T it should exactly be mu. But because
+of the fact that I may have individual clock drift
+it may not be exactly mu but it
+may be something different from mu. Either more or
+less but very small difference. And so all
+that we are saying is that the amount of
+individual clock drift should be negligible compared to
+the interprocess communication time. So the first thing is
+saying the interprocess communication time is much bigger than any
+clock drift that exists between two different clocks.
+And the second equation is saying that the individual clock drift is very small
+compared to mu. And if we put all these things together you can derive the
+expression for inter-process communication time. What it
+should be relative to mutual drift and individual
+clock drift. If this inequality is satisfied
+you can avoid anomalies in your distributive system.
+So informally would you expect this k
+is very very small. Which means the denominator
+is very close to one. So all that we're saying here is that the mutual
+clock drift which is represented by epsilon
+is very small compared to the interprocess communication
+time. Which is what is captured by this apparent condition that I laid out here.
+
+## L05b-306: Lamport Clocks - Real World Example Continued ##
+
+Let's return to our example earlier of me owing
+you money and let's say it so happens that
+the mutual clock drift is 5 between you and
+me. So my clock when it reads 3:00 PM
+your clock reads 8:00 PM so that is the
+mutual clock drift that we have. And let's say
+that the interprocess communication time the lower bound on
+that is 2. So what happens is that as I
+told you earlier I am telling you any time
+after 5:00 PM. You can get the money from
+me from my bank. And so you instructed your
+bank to debit at 8:00 PM. But unfortunately your
+8:00 PM is my 3:00 PM because our mutual
+clock drift is 5. So when your request went
+out it took 2 units of time to get
+to the server. Went out and the Central Bank got
+your message asking for a debit transaction but the
+credit is not there yet because I'm waiting till
+5:00 PM to actually send my credit advice to
+the bank. And therefore your request which came in at
+4:00 PM because you sent it relative to me
+you are five hours ahead and in terms of
+real time you're actually six hours ahead and so
+the message is received at 4:00 PM and your request
+is declined. And this is coming about because
+of the fact that your interprocess communication time
+Mew is less than the mutual clock drift
+that we're seeing between these two clocks which
+is five. On the other hand if the
+mutual clock drift is less than the inter-process
+communication times in this case let's say that
+the clocks are more well behaved. Epsilon is
+one meaning the mutual clock drift between you
+and me is just one. And so exactly the
+same scenario. When it is 3:00 PM in my
+branch your branch is saying your time is 4:00
+PM. Of course you've given the advice to your branch to debit at 8:00 PM. So at
+my local time 5:00 PM I send a credit
+advice. Received by the bank and at your time
+8:00 PM which is not quite in sync with
+real time and is also drifting with respect to my
+time but the bound is less than the lower
+bound on the interprocess communication time. And therefore when you
+send your debit request at 8:00 PM your local
+time which actually in real time 6:00 PM it's perfectly
+fine because when it is received in the Central Bank
+the real time is 8:00 PM. And it is received
+later than the current request and so your
+request is honored you're happy and you can
+go home. So the important takeaway is that
+in constructing distributed applications which depend on real
+time it is important to make sure that
+that are bounds on individual clock drift. As
+well as mutual clock drift. So individual clock
+drift is what my my clock is reading at
+any point of time and how far off is
+it from real time. So that is individual clock
+drift and you want that to be bound by
+some small value which we call k. And the other
+important thing is that you want to make sure
+that the mutual clock drift is very very small also.
+So that there is no anomaly when the interactions
+like what we showed here and the whole thing hinges
+on the relationship between mutual clock
+drift the individual clock drift k and
+the interprocess communication time. Informally so long
+as you make sure that the interprocess
+communication time is significantly higher than the
+clock drifts whether it is mutual or
+individual clock drift you can ensure that
+there are no anomalies in the system.
+
+## L05b-307: Lamport Clocks - Conclusion ##
+
+Lamport's clock serves as the theoretical underpinning
+for achieving deterministic execution in distributed systems
+despite the fact that that there are
+nondeterminism that are existing due to vagaries of
+the network and due to drifts in the clocks and so on. It's a
+nice feeling that we can come up with. Conditions that need to be satisfied in
+order to make sure that we can have deterministic executions and avoid anomalous
+behaviors using Lamport's clock both logical clocks.
+Where it is sufficient as well as
+the physical clock conditions. In the next part of this lesson module. We
+will discuss techniques for making the operating
+system communication software stack efficient for dealing
+with network communication.
+

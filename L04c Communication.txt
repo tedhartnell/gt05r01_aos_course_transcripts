@@ -1,0 +1,1335 @@
+## L04c-184: Communication - Barrier Synchronization ##
+
+In the previous lesson we looked at efficient
+implementation of mutual exclusion lock algorithms. In this lesson
+we're going to look at barrier synchronization how how
+to implement that efficiently in the operating system. And
+just to refresh your memory about the barrier
+the barrier synchronization works like this that you have
+a bunch of processors and they all need to
+know where they are with respect to each other.
+Where they want to reach a barrier. And they want to
+wait here until everybody has arrived at this barrier. So
+if T1 arrives at the barrier it's going to wait until
+everybody else has come. So one of the guys maybe
+a straggler is going to come a little later and in
+that case everybody has to wait until all the threads
+that are part of this application have arrived at the
+barrier then they can move on. And and I mentioned
+to you that this kind of synchronization is very popular
+in scientific applications and they go through these phases where
+they execute code for a while reach a barrier and
+then execute code for a while reach another barrier execute
+four code for a while reach a barrier and so
+on and so forth. And and I mentioned also that
+in real life this happens quite often. When we go
+to a dinner with with a bunch of our friends and
+some of us show up early and others come
+late. The usher is going to hold us all ransom. Wait
+'til everyone is here. Until until then I cannot
+seat you. So that same sort of this that's happening
+with the barrier that all of the threads have
+to arrive at the barrier only then they can proceed
+on. So that's the semantic of the Barrier Synchronization. And
+I'm going to describe to you a very simple implementation
+of this barrier. The first algorithm I'm going to describe to
+you as what is called a centralized barrier or also sometimes
+called a counting barrier. So centralized barrier counting barrier that's a
+name that that's given to this. The idea is very very
+simple. You have a counter that's why it's called a counting
+barrier. You have a counter. And the counter is initialized to
+N where N is the number of threads that need to
+synchronize at the barrier. And what is going to happen is that
+when a thread arrives at the barrier it's going to atomically decrement
+the count. A key thing is it has to be done
+atomically. So once is it atomically decremented and the count then
+it's going to wait for the count to become zero. So long
+as the count is not zero it's going to wait. So if
+the count is zero we're going to do something else but if
+the count is not zero that means that I've arrived at
+the barrier but I don't know where the others are yet.
+So I'm going to wait. So they're they're going to spin
+and the spin is basically saying while count is greater
+then zero spin. And all the processors except the last
+one are going to be doing this spinning on count
+becoming zero. Now the last processor the straggler may
+be the T2's sta- straggler. And the straggler arrives eventually.
+And when he arrives then what he's going to do is
+he's going to decrement also. And when he decrements the count
+he'll see that the count has become zero. And so what
+he will do is he'll reset the count back up to
+N. And that is indication that everybody so so all of
+these guys are waiting on count being greater than zero. So
+as soon as the count becomes zero then they can they
+can be released from the barrier. And the last processor to
+arrive is going to reset the count to N to indicate that
+when these guys go off before they come to the next barrier
+the count has to be N. So that's the
+idea behind that. So very simple algorithm. Decrement the count
+atomically when you come to the barrier. If the count
+is greater than zero then you know that everybody has
+not arrived spin. And everybody except the last guy
+will do the spin. And the last guy that comes
+around decrements the counter for and and the counter becomes
+zero. And once the counter becomes zero all the guys
+that are stuck here they're going to be
+released. And then the last processor will reset this
+count to N so that you know all these guys are now on their way to the
+next barrier. So it is resetting it to
+N so that the barrier can be executed again
+when all these guys get to the next
+barrier. And that's the idea behind the centralized barrier.
+
+## L04c-185: Communication - Problems With Algorithm Question ##
+
+Now I'm going to ask you a question. Given this
+very simple implementation of the barrier decrementing count and count
+becoming zero resetting it to N by the last
+processor and all the other guys waiting on the count
+not being not yet being zero do you see
+any problem with this algorithm? And this is an open-ended
+question. So I want you to think about it
+and see could this lead to any raise condition. And
+and I mentioned to you when we talked about
+mutual exclusion algorithm itself that raise conditions are the bane
+of parallel programming. So when
+you're implementing synchronization algorithms you
+better be absolutely certain that there are no raise conditions.
+
+## L04c-186: Communication - Problems With Algorithm Solution ##
+
+The answer is yes there is a problem. And and the
+problem is that the before the last processor the last processor
+guy comes and sets the cone back up to N. And
+remember what the last processor is doing decrementing the count. And
+if the count is zero as soon as there is decrement
+of the count and the count is bigger than zero the
+other guys are sitting here. They're going to go off on their
+merry way executing code towards the next barrier. And the last
+processor is in the meanwhile fitting the count backup
+to N. But before the last processor sets the
+count back up to N the other processors may
+race to the next barrier. And they may go through
+because they may find that this count has not
+been set to N yet. And they will find
+that the count is zero and then they'll fall
+through. And that can be a another happy situation. Right?
+
+## L04c-187: Communication - Counting Barrier ##
+
+So there is a problem with the centralized barrier.
+That is that when the count has become 0 if
+these guys immediately are allow- allowed to go on
+executing before the count has been reset to N then
+they can all reach the next barrier and then
+they fall through. And that is a problem. So the
+key thing to do To avoid this problem or to
+overcome this problem is to make sure that the threads
+that are waiting here they don't leave the barrier before
+the count has been reset to N. Right? So they're all
+waiting here for the count to become zero and once
+the count has become zero they are ready to go but
+we don't want to let the go yet. We want to let
+them go only after the count has been reset to N.
+So what we're going to do is we're going to add another
+spin loop here. And that is after they recognize that the
+count has become 0 they're going to wait till the count
+is not N yet. And so this ordering of these two
+statements is very important obviously. So we want to wait till
+the count has become 0. At that point we know that
+the value is over but we want to make sure that
+the counter has been reset to N by the last guy
+and once that has been done then we are ready to
+go on executing the code that we need to execute til
+til we get to the next barrier. So we solve
+the problem with the first version of the centralized barrier
+and that is the counting barrier. By having a second
+spindle. That's the problem right? There are two spin loops
+for every barrier in the counting algorithm and ideally we
+would like to have a single spindle. And and that's
+the reason that we have this particular algorithm which is
+called sense reversing barrier. If you recall in the counting barrier
+we needed two spinning episodes. The first spinning episode
+was When you arrive at the barrier decrement the count
+and wait for the count to become 0. That's
+the first spinning episode. And the second spinning episode to
+leave the barrier what you need to do was
+to make sure that the count has become N right?
+Those were the two spinning episodes that were there
+in the counting barrier. And in the sense reversal Barrier
+we're going to get rid of one of those
+spinning episodes. The arrival one. We'll get rid of
+it. So we don't have to spin on count
+becoming zero. And we'll see how that is done.
+So what you notice is that in addition
+to the count there is a sense variable in
+the shared variables that we have we included a
+new variable called sense variable that's also shared by
+all the processes that want to accomplish a barrier
+synchronization. And the idea behind the sense variable is
+that the sense variable is going to be true for
+One barrier episode and it's going to be false for
+the next barrier. So because we at most you
+have one barrier at a time and therefore if
+you call this barrier the true barrier the next
+barrier is going to be the false barrier So that's
+the way we can identify which barrier we are in at any particular point of
+time so far as a given thread is concerned by looking at the sense variable.
+
+## L04c-188: Communication - Sense Reversing Barrier ##
+
+So the barrier algorithm is going to work like this. When
+a thread arrives at a barrier what it is going to
+do is it is decrement the count exactly like like
+in the counting barrier. It's going to decrement the count. But after
+it its decrements the count what it is going to do
+is it's going to Spin on Sense reversal. Remember that you
+know the sense flag is going to be True for. This
+barrier and once everybody has progressed to the next barrier the
+the sense flag will become false. And therefore let's say
+that we are executing the the true barrier. In other words
+all the threads are executing some right here. The sense flag
+is true and so if T1 comes along it decrements the
+count and it's not going to worry about whether the count
+has become zero or no. All that it is going to read
+on is for the sense to reverse. So it's it's saying
+well my sense is we are on the true value here
+I'll stay here until the sense becomes false. I'll
+know then that that we've moved on to the next
+value point. That's the idea behind behind what all the
+processors will do except the last one. What did the
+last one do? Well you guessed it. The last one
+in addition to resetting the count to N which was
+happening in the counting barrier it was also going to reverse
+the sense flag. So last processor comes along and finds
+that the count has become zero it'll reset it to N.
+No problem with that. And then it is going to reverse the
+sense flag. It used to be True here and it's going to
+reset it to False. And all the other guys are waiting on
+the sense reversal. So decrementing the count itself by chaining the
+the count value that doesn't do anything to these threads. Only
+when the sense flag is reversed all these guys come out
+of the spindle and they can go on. So you can see
+now that we ha have only one spinning
+episode per critical section or one spinning episode per
+Barrier. What we're doing is we decrement the count
+and spin on sense reversal last guy decrements the
+count. When count goes to zero resets it to
+N. And then it is going to reverse the sense.
+And that is the signal for all the reading
+processes to say well we can now go on
+to the next phase of the computation. So we've gotten
+rid of one of the spinning episodes that used to
+be there in the pure counting version of the centralized
+barrier. One of the centralized barrier is simple and intuitive
+as to what's going on and of course with the
+sense reversing barrier we got rid of two spinning episodes
+and got it down to to one. All of these
+are good things. But the problem is that you have a
+si shared variable for all the processors. And
+so if you have a large scale. multi-processor. And
+if you're running large-scale scientific applications with lots of
+parallel threads and they have to do a barrier
+causes a lot of contention on the interconnection
+network. Because of this hot spot for this shared
+variable. And remember what our good friend Chuck Thacker
+said less sharing means the multi-processor is more scalable.
+And that is something that we want to carry forward in
+thinking about how to get rid of this sharing that
+is happening among the large number of processes in order
+to build a more scalable version of a various synchronization algorithm.
+
+## L04c-189: Communication - Tree Barrier ##
+
+So I'm going to first describe to you a
+more scalable version of the sense reversal algorithm.
+And the basic idea is to use divide
+and conquer. I have a hierarchical solution. That
+is limit the amount of sharing to a
+small number of processes. Let's say a small
+number K of processes and and in this example k is equal to 2. So essentially
+you know what we are saying is if you have n processors that the condition
+break them up into small groups of
+k processors. And so we build the hierarchical
+solution and the hierarchical solution obviously leads
+to a tree solution. And so since we
+have K processors competing and accomplishing a
+variable among themselves. If you have N processors
+then you have a log and the base K as a number of levels in the tree in order
+to achieve the value. And in this case what
+we have done is K is equal to 2. And
+so the number of levels and with the eight
+processors The number of levels in the tree is going to
+be three. So let's talk about what happens when
+we [UNKNOWN] a value. So at a micro level algorithm
+works exactly like a sense reversing algorithm. And
+that is these two processes if they're sharing this
+data structure at count Variable and a locksense variable
+and you see that for every k processes and
+in this case k being two every two
+processes you have issued two shared variables: account variable
+and a locksense variable. Count variable locksense variable count
+and locksense. And so what's going to happen and
+you'll see that you have this count and locksense variable.
+Replicated in every level of the tree and we'll talk
+about how these going to are variables are going to be used
+in the progression of this algorithm. So let's first talk
+about arriving at a barrier. So let's say that P1
+has arrived at the barrier. What it is going to do
+is it's going to go and decrement this counter. Now what
+is this counter going to be set to? Well This counter is
+is just for the key processes that are value
+syncing here and keeping two this counter is going
+to be two. And so this guy is going to
+decrement the count and if the count is not zero
+it's going to basically wait for the sense to reverse.
+Just like the sense reversal of algorithms. The same thing
+is going to happen that P1 comes here decrements the
+count and it waits for sense to reverse by spinning
+on this flag. Sometime later P0 comes to the barrier and
+it decrements the count count goes to zero but you're not
+done with the barrier yet because the barrier is for all
+of the processes. So what P0 is going to say is okay
+between the two of us I know that we both have
+reached the value because the count is zero. But I have
+to go up and go to the next level up and
+here I'm going to decrement the count here to indicate that I've arrived
+at the value. So P0's the one that arrive up
+the tree P1 is stuck here waiting for sense to diverse
+P0 moves up. So remember that even though P0's come here
+decremented the count and made it zero that doesn't flip the
+sense flag yet. Right? Because the value will be done
+only when everybody has arrived and therefore all that P0 is
+going to do now is decrement the count see that it is
+0 then it is going to move up in the tree and
+go to the next level of the tree. And this
+data structure which is now shared among this half of
+the tree this half of the tree is sharing this
+data structure so P0 decrements this count. And what'll this count
+be resized to? Again 2 right? Because at every level
+you have k processors k being 2 in this case arriving
+at a barrier. So P0 arrives here decrements the count
+count is not 0 yet and so it waits. So P0
+is going to wait on locksense to reverse here. P1 is waiting
+on locksense deliveries here P0 is not waiting on locksense deliveries
+here because it has arrived at the barrier but his partners
+are still stragglers they have not arrived at the barrier yet.
+
+## L04c-190: Communication - Tree Barrier Continued ##
+
+Of course multiple processors can arrive at the barrier at the same
+time and all of them are going to work with their local data
+structure. So like this guy will work with this local data structure.
+This guy with this local data structure. With this local data structure. And
+each of them is waiting for his partner to arrive so that
+he can move up the tree. So that's what going on and so
+eventually P3 is going to arrive and so when P3 arrives he decrements
+the count sees it as zero so he can move up the tree.
+When it comes here it says oh the count is
+already one so I decrement it and the count becomes
+zero and remember P0 decremented the count and it is
+waiting on locksense. So P3 when it comes here finds
+that the count is one decrements it becomes zero and
+it moves up the tree because the barrier is still
+not done until we know that everybody has arrived at
+the barrier. So in the meanwhile on this half of the
+tree what's going on is that P4 has arrived P5 is
+not there yet P6 and P7 have arrived. And it turns
+out that P6 was the last guy to come to the
+barrier here and therefore he is the guy that has moved up.
+And he has decremented count. And he's waiting for this half
+of the tree to arrive at the barrier. And you can guess
+which one is going to come up right? Because P4 has already
+arrived here and so if P4 has already arrived here he's decremented
+the count and he's waiting on locksense to flip. So
+the straggler in this whole seam scheme of things is
+this guy right here. He's the guy who is is
+still not arrived but eventually he'll also arrive. When he
+arrives he will decrement the count find that the count
+has become zero move up the tree and he'll find
+that this count is already decremented also and when he
+comes up here he will decrement it to zero and
+then he'll say oh if we're all done so we
+can move up here. So that's what is going to happen. So
+we come here P5 comes here and goes all the
+way up. And then when it comes up here it sees
+that P3 has already decremented the count to one. And
+so when he comes up he decrements it and it becomes
+zero. And at this point everybody has arrived at the
+barrier. So let's understand what each processor does. When a processor
+arrives at a barrier it is going to decrement the count. If the count is
+not zero it's going to spin on this locksense flag. If a
+processor arrives at a barrier decrements the count finds that the count
+is zero then what it's going to do is
+one of two things. The first thing it's going to
+do is he's going to say do I have a parent? If I have a parent what I have to
+do is I have to recurse. Do the same
+thing to the next level. Right? So so the algorithm
+is decrement count and see if the count becomes
+zero. If the count has become zero then you recurse.
+If end of the parent is there you recurse.
+If the count does not become zero then spin on
+the local locksense flag. And you continue this. So you
+continue this P0 that this came up here and informed
+this is another parent. So so this you know it it
+is it is it is stuck here. But P3 when it
+came later on it moves up. And when it came up
+here this is the last part. So there's no more recursing here.
+So when P5 finally arrives here it finds that there is
+no more parent. This is the root of the tree. And
+since we reached the root of the tree you know that
+if the count is zero now at the root of the tree
+then everybody has arrived at the barrier. So count at
+the root of the tree becoming zero is indicative to the
+last arriving processor P5 in this case that everybody has arrived
+at the barrier so it's time now to wake up everyone.
+
+## L04c-191: Communication - Tree Barrier Continued ##
+
+So the last processor to arrive at the root
+of the tree in this case P5. He's the guy
+who is going to start the waking up process for
+everyone and the way the wake up process works is
+that P5 having realized that he has reached the
+root of the tree and having realized that he's the
+last one to arrive because count is already zero
+after you decremented it he's going to flip this locksense flag.
+So when he flips this locksense flag what's going to
+happen? Two things one is this guy P3 he's
+waiting on this locksense flipping. So he's going to be
+released from the spin he's on. Of course P5 has
+reset the count back up to n to prepare
+for the next barrier and it has flipped the locksense.
+So freeing up P3 and it is now ready to go down the tree as well to tell his
+buddies that the barrier is done and wake
+up everyone along the way. So the wakeup starts
+from the root. And so in this case P5
+and P3 having been released from the root they
+go come down to the next level. And they're
+going to wake up their buddies that are waiting at
+this level of the tree. Remember I told you
+that this can be a kauri tree. K happens
+to be two in this case. But for any
+general K basically at every level of the tree there's
+going to be on K minus 1 buddies waiting here
+K minus 1 buddies waiting here. So what we're going to
+do is we're going to release that many number of
+prisoners from every level of the tree. So this is
+the zeroth level of the tree. There's the first level
+of the tree. There's the second level of the tree.
+And at the zeroth level there is k minus
+1 buddies. At the first level there is k times
+k minus 1 buddies waiting. And similarly as you
+go down the different levels of the tree there're more
+and more buddies waiting to be released. So for
+this simple example with the K equal to two so
+when he comes up here comes down to this
+level P3 is going to release P0 and P5 is going to
+release P6. And so now we have more helpers to go down the tree and wake up
+more people. So at this level only P5 was there to wake up P3 and at this level
+both P3 and P P5 are there to wake
+up the respective buddies P0 in this case and
+P6 in this case. So once P0 and P6 have been woken up there are four of them
+now available that can go down to the next level
+of the tree. And they can go down to the next
+level of the tree. P0 can wake up his buddies
+at this level of the tree P3 his buddies at this
+level P5 and P6. And so now all the others
+so P1 in this case P2 in this case P4 in
+this case and P7 in this case were all been waiting
+at this level of the tree they will all get awakened
+because of these guys marching down from the root. And
+basically what each of these guys are doing on the
+way down is to flip this locksense flag. So the
+first thing that P5 did was to flip the locksense flag
+over here. That released this guy. And when when P3
+and P5 come to this level of the tree each
+of them respectively flip the locksense flag that is associated
+with this data structure and when they do that P5 release
+P6 P3 release P0 and now both P0 P3 P5 and P6 on this side.
+They all can go down to the next level. And P0 can flip locksense over here P3
+can flip locksense over here P5 over here
+P6 over here. That is going to release the
+rest of the buddies P1 P2 P4 and
+P7. And everybody has now been released from the
+barrier and that signals that the spin is done for all the
+ba the processes that I've been
+waiting and the barrier completion is complete.
+
+## L04c-192: Communication - Tree Barrier Continued ##
+
+So once these locksense flags have been flipped then all of the processors
+that have been waiting on these locksense as respective nodes they're going
+to be released and everybody is now awake. So the tree barrier is a a fairly
+intuitive algorithm that builds on the simple centralized
+sense reversal barrier except that it breaks up this And
+processes into K-Sized groups so that they can
+all do spinning on a less contentious set
+of shared variables. So that's good that is
+a it's a recursive algorithm that builds on
+the centralized sensor [UNKNOWN] algorithm and allows scaling
+up to a large number of processes. Because
+the amount of shading is limited to k and so long as the k is small
+like two or four then the amount of contention
+for shared variables is limited to to that number.
+So that's those are all good things about that
+but there are lots of problems as well. The first
+problem that I want you to notice is that
+the spin location is not statically determined for each processor.
+So for instance if you take this particular execution
+that I've shown you in this picture P0 happens to
+arrive later than P1. So P1 is the first
+to arrive here and so when P1 arrived here it
+decremented count and it realized that oh the count
+is not zero I'm going to spend here. And P0 arrived
+later. And that's why it went up to the
+next level. And and it is spinning on this locksense
+variable over here. So in another execution of the same
+program it is possible that P0 arrives first. If P0
+arrives first then it'll spin on its locksense variable
+that is in this data structure. And p one
+will be the second guy to arrive and therefore
+he'll be the guy that will move up. And
+he'll be the guy that will be spinning on
+this locksense flag. So the locksense flag that a
+particular processor is going to spin on is not
+statically detemined. But it is dynamically determined depending on
+the arrival pattern of all these processes at a
+barrier. And the arrival pattern obviously is going to be
+different for different runs of the program. Since it
+depends on the amount of code that is getting executed
+on each one of these processors. And and other
+variables such as how busy the processor is and so
+on. And the second source of problem is that
+the airiness of the tree determines the amount of contention
+for shared variables. I've mentioned that you know here it
+is show shown with two two processors. But if you
+increase the airiness of the tree to be key to
+be something more than to maybe four or eight or something
+like that. And if you have a large-scale multiprocessor with
+with 1000 processors the editors of the tree may be much
+more than 2 and in that case the mode of
+contention for said data structures is is going be significant and
+that can result in more contention on the network
+as well. The other issue with this Tree Barrier
+is that it depends on whether our multiprocessor that
+we are executing this algorithm on is cache coherent
+or not cache coherent. If it is cache coherent
+multiprocessor then you know the spin even though it's
+on a particular variable it could be encached in
+a private cache and therefore the cache coherent hardware
+will indicate when the spin variable changes value. But if it's a non
+cache coherent multiprocessor the fact the spin
+variable that we have to associate with
+a particular processor is not static but
+dynamic. Means that the spin may actually
+be happening for P0 on a remote memory. Remember I mentioned to you that
+one of the styles of architecture is a
+distributive shared memory architecture? Sometimes the distributive shared
+memory architecture is also called a non-uniform memory
+access architecture or NUMA And the reason it is
+called numer architecture is because the access to
+local memory for a particular processor is going to
+be faster than the processor's access to a
+remote memory. And if you don't have cache coherence
+then the spinning that has to be done has to be done on a remote memory and
+that goes through the network. And so static association
+of the spin location of the processor is very
+very crucial if it's a non-cache-coherent shared memory
+machine. So the next algorithm that I'm going to
+describe to you is due to the authors of
+the paper that we are reviewing in this lesson
+which is [UNKNOWN] and Scott and for this reason that algorithm is
+going to be called MCS barrier. It's also a tree barrier but you'll see that
+in the MCS algorithm the spin location is statically determined as opposed to
+the dynamic situation that you have in the hierarchy of the tree barrier here.
+
+## L04c-193: Communication - 4 Ary Arrival ##
+
+So the MCS tree barrier is it's also a
+tree barrier. It's a modified tree barrier and what
+you'll notice and once again to make life simple
+I'm showing you an arrangement of the MCS tree
+barrier with with 8 nodes. And it's a 4
+ary arrival tree. So the arrival tree and the
+wake-up tree are different in the MCS algorithm. The
+arrival tree is a 4 ary tree and I'm showing
+the arrangement for N equal to 8. There are
+2 data structures that are associated with every parent and
+and this one data structure is what is called
+have children and the other data structure is what is
+called child not ready. And I'll describe to you
+what each one of these things is. Have children is
+a data structure that is associated with every node.
+And this data structure is going to have meaning only
+when a node is also a parent. So for example if you look at this arrangement
+node P0 has 4 children P1 P2 P3 and P4. And if you look at node P1
+it has 3 children. And so P5 P6 and P7 has 3 children. And so we have a total
+of 8 processes so we've got all 8 processes accounted for here. And therefore
+these guys P2 P3 P4 all the way up to P7 they're not as lucky as P0 and P1.
+They don't have children. So P2 through P7 they do not have children.
+And therefore their HaveChild vector is is is
+false. So what you see here is a
+HaveChild vector and the HaveChild vector is is
+true for P0 in all the big positions.
+And indicating that it has because it's a 4
+ary tree it can potentially have up to four children.
+And yes P0 has 4 children. And the have child
+vector is true all the way whereas for P1 the
+have child vector is true for the first 3 children
+and false for the fourth because it has only 3
+children. And these guys don't have any children. And similarly
+these guys don't have any children. So the HaveChild vector
+is completely false for P2 through P7. Now what
+about this Child Not Ready data structure? The Child
+Not Ready data structure is a way by which
+each of these processes has a unique spot in
+the parent to signal when they are arriving at
+a barrier. So what I'm showing you here the
+arrows here are showing you the specific spot in
+this data structure the child not ready data structure
+associated with his parent for each of the child
+there is a unique spot for this guy to
+indicate that they've arrived at the barrier. And similarly
+for this set of children the parent is P0 and
+each child has a unique spot in the parent's
+child not ready vector to indicate that they've arrived
+at the barrier. So the black arrows in this
+structure that I'm showing you is just showing the arrangement
+of the tree. And in terms of the
+the parent child relationship for the 4-ary arrival
+tree. And the red arrows are the ones
+that are showing you the specific spot where
+a particular child is going to indicate to the
+parent that they have arrived at the barrier.
+And as you can see that since P1
+has 3children the fourth spot is empty indicating it
+has to wait only on 3 children to know
+that the value is completed on the tree and so
+it can move up. So the algorithm for barrier arrival
+is going to work like this. When each of these processors
+arrive at a barrier what they going to do is
+they going to reach into the parent data structure very specific
+spots statically determined. That's important
+right? So it's statically determined
+that this is a spot that P5 is going to indicate
+to the parent that it has arrived. This
+is the spot that P6 is going to indicate that
+it has arrived. P7 and similarly once all these
+guys have arrived at the barrier P1 can check
+and the way P1 checks is just sees whether
+this CN vector has ones in all these pods.
+If there is ones in all these pods it
+can spin on this and therefore it knows that
+its children have arrived at the barrier. Once
+its children have arrived at the barrier then it
+can move up the tree similar to what we
+saw in the vanilla tree barrier before. P1 is
+going to move up and it's going to inform its parent.
+And the way it does is by going to
+a specific spot in the parent's child not ready
+vector. And there is specific spot assigned for P1.
+It's going to set this to indicate that it has arrived
+at the barrier. So what P0 is doing is waiting on
+everybody arrive. If P0 is the first let's say to arrive
+at the barrier. It's basically waiting on everybody else to arrive
+at the barrier. Could be P0 is the first one or
+the last one it doesn't really matter. When P0 arrives at
+the barrier it is going to wait on this child not
+ready all the bits being set by the children. And so
+when each of these nodes arrive at a barrier they
+know because of the arrangement of this data structure they know
+their position in the data structure relative to other processes arriving
+at the barrier. And therefore P2 when it arrives at a
+barrier It knows that all it has to do given
+the structure it has to go to this part on the
+parent vector and set it to 1. P3 has to go
+to this part set it to 1 and so on okay?
+And so once it is done P0 will know
+that everybody has arrived at the barrier. So that's the
+arrival at the barrier. So once again the recap. The
+arrival tree is a 4-ary tree. And the reason why
+they chose to use a 4 ary tree is because
+there is a periodic result backing the use of 4
+ary tree leading to the best performance and that's the
+reason that they they chose this particular arrangement. And the
+second thing that I want you to notice is that
+each processor is assigned to a unique spot by construction
+a unique spot in this 4 ary tree. And because
+of its unique spot a particular process on may have children
+or may not have children and in this case I
+showed you that P0 and P1 are have children and
+the rest are not as lucky because N is equal
+to 8. The other nice thing about this particular arrangement is
+that in a cash coherent multiprocessor it
+is possible to arrange so that all the
+specific spots that children have to signal the
+parent can be packed into one word of
+a processor and therefore a parent has to
+simply spend on one memory location in order
+to know the arrival of everybody so it
+doesn't have to individually spend on memory locations
+for different processes they can all be packed
+into one word and the cash coherence mechanism
+will ensure that P0 is alerted every time
+any of these guys modify this shared memory location.
+
+## L04c-194: Communication - Binary Wakeup ##
+
+So the wakeup tree for the MCS barrier
+is a binary wakeup tree. Once again here there's
+a theoretical result that backs this particular choice
+that the shortest critical path from the root to
+the last awakened child is shortest when you
+have a binary wakeup tree and that's the reason
+that... They chosen to have this construction. Even
+though the arrival tree's a [INAUDIBLE] tree. The construction
+for the wake up tree is a binary
+tree. And let me explain the construction of this
+binary wake up tree. Every processor is assigned
+a unique spot again. So P 0 the root
+And uhP1 P2 over here P3 P4 P5
+P6 and P7 So that completes the eight processes
+for this binary tree set-up for wakeup. And the
+latest structure that is used in the wakeup tree
+is as a child pointer data structure. And
+the ChildPointer data structure is essentially a way by
+which a parent can reach down to the
+children and indicate that that it is time to
+wake up. So that's the purpose of this
+ChildPointer data structure. And once again as you can
+see depending on the particular location in this
+wakeup tree they may have children they may not
+have children. So P0 has two children P1 has two children P3 and P4. P2
+has two children P5 and P6. P3 had one child P7 and that is it. Because you
+have a processors and these guys. Don't have any children P4 P5 and P6. So in
+terms of wake up what is going to happen
+is that when everybody arrives at the barrier P0
+is going to be noticing it and through the
+arrival tree. And so now it says oh it's
+time now to wake up everybody and the way
+it does that it has a specific pointer To reach
+into P1 and signal to P1 that it's time
+to wake up. And similarly it has a specific pointer
+in in in in P2 to wake up. So
+a particular memory location which is a pointer to a
+location that this guy's waiting on to wake up.
+So it's going to do that. And so what is
+going on is that agian this is another important
+point that in order to to know that it is
+time to wake up each one of these processes
+is standing on a statically determined location. P2 is
+standing on a particular location here and and P1
+is standing on a particular location here. And so when
+P0 signals P1 it is exactly sending a signal
+to P1 and it is not affecting any of the other processes. And similarly when it
+signals P2 it signals exactly P2 using this pointer. And
+similarly once P1 and P2 are woken up. They can march down the tree
+and signal P3 and P4 and signal P5 and P6
+by using the the statically assigned spots that
+the children are spinning on to indicate that it
+is time to wake up. So the key point I want to stress again is the fact
+that. In this construction of the tree by
+design. We make sure that we know a position
+in the tree and we know exactly the
+the memory location that we have to spin on
+in order to know that it is time to wake up. So these red arrows show the
+specific location that is associated with each one
+of these processors In the wakeup tree. So once
+the parents signal the children and they marched
+down and signal all the other children then at
+that point everybody's awake and the barrier has
+been reached. So the key take take away points
+with the MCS tree barrier is that the wakeup tree is binary. The arrival tree
+is forwarding and the static locations associated
+with each processor both in the arrival tree
+that we saw earlier and the /?
+tree. And through the specific statically assigned spot
+that each processor can spin on we
+are making sure that the amount of contention
+on the network is limited. And also by
+packing the variables into a single data structure
+we can make sure that the contention for
+shared locations is minimized as neat as possible.
+
+## L04c-195: Communication - Tournament Barrier ##
+
+Okay the next value algorithm we're going to look at
+is what is called the Tournament Barrier. The barrier
+is organized in the form of the tournament with
+N players and since it's a tournament with N players
+and two players playing as against each other. In
+every match there are going to be log N rounds log
+N with a base 2. So here is the
+setup for with [INAUDIBLE] they're going to be they're going to be
+three rounds corresponding to login. And being
+eight we get three rounds. The first round
+second round and the third round. So in
+the first round they're going to be four matches.
+P0 and P1 is one match. P2 P3. P4 P5. P6
+P7. And the only catch is that we're going to rig this
+tournament. In other words what's going to happen is that we're
+going to predetermine who is going to be the winner in
+this round. And and particularly we're going to say P0
+is the winner for this match P2 for this
+one P4 for this one and P6 for this one.
+So in other words the matches are rigged. In
+this day and age when we hear about international scandals
+about match fixing. I guess this is not too
+far fetched. But what is the rational for match fixing?
+The key rational is the fact that if the
+processes are executing on a shared memory machine. Then
+the winner can basically sit on his bumper and
+wait for a process of P1 to come over
+and let him know that he has won the match P2 can wait until P3 comes over and
+so on and so forth. And what that means
+in a shared memory multiprocessor is that the spin
+location where P0 is waiting for P1 to
+come and inform him that he's lost the match
+is fixed. The static. And and so this is
+the idea behind match fixing that the the spin
+location for each of these processes P0 P2
+and P4 and P6 the winners in the first
+round is predetermined. And that is very very useful
+especially if you don't have a cache coherent multiprocessor.
+If you have NCC [UNKNOWN] machine In that
+case it is possible to locate the spin location
+in the memory that is very to P0 P2 P4 and P si P 6 respectively. That's
+the idea behind this this match fixing. So
+the result of matches. Of course P0 will advance
+to the next round. P2 will advance to
+the next round. P4 and P6. And once again
+in the second drawing we're going to fix the matches. And the winner is going to
+be P0 for round 2. P4 for in this bracket for round 2. And so
+essentially what that means again is that P0 and P4 can spin on a
+statically determined location. In various processors
+and P2 and P6 respectively will come over and let
+the other guy know that when the match [UNKNOWN] for this
+round. So that is the end of the second round. And and
+and of course if you have you know with N equal
+to eight there are only three rounds but if for arbitrary N
+we're going to have more levels in the tree and the and
+the and and and [INAUDIBLE] level. We're going to fix the the winners
+and so it'll propagate up this tree in this fashion in
+terms of determining statically who are going to be the winners for
+each round of the tournament. And this will go
+on all the way up to determining who the
+tournament champion is. So in this case P0 is
+our luck guy who wins the tournament and so he's
+the champion. And so P0's going to be waiting on
+a statically determined location where P4 can come and signal
+that P0 has one determinant. So again the important
+thing that I want you to get out of this
+this particular arrangement that I've mentioned is the fact that the
+spin location for each of the processors that are waiting on the
+other guy are statically determined. At every level. So this the
+first round the second round and
+finally the championship the championship round.
+
+## L04c-196: Communication - Tournament Barrier Continued ##
+
+So at this point when p0 is declared the champion
+of the tournament what we know is that everybody has
+arrived at the barrier. And this knowledge is available with
+p0 but not with anybody else. So everybody everybody has arrived
+at the barrier but P0 is the only one who
+knows because he's a champion he knows that that everybody has
+arrived at the barrier. So clearly the next thing that
+has to happen is of course free up all the processors
+to indicate to them that you know its time to
+move on to the next phase of your computation. So let's
+talk about the wake up. So what p0 is going to do
+is is going to tell p4 that it's time to wake up.
+And you know if you want to use the tournament
+analogy again in any tournament the winner walks over to the
+loser and shakes hands right? So you can sort of think
+of the same thing happening over here P4 with the [INAUDIBLE]
+face is waiting for P0 to come over and let
+him know that okay its a good match and shake
+hands with you. And so P0 is going to come
+over and let him know shake hands. So that's the first
+thing that happens. So in other words at this point
+P0 is awake of course and he is also waking
+up P4 saying that well barrier is done. And now
+one of these guys can go to the next level and
+do the honours at every level so just as I
+said about P0 coming in and shaking hands with P4 what
+P0 is going to do is go to the next round
+and shake hands with P2 P4 go to the next round
+and shake hands with P6 and and so on. And
+of course if you think about the analogy of a tournament
+as soon as the match is over the winner is
+going to shake hands with the loser. But in this case
+the winner shakes hands with the loser after the
+tournament is all done. So at every level we're going to
+have that. So its essentially P0 and P4 come down
+to the next level and they shake hands with the
+respective losers of that level. And as I said if
+we have for some arbitrary N where N is a
+binary power you're going to have this kind of propagation
+of wake-up signals going from the winner to the loser
+at every round. And all of them wake-up and go
+to the next level. Because all of these guys are winners
+from the previous level. So all of these winners will
+go down to the next level and wake up the losers
+at that level. So that's what is going to happen. Again what that means from
+the point of view of a shared memory multiprocessor is that the spin location
+for P4 P2 and P6 it's all fixed right? Statically determined. If P4 knows
+that P0 is going to come over and shake hands and so that he can spin on a
+local variable that is close to it's processor and so again this is important
+for NCC NUMA machines in which there is
+no cache coherence and therefore it is convenient
+if P4 can be spinning on a memory
+location that is close to the processor. Same thing
+with P2 and P6 at the next level. So this process of waking up the losers at
+every level goes on till we reach round 1. And when at round 1 all the winners
+have congratulated. Well not congratulated [LAUGH] but shook
+hands with the respective losers at the first round.
+At that point the wake up is complete. Everybody's
+awake now. And and the the barrier is done.
+So all are awake and the barrier is done and
+they can move on the next phase of the computation.
+And once again in order to make sure that there
+is sense reversal everybody knows that this barrier is done and
+they're going to go to the next phase of the computation
+where they will wait on the different [INAUDIBLE] of the barrier.
+. So that's Tournament Barrier Algorithm. So the 2 things
+that I want you to take away is the arrival moves
+up the tree like this with match fixing. And all the respective winners at
+every round waiting on a statically determined
+spin location. And similarly when the wake up
+happens the losers are all waiting on
+statically determined spin location in their respective
+processors and the winner comes over at
+every level at every round of the tournament
+the winner comes over and tells the loser that
+it's time to wake up. So that's how this
+whole thing works. So now that we understand this
+tournament algorithm let's talk about the virtues of this algorithm.
+
+## L04c-197: Communication - Tournament Barrier Continued ##
+
+You will immediately notice that there's a lot of
+similarity between the Tournament algorithm and the the sensor
+verse interversing tree algorithm and also similarity to the
+[UNKNOWN] algorithm. So let's talk about the difference between
+the tree barrier and the tournament barrier first. So
+the the the main difference is that in the
+tournament barrier the spin locations are statically determined whereas
+in the tree barrier we saw that the spin locations
+are dynamically determined based on who arrives
+at a particular node in the barrier
+in the tree in that algorithm. And what that means in the tournament barrier is
+that we can statically assign. The spin
+location for the processes at every round
+of the tournament. Another important difference between
+the tournament barrier and the the tree barrier
+is that there is no need for a fetch
+and free operation. Because all that's happening at every
+level. At every round of the tournament there is
+spinning happening. And what is spinning? Basically reading. And
+there is the signaling happening what is this? This
+is just writing. So so long as we have
+atomic read and write operations in the multi-processor that's
+all we need in order to implement the tournament barrier.
+Whereas uh if you recall in the tree barrier
+we need fetch and free operation in order to atomically
+decrement the count variable. So that doesn't exist in
+the tournament barrier. That's that's another good use. Now what
+about the total amount of communication that is needed.
+Well it's exactly similar because of the tree arrangement. As
+you go up the tree the amount of communication that
+happens is going to decrease. Because the tree is getting pruned
+as you go towards the root of the tree and
+so the amount of communication in the tournament barrier in
+terms of all the notation is exactly similar to the
+tree barrier it is older login. That's the amount of communication
+that is needed. Now the other important thing that that
+I should mention is that at every round of the
+tournament you can see that there there's quite a bit
+of communication happening. In the first round going up the tree
+P1 is communicating with P0 P3 with P2 and so on. All of these red arrows. Are
+parallel communications that potentially take advantage of any
+inherent parallelism that exists in the interconnection network. So
+that's good news. That that all of this
+communication can happen in parallel if the interconnection network
+allows that kind of parallelism. That can be exploited.
+And the the other important point that I want
+you notice is that the tournament barrier works even
+if the processor is not a shared-memory machine. Because
+all that we're showing here is a message communication.
+So P1 P0 is waiting for a message from
+P1 and so on. So all of these arrows you can think of them as messages. And so
+even if the processor the multiprocessor is a cluster
+well by a cluster what I mean is a
+set of processes in which the only way
+they can communicate with one another is through
+message passing. There is no shared memory no
+physical shared memory. And even in that situation the
+the tournament barrier will work perfectly fine to
+implement the barrier algorithm. Now let's make a comparison
+of tournament to to NCS. Now because this
+tournament is arranged as a tournament there are only
+two processes involved in this communication at any
+point of time in the parallel. So it means
+that it cannot exploit the spatial locality that
+may be there in the caches. If you recall
+one of the virtues of the NCS algorithm
+is that it could exploit spatial locality. And that
+is multiple spin variables could be located in
+the same cache line and and the the parent
+for instance could spin on a spin location
+to which multiple children are going to come and indicate
+that they are done. That's not possible in the
+the tournament barrier because it is arranged as a
+tournament where there are two players playing against
+each other in every match. Similar to MCS Tournament
+Barrier does not need a fetch and fee operation
+so that's good. A common good property of both
+MCS and Tournament. The other important thing what tournament
+has an edge over MCS is the fact that tournament
+barrier works even if the processors are in a
+cluster. Meaning it's not a shared memory machine and is
+only a cluster machine where only message passing is
+really good communicator to one another. Even in [INAUDIBLE] that
+situation you can implement the tournament barrier. So that's another
+good thing. Now is a good time for me to
+mention to you. I've been using the word cluster what that means is that the
+set of nodes in the multiprocessor they don't
+physically share memory and the only way they
+can communicate with one another is through
+message passing. And is important for you to
+know this particular terminology cluster because clusters become
+the work horses for data intensive computing today.
+The data centers and content distribution networks we're
+going to see a lot of that when we
+talk about giant skin services later on in
+this course and those environments they all use this
+kind of a a a computation cluster. And
+these computation clusters employ on the order of thousands
+or 10000 nodes connected together through an interconnected
+network and they can operate as a parallel machine
+with only message passing as the vehicle for communication among the processes.
+
+## L04c-198: Communication - Dissemination Barrier ##
+
+The last barrier algorithm I'm going to describe
+to you is what is called a Dissemination
+Barrier. And it works by information diffusion in
+an ordered manner among the set of participating
+processes. And what you will see is that
+it is not pairwise communication as you saw
+in the tree barriers and the NCS barrier
+or the tournament barrier. But it is through
+information diffusion. The other nice thing about
+this particular barrier the dissemination barrier is that
+it is since it is based on ordered
+communication among participating nodes. It's all like a
+a well-orchestrated gossip protocol. And therefore N
+need not be a power of 2. And
+you will see why this condition need not
+be satisfied as I start describing the algorithm
+to you. So what's going to happen is that
+there's going to be information diffusion that's going to happen
+among these processors in several different routes. And
+in each round what's going to happen is that
+a processor is going to send a message to
+another ordained processor. And the particular processor that
+it's going to choose to send it is dependent
+on the round which we're in. So the idea
+is that processor Pi will send a message to
+processor Pi plus 2 to the k mod N. This
+is the peer to which Pi is going to send
+a message to. And of course you know an example
+is always more illustrative. So since we have five
+processors here we can then figure what's going to happen in
+every round. And Round 0 k is going to be zero.
+So what's going to happen is that since k is zero
+Round 0 P0 is going to be sending a message to Pi plus 2k k being zero
+is going to send it to P1. So P0 sends a message to P1. Similarly P1 sends a
+message to P2 P2 sends to P2 to P3 and P3 to P4. And the arrangement is
+that this is cyclically arranged. That if before
+the neighbor for him is going to be in the
+cyclic order whoever is the next neighbor. So in this
+case since there is mod function that we using before is
+going to be sending Its message to processor P5 mod. N
+N being N N being 5 it will be sending the
+message to P0. So this is Round 0 of the
+communication. So the key thing that I want you to get
+is that in every round we're going to see more rounds
+in a minute in every round a processor is sending a
+message to an ordained processor based on their own number.
+But depending on their own numbers their own number zero
+P0 sending to P1 and so on and so forth.
+And that is what's going on. So this completes one round
+of gossip. And what you what you want to see
+it that. All of these communications that I'm showing you
+are parallel communications. They're not waiting on each other. So
+P1 whenever it's ready to arrive at a barrier it's going to
+tell the next gay P2 is going to tell the next
+guy when hes ready and so on. Now how will these
+guys know that Round 0 is done well if you take
+any particular process here let's say P2 as soon as it
+gets a message from P1 and it has sent a message
+to P3. It knows that Round 0 has done so far
+is as P2 is concerned it can progress to the next
+level or next round of the dissemination. So each of these
+processes are independently making a decision that
+the round is over based on two
+things. One is they have sent a message to the peer and they want
+to receive the message from the ordain neighbor that they're supposed to get it
+from. At the end of that they can move on to the next round.
+
+## L04c-199: Communication - Dissemination Barrier Continued ##
+
+Now how many communication events are happening in in every
+round? Well it's order of N communication events per every
+round because every processor is sending a message to another
+processor in in every round. And therefore the amount of communication
+that's happening is order of N where N is the
+number of processors that are participating in this barrier. So
+now you can quickly see what's going to happen in the
+next round and the next round k is going to be equal
+to one and therefore. I'm going to choose each
+processor is going to choose a neighbor to send the message
+to based on this formula that I've that I have
+here. So in round zero for instance what we did
+was P0 is sending a message a neighbor that
+is one distant from it because k was zero. And
+now. In round one case one and therefore P0 is
+going to be sending a message to a neighbor that is
+two distant from it. So P0 will send to P2 and similarly P1 two distant from it
+P3 P2 two distant P4. P4. Too distant
+from it in cyclic order is going to be P1.
+So it's sending a message to P1. So
+that's the round one of communication with k equal
+to one round one of communication. Where once
+again order of N messages are being exchanged among
+these processes to indicate that this round is complete.
+Just as I said about Round zero every processor will
+know that this round is complete when it receives a
+message from its ordained neighbor. So in this case P2
+is going to expect to receive a message from P0
+and it has also sent its message to P4 its
+ordained neighbor to which it is supposed to send the
+message in this round. Once it is done P2 knows
+that round one is over and it can progress
+to the next round. So the independent decision is
+being made by each one of these processes in
+terms of knowing that this particular round is over
+and they can progress to the next round of
+the dissemination barrier. And just as I mentioned in
+the previous round. All of these communications happen in
+parallel so if the interconnection network has a redundant parallel
+path these parallel these parallel paths can be
+exploited by the dissemination barrier. In order to
+do this communication very effectively. So the next
+round meaning round number two. K is equal
+to two and therefore what we're going to
+do is every one of these processors is
+going to be choosing a neighbor that is
+four distant from itself. So in other words
+P0 is going to send a message to its neighbor
+that is four distant that is P4. P1 is going to
+send it to four distant. Which means if you wrap
+it around it's going to be P0 and so on. So
+this is the communication that's happening in round two
+where every processor is sending a message to its neighbor
+who is four distant because gave with the two four
+distant from itself. So just sort of biz belaboring the point
+the gossip in round two. Is over so
+far as P3 is concerned when it has received
+a gossip message from its four distant neighbor which
+happens to be P4. And it has also sent
+a message to its four distant neighbor P2
+in this case. At this point every one of
+these processes knows that round two of gossip is
+compelte. And similar to what I've been emphasizing all
+along parallel communication pads in the interconnection network
+can be fully exploited by the dissemination barrier algorithm.
+
+## L04c-200: Communication - Barrier Completion Question ##
+
+So given that there are N processors participating
+in a barrier algorithm particularly dissemination barrier algorithm how
+many rounds do you think the dissemination barrier
+algorithm needs to complete in order to know that
+the barrier is done? So how many rounds
+for the barrier completion? So the choices I'm giving
+you: it's N log N a log N to the base 2 Or feeling of log and
+base to the base 2 or N where N is of course a
+number of processors that are participating in
+this barrier. A hint for you [LAUGH]
+I told you already that N in a dissemination barrier need not be a
+power of 2. So that's a hint for you to to answer this question.
+
+## L04c-202: Communication - Dissemination Barrier Continued ##
+
+So with any row of five at the end
+of round two every processor has heard from every
+other processor in the entire system. Right? So you
+can eyeball this figure and see that every processor
+has gotten the message from every other processor and
+so it's common knowledge that for every processor that
+every one else has also arrived. Add the barrier.
+So how many rounds does it take to know that
+everybody has arrived at the barrier? Well its ceiling
+of log N to the base two. You add the
+ceiling because it's N need not be a part of
+two. So at this point everybody is awake. So barrier
+completion here there is no distinction between arrival and
+wake up as you as you saw. In the case
+of the tree barrier or the MCS barrier or the
+tournament barrier. In the dissemination barrier because it is happening
+by information diffusion at the end of a ceiling of log n rounds everybody
+has heard from everyone else in the
+entire system So everyone knows that that barrier
+has been breached. So in other words
+in every zone of communication in the dissemination
+barrier every processor you eyeball any particular
+processor. Every processor is receiving exactly one message
+exactly one message in every round of the
+dissemination barrier. So overall During the entire dissemination barrier
+information diffusion that's going on every processor is receiving
+a total of a ceiling of log n to
+the base two messages. Every round one message
+and so they are ceiling of log n rounds
+and so a ceiling of log n to the base two is a number of messages that any
+given processor is receiving and once. Every processor
+has received this ceil N log to the base
+2 number of messages. It knows that the
+barrier is complete. It can move on. And I've
+been using the word message in describing this
+dissemination barrier. It's convenient to do to use that
+word because it is information diffusion but if you
+think about a shared memory machine a message is
+basically a spin locatoin. And once again because
+I know an ordained processor is going to
+talk to me in every round the spin
+location for this guy is statically determined. Spin
+location statically determined and so on. So every
+round of the tournament we can statically determine
+the spin location that a particular processor has
+to wait on in order to receive a message.
+Which is really a signal from its ordained
+peer for that particular round of the dissemination
+barrier. So again static determination of spin location
+becomes extremely important if the multiprocessor happens to be
+an NCC NUMA machine. In that case what you want to do is to locate the
+spin location. In the memory that is closest
+to the particular processor. So that becomes more efficient.
+And as always in every one of these barried algorithms you
+have to do sense reversal. That once this barrier is complete
+everybody is going on to to the next phase of the
+competition. And when they go to the next phase of the competition.
+They have to make sure that the barrier that they arrive
+is the next barrier. So you need sense reversal then it needs
+to happen at the end of. Everybody algorithm. So now let's
+talk about some of the virtues of the dissemination barrier. The first
+thing that you'll notice is in the structure there
+is no hierarchy. In the tree algorithms the root
+of the tree automatically gives you a hierarchy in
+terms of The organization of the tree in the
+dissemination barrier there's no such thing. And I already
+mentioned that this algorithm works for both NCC NUMA
+machine as well as clusters. That's also a good
+thing. And there is no waiting on anybody else.
+So every processor is independently making a decision to send
+a message. As soon as it arrives at the barrier.
+Is ready to send a message to its peer for
+that particular round. And of course every processor can move to
+the next round only after it has received a corresponding
+message from its peer for this particular round. So as
+soon as that happens it can move on to the
+next round of the dissemination barrier. And all the processes will
+realize that the barrier is complete when they
+received Ceil (Log N) messages in the entire
+structure of this organism. So if you think
+about the total amount of communication because the
+communication in every round is fixed it's N
+messages in every round and since there are
+Ceil (Log N) rounds the communication complexity. Of
+this algorithm is order and log in. Compare that
+to the communication complexity of the tournament or
+the the Tree barrier. In both of those cases
+the communication complexity was only log in because of
+the hierarchy as you go toward the root of
+the tree the amount of communication shrinks so. The
+amount of communication in those algorithms is only order
+of log N. Where as in this this simulation
+down here since there is no hierarchy the total
+amount of communication in the algorathim is order of analog N.
+
+## L04c-203: Communication - Performance Evaluation ##
+
+We covered a lot of ground discussing different
+synchronization algorithms for parallel machines both mutual exclusion lock
+and [INAUDIBLE] barriers but now it's time to talk
+a little about performance evaluation. As always designers of
+course they're always concerned about the performance of these
+algorithms because all the applications that sit on top
+of the processor. Is going to be using the algorithms
+that you've designed. [INAUDIBLE] Designer. And so the performance
+of these algorithms are very very critical in
+determining how good the applications are going to be performing.
+So we looked at a whole lot of spin algorithms from a very simple spin on test
+and set to spin with delay and spin.
+Algorithms that respect the order of arrival of fairness
+if you will. Starting from ticket lock and
+the queue-based locks all of these are different kinds
+of spin algorithms that we looked at. And we also looked at a whole number
+of barrier synchronization algorithms starting from a simple
+shared counter to a tree algorithm to an
+MCS tree. A tournament and dissemination. And I
+also introduced you to several different kinds of
+padlock architectures. Shared memory multiprocessor that is cache
+coherent. Which may be a symmetric multiprocessor or
+it could be a non-uniform memory access multiprocessor.
+And you can also have non-cache coherence shared
+memory multiprocessor. And of course the last thing
+that I mentioned to you is the mul message
+passing clusters. So these are the different flavors
+of architectures that parallel machines can be built
+today. And the question you want to ask is
+if you implement the different types of. Spin algorithms
+that I've been discussing with you. Which would be
+the winner on these machine? Well the answer is
+not so obvious. It depends really on the kind
+of architecture. So as OS designers it is extremely important
+for us to take these different spin algorithms and
+implement them on these different flavors of architectures. To
+ask the question which one is the winner? It
+may not always be the same. Algorithm that may be
+the winner on these different types of machine. And
+the same thing you should do for the barrier algorithms
+as well. So the barrier algorithms all the way
+from the counter to the dissemination barrier all the different
+flavors of algorithm. And you have to ask the
+question which would be most appropriate to implement on these
+different flavors of architectures? As always I've been emphasizing
+that when you look at performance evaluation that is reported
+in any research paper you have to always look at
+the trends. The trends are more important than the absolute
+numbers because the dated nature of the architecture on which
+a particular evaluation may have been done. Make the absolute numbers
+not that relevant but what is important is trends. Because
+these kinds of architectures that I mentioned to you they're still
+relevant to this day. And therefore what you want to
+ask is the question if different types of spin algorithms and
+barrier algorithms. When you implement it on different kinds of
+architectures which one of those algorithms are going to be the winners?
+>> That completes the discussion of
+synchronization algorithms for parallel machines. I
+encourage you to think about the
+characteristics of the different spin lock algorithms
+and the barrier synchronization algorithms that you studied in this lesson. And
+we also looked at two different types of architectures. One was a symmetric
+multiprocessor the other was a non-uniform memory
+access architecture. Given the nature of the two
+architectures try to form an intuition on your
+own on which one will win in each
+of these styles of architectures. Verify whether the
+results that are reported in the MCS paper
+matches your intuition. Such an analysis will help
+you very much in doing the second project.
+

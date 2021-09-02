@@ -1,0 +1,791 @@
+## L05d-321: Active Networks - Introduction ##
+
+In the previous lesson we learned some tricks we can employ as operating
+system designers for optimizing the RPC communication
+software which powers client-server communication in the
+local area network from the point of
+view of reducing communication latency. Of course
+user interactions go beyond the local area
+network to the wide area Internet. The
+primary issue once a packet leaves your
+local node is to route the packet reliably
+and quickly to the destination. Routing is part
+of the functionality of the network layer of
+the protocol stack of an operating system.
+What happens to a packet once it leaves
+your node? Well the intermediate hardware routers between
+your node and the destination have routing tables.
+That help them to move the packet towards the
+desired destination node by doing a table look-up. The
+routing tables evolve over time since the Internet itself
+is evolving continually. That's the big picture. And there are
+lots of fascinating details which you can learn in
+a course that is dedicated to computer networking. For
+the next part of the lesson on distributed systems
+we want to ask the question what can be done
+in the intermediate routers to accommodate the quality
+of service needs of individual packet flows through
+the network? Or in other words can we
+make the routers en route to the destinations smart?
+The specific thought experiment we are going to
+discuss is called active networks. And then we
+will connect the dots from active networks to
+the current state of the art which is referred
+to as software defined networking. Thus far
+in the course we've been focusing on
+specializing operating system services for a single
+processor or a multi-core or a parallel system
+or a local area network. In this lesson we will take this idea of specializing
+to the the wide area network. Specifically we will study the idea of providing
+quality of service for network communication in
+an operating system by making the network active.
+
+## L05d-322: Active Networks - Routing on the Internet ##
+
+Normally when we think about routing of packets on
+the internet typically what happens is. At the source
+node you create a network packet and go through
+the layers of software stack on the sending node and
+send the packet out on the network. And this
+network packet has a desired destination. And of course
+it has to go through a whole number of
+intermediate routers in order to get to its eventual destination.
+And the routers on the Internet that are intermediate between
+the source and the destination they don't inspect the packet for
+the contents or anything like that. All that they're doing is
+when the packet comes in they're looking at the destination known
+for that packet and figuring out what is the next
+hub that I have to send the packet to. So each
+router is making the determination of the next hub for the
+package and it makes the determination by doing a table lookup.
+So every router has a routing table and the
+routing table is telling. Given a particular destination what
+is the next hop? And that's how the packet
+flows from source to destination through a whole bunch of
+intermediate routers and finally gets to the destination. So
+in other words the routers en route to the destination
+from the source are simply forwarding packets. That is
+the nodes are passive. And they're just doing a table
+lookup in order to figure out what is the
+next hop that I have to send this packet
+to? Now what does it mean to make the
+nodes active? What we mean by making the node
+active is that the next hop for sending this
+package towards a destination is not simply a table
+look up. But it is actually determined by the
+router executing code that is actively as opposed to doing
+just a passive table look up. So in other
+words the packet in addition to the payload that
+is intended for the destination also carries code with
+it. And the code is being executed by the
+router in order to make a determination as to
+what to do with this packet in terms of
+routing it towards the desired destination. This sounds really
+clever because it can provide customized service for networks
+flows that are going through the network. And every
+network can have its own way of choosing what
+may be the desired route in terms of going
+from source to destination. And so in other words
+we're saying. Well this is an opportunity to virtualize
+the traffic flow from my network traffic independent of
+other network flows. This should be very familiar to
+you all because we've been talking about customizing operating
+system services in the SPIN operating system and
+the XO kernel and so on. But of
+course the problem that we're talking about here
+much much harder because the network is wide open.
+Our network traffic flow is going through the
+public internet infrastructure and we are talking about
+specializing the network flow for every network flow
+independent of others. There are lots of challenges to
+this values of active network. In particular how can we
+write such code that we can distribute and send it
+over the wire so that routers can execute it. And
+who can write such code? And how can we be sure
+that the injected code does not break the network? Or
+in other words for a particular network flow there is
+a code that is going to be centered on. How do
+we make sure that is not going to in some way [UNKNOWN]
+other network flows? These are things that we
+have to worry about and sort of opening up
+the router and saying that we're going to take
+network flow specific decisions in each of the routers.
+
+## L05d-323: Active Networks - An Example ##
+
+Let me give you an example to motivate
+why this vision of active networks is both intriguing
+and interesting. You may all know that Diwali
+is a big festival in India just like Christmas
+is in the Western world. And let's say
+that I am sending Diwali greetings electronically to my
+siblings who are in India. What I can
+do is I can send individually a greeting message
+to each of my siblings. And so there'll be
+N messages going out on the Internet from source
+to destination. So I send out N messages and
+you know to reach any of my siblings. That's
+one way of doing it. A nicer approach would
+be given that all my siblings are clustered in
+one corner of the globe it would be nice
+if I could send just one message traverses the Internet
+gets to close to the destination of where
+my siblings are and the router that is
+at this end demultiplexes my message and sends
+it to all my siblings. Obviously the second method
+is more frugal in terms of using network
+resources. I don't have to send N messages. I
+can send one message and finally at or
+close to the destination an active node takes this
+one message recognizes oh this is intended for multiple
+recipients and demultiplexes them and sends it to all
+the eventual recipients of this message. Of course we
+can generalize this idea and say that this idea of
+active router is going to be spread out throughout
+the Internet so that even if my siblings let's
+say are distributed all over the world then I
+could still send a single message from my source and
+it gets demultiplexed along the way depending on
+where all the eventual recipients are for this
+particular message that starts from me. So in
+other words we can sprinkle this intelligence that
+is in this one particular router to all the routers in the Internet and that way
+we are making the entire Internet an active
+network. That's the vision behind active networks where the
+nodes in the internet will become not
+just passive entities but actually active in looking
+at the message and figuring out what to
+do with it in terms of routing decisions.
+
+## L05d-324: Active Networks - How to Implement the Vision ##
+
+Now that we've motivated the vision let's see how
+we can implement the vision. In order to implement
+this vision the operating system should provide quality of
+service APIs to the application. And these quality of service
+APIs could be things like oh this particular network
+flow that I'm creating has certain real time constraints because
+it has video data and so on and so
+forth. And those are the hints that the operating system
+is going to use in terms of synthesizing
+code that corresponds to the API that the
+operating system is providing you to give hints
+to the network. So the code that the
+operating system is going to synthesize is essentially
+taking the quality of service constraints and putting
+them as executable code that can be then passed it on as part of the packet.
+So in other words the protocol stack of the
+operating system has to be enhanced to service these
+quality of service requirements and generally to synthesize the
+code that has to be part of the payload.
+So the application is not only providing a payload
+but it is giving quality of service constraints. And
+the operating system in addition to the payload generates
+or synthesizes code corresponding to this quality of service instructions.
+And this slaps on the IP header for where
+this particular message is eventually to be delivered and
+hands it over to the Internet. And in the
+Internet if we assume that the Internet routers are capable
+of executing this specialized code then depending on the
+nature of what is being requested a particular order may
+say oh this particular packet I have to send
+it to multiple destinations so let me send this down
+this link down this link and similarly when it
+comes over here this router may say oh this packet
+has to go to multiple destinations. And so on and
+that we can see that intelligent routing decisions can be
+taken in the network. That's out of the road
+map of how we can take this vision and try
+to implement it. But the problem with carrying out the
+vision in terms of this implementation that I just sketched
+is that changing the operating system is non-trivilous
+especially the protocol stackers they have already mentioned TCP
+IP has several hundred thousand lines of code so
+it is non trivial to change the protocol stack
+of every node in the entire universe. To handle
+active networks. And also the second part of the
+challenge is that the network routers are not open.
+So in other words we cannot expect that every
+router on the Internet is capable of processing the code that
+I'm going on slap on to this payload and be able
+to make intelligent routing decisions. So there is a impedance mismatch
+between the vision and the implementation that I've sketched right here.
+
+## L05d-325: Active Networks - ANTS Toolkit ##
+
+So the ANTS toolkit ANTS stands for
+Active Node Transfer System took a different
+approach to show the utility of the
+vision. Since modifying the protocol stack is nontrivial
+instead the ANTS toolkit is really an
+application-level package. And this toolkit is available for
+the application programmer to say here is
+my pay load and quality of service constraints.
+And what the ANTS toolkit does is to create
+an ANTS header to this payload. So the new payload
+looks like this. And this is what is called a
+capsule. And a capsule consists of an ANTS header and
+the actual payload. And this is what is given
+to a normal operation system protocol stack. And so this
+normal operating system protocol stack looks at this as the
+payload that has been given to it and it knows
+the destination address where this has to go sticks on
+the IP header for it. So the new packet that
+is generated by the protocol stack looks like this. It
+has the IP header and the rest is payload so
+long as This protocol stack is concerned but we know
+this payload consists of two parts. One is the normal
+payload that the application generated and in addition to that
+there is the ANTS header that have been slapped on by
+the ANTS tool kit and this is what traverses the
+network and when it traverses the network if a node in
+the network is a normal node meaning it is not a
+smart node but it is a normal IP router. Then it
+simply uses the IP header to say well here is
+what I have to do in terms of sending the packet
+to the next hop towards the destination. On the other hand
+if a node that receives this packet is an active node.
+Then it can actually process this ANTS header and
+say oh this particular packet needs to be. Demuliplexed and
+sent to two different routes. And it might take that
+intelligent routing decision based on the nature of that node.
+So that's the idea that we can push one
+of the paint points out of the operating system into
+an enhanced toolkit that lives above the operating system. So
+that's sort of the ANTS toolkit vision. That's one part.
+Now the second part and of course the fact
+that the internet may not be open to opening
+up all of the routers to to be processing
+the specialized code that comes in the capsule. So what
+we do is we keep the active nodes only
+at the edge of the network. In other words
+the core IP network is unchanged and all of
+the magic happens only at the edge of the network.
+So once again if I go back to my
+example of sending greetings to my siblings then only the
+edge nodes have to do the magic in order to
+take my original message and process the code to deliver
+it to multiple destinations. So the rest of the network
+can remain unchanged. So the core of the IP network
+can can be unchanged and intelligence can be at the
+edge of the network. So this is sort of allowing
+sort of matting this active network vision
+with the core IP network being unchanged.
+
+## L05d-326: Active Networks - ANTS Capsule and API ##
+
+So having given you the high level description
+of what ANTS toolkit does let's dig a little
+deeper and look at the structure of the
+ANTS capsule as well as the APIs provided by
+ANTS in order to do capsule processing. First
+of all the header as I told you consists
+of three parts. The original IP header which
+is important for routing the package towards the destination
+if a node is a normal node not an active node.
+And this is of course the payload that was generated by
+the application. And in the middle is this ANTS header and
+there are two fields in this ANTS header that are particularly
+important. One is a type field the other is a prev
+field. The type field is a way by which you can
+identify the code that has to be executed to process this
+capsule. And this type field is really an MD5 hash of the
+code that needs to be executed on this capsule
+and we'll come back to that in a minute. And
+the second field that I said is important is
+the prev field. And this prev field is the identity
+of the upstream node that successfully processed the capsule
+of this type. And this information is going to be
+useful for us in terms of identifying the code that
+needs to be executed in order to process this capsule.
+We'll come back to how these two fields are
+actually used in processing a capsule once this capsule arrives
+at an active node. The short hint that I'll
+give you is that the capsule itself as you see
+does not contain the code that needs to be
+executed to process this capsule but it only contains a
+type field. And this type field is a vehicle by
+which we can identify the code that needs to be
+executed to process this capsule. More on that
+in a minute. First let's talk about the
+API that ANTS toolkit provides you. The most
+important function that we want to accomplish using the
+ANTS toolkit is forwarding packets through the network
+intelligently. So routing the capsule is the most important
+function that needs to be done. And that's
+most of what this ANTS API is all about.
+And that part is contained right here saying that
+well route this packet in this manner and deliver
+the packet to an application. And this is the
+set of API calls that allows you to do
+routing of the capsule through the network. This is
+where what I said about virtualizing the network comes
+in. Regardless of the actual topology physical topology I
+can take routing decisions commensurate with the network flow requirements
+contained in the capsule that arrives at a node.
+So the second part of the API is API
+for manipulating what is called a soft-store. Now soft-store
+is storage that's available in every routing node for
+personalizing the network flow with respect to a particular
+type of capsule. And I mentioned earlier that the
+type is only a pointer to the code not
+the code itself. And the soft-store is a place where
+we can store the code that corresponds to
+a particular capsule type. So the primitives that
+are available for manipulating the soft-store are things
+like put object and get object. The soft-store
+is basically key value store and in this
+key value store you can store whatever is
+important for personalizing the network flow for capsules
+of this type. An obvious candidate for storing
+in the soft-store is the code that is associated with
+this type. So you can store the code that is
+associated with this type so that future capsules of the
+same type when it arrives at a particular node they can
+retrieve the code from the soft-store and execute the code
+that needs to be executed for processing capsules of this type.
+Other interesting things that you might put into this soft-store
+are things like computed hints about the state of the network
+which can be used for future capsule processing for capsules of
+the same type. And the third category of API that's available
+is querying the node for interesting tidbits about the state of
+the network or details about that node itself for instance what
+is the identity of the node that I'm currently at and
+what the local time is at this node at this node
+and so on and so forth. So these are the kinds
+of things that are available. So the key thing that I want
+you to get out of looking at this ANTS API is that it is a very very minimal
+setup API. So the number of API calls fits in this little table here. So that's
+the idea. Remember that routers are in the
+public Internet. And if you're talking about executing code
+in the router that is part of the public
+Internet the router program that we're executing at a
+router node has to have certain important characteristics. Number
+one it has to be easy to program. Number two
+it should be easy to debug maintain and understand. And
+number three it should be very quick because we are
+talking about routing packets and so the router program should
+not take a long time to do its router processing.
+So the API this very simple API allows you to
+generate very simple router programs that are easy to program
+because the APIs are simple easy to debug
+easy to maintain and understand. And the program itself
+is pretty small that it's going to take not a
+humongous amount of time to do the packet processing.
+
+## L05d-327: Active Networks - Capsule Implementation ##
+
+Now let's talk about implementation of the capsule
+and in particular what are the actions taken on
+capsule arrival at a particular node. Now I mentioned
+that the capsule does not contain code but it
+is passed by reference. Or in other words
+what the capsule contains is the type identify which
+is really a fingerprint for the capsule code. And
+the way this type is generated it's basically a
+cryptographic fingerprint of the original capsule code.
+In the original implementation of Ann's tool
+kit they used an MD5 hash of the code and used that as a fingerprint.
+And it was the case that at the time that this particular research was
+done MD5 hash was a cryptographically strong
+hash function which was not broken. But subsequently
+MD5 hash has been broken. But nevertheless the key
+thing that I want you to remember is that
+this type field is a cryptographically strong fingerprint that
+is derived from the capsule code. And that serves as
+a reference for the code itself. So when a
+node receives a capsule one of two things are possible.
+The first possibility is that this node has seen
+capsules of this type before. If that is the case
+then it is quite likely that in the soft
+store of this node the code that corresponds to
+this type is already existing. In which case it's
+a simple thing for the current node to retrieve the
+code from its soft store and execute the capsule
+and proceed with forwarding this capsule on to where its
+desired destination. On the other hand if this capsule
+that arrived at this node is the first time that
+this node is seeing a capsule of this type then obviously
+it's not going to have the code that corresponds to this
+type. In this case what this current node is going to
+do is use the previous node field of the capsule and
+send a request to the previous node saying that hey I
+got this capsule of this type I don't have the code.
+Do you have the code? If you have please send it
+to me. And when this request comes in the previous node
+obviously it has processed this capsule before. It's quite likely
+that this previous node has the capsule code residing in
+its soft store. And so it retrieves it from its
+soft store and sends it to the next node so
+that the next node has the capsule code now can
+execute it and also store it now locally in its
+own soft store so that future capsules of the same
+type when they arrive here it can be processed using
+the code that is now stored in the soft store. And
+the key point to take away is that typically when we
+are talking about network flows we are sending a whole bunch
+of packets one after another. And therefore even though the first
+packet that comes to a node may not find the code
+that is associated with that particular type and we have to
+do a little bit of heavy lifting in in terms of
+going and reaching back to the previous node to retrieve the code.
+Because network flow is a whole bunch of packets there's
+going to be a whole lot of other packets that
+come down the pike. They're all going to be processed
+using the soft store and the code that is stored in
+the soft store. In other words we are exploiting the
+locality for capsule processing by storing the code that arrives in
+response to our request back to a previous node in
+the local soft store. One concern that we may have is
+that how do I believe that the code that I
+got from the previous node is actually the code that corresponds
+to this type or not. Well this is where the
+cryptograpically strong fingerprint comes into play. What this node is going
+to do is when it retrieves the code from the
+previous node and when the code arrives it is going to
+compute the fingerprint of the code that it just got. And
+see if that fingerprint matches the type field of the capsule.
+If it does then it knows that this code
+is genuine. If it is not then obviously somebody is
+trying to spoof my node by giving bogus codes
+so I'm going to reject it. So code spoofing can
+be avoided by having a fingerprint that is cryptographically
+strong so that I can recompute the fingerprint match it
+against the type and know that the demand loaded code
+that I got is actually the code that is associated
+with this particular capsule. And as I mentioned already once
+I get this code because I'm going to most likely
+see capsules of this type in the future as part
+of this particular network flow I'm going to save the code
+in the soft store for future use. So when a
+capsule arrives at a node one of two things will
+happen. One is I will reach into my soft store
+and see if I have the code that matches this particular
+type in the capsule. If it isn't then I don't
+have the code I'm going to reach back and get it
+from the previous node. But what if I go back
+to the previous node and the previous node does not have
+the code that corresponds to this type. So the action
+of a node when it cannot find the code that corresponds
+to a type either locally in its soft store or retrieving
+it from the previous node is to simply drop the capsule.
+Because what's going to happen is that if this capsule
+is dropped higher-level acknowledgements that
+are happening in that particular network
+flow is going to indicate to the source that something
+did not get through and that source node is going to retransmit
+that capsule. This is exactly the same thing that happens
+with IP routing on the Internet. That is if a node
+cannot process all the packet that it gets it simply
+drops the packet. That's the same semantic that is used for
+capsule processing also because we're relying on higher level
+protocols the transfer protocol that sits on top of
+the network protocol do end to end acknowledgement to
+make sure that all the packets that they're expecting
+have actually reached. And therefore at the level of
+capsule processing we don't have to worry if we
+cannot process the capsule either locally by using the
+code in the soft store or by retrieving the code
+from the previous node. Simply drop the capsule. Now is
+it likely that when we reach into the previous node that
+node does not have the code for it? Because after
+all it did process this capsule and send this capsule on
+to me. It can happen because the soft store is
+limited. Every router node has only a finite capacity and all
+of its capacity it's not going to give to a
+single network flow. It's going to give only a part of
+its storage for the network flow that is
+corresponding to a particular capsule type. And therefore I
+have to live within my means. So the capsule
+code may have to throw away stuff every once
+in a while if it is storing more than what its capacity is in the soft store.
+So it is possible that the code that it
+originally stored in the soft store it had to
+replace it. Because it is like a cache and therefore it
+may have replaced it and therefore it may not have it.
+And this is particularly possible if this request comes at a
+much later time because one of the things that you associate
+with this kind of routing code is that it is going
+to be timely. So there is going to be a time
+associated with the validity of things that I want to keep
+in my soft store. So if I I get a request
+at this node at a much later point in time because the capsule arrived at this
+node traversing all over the network it may
+not have the code that corresponds to the
+type. So it is possible so if it happens simply drop the capsule and let the
+higher level entities in the protocol stack take
+care of retransmitting the capsule if need be.
+
+## L05d-328: Active Networks - Potential Apps ##
+
+So how useful is active network? There
+are lots of potential applications that can be
+built using this active network's paradigm. In
+particular what we want to do is when
+ever we desire certain ways to visualize
+the behavior of the network. Then active networks
+become very useful. So for instance for
+implementing protocol independent multicast reliable multicast or noticing
+congestions in the network and notifying the source
+and the destination about the congestions private IP any
+casting. These are all the kinds of things
+that are useful to implement using active networks. And
+as you can see from this list the kinds of things that you want to do using
+active networks are things that are related to network
+functionality. Not high-level application
+but network functionality. In particular
+it is useful for building applications that are difficult to
+deploy in the internet. So when you rely on the
+routing and the internet it is entirely an administrative set
+up and the administrative set up tends to mirror the
+physical set up. But for your particular network flow you
+may want a set up that is different from the
+physical set up. And the example I give you of
+me sending a greeting that will be a single message
+for most of the traverse through the internet
+but at some point it may actually get demultiplexed
+and get sent to several different destinations. Those
+kinds of multicasting and things like that are specific
+to network flow. So we are in some
+sense overlaying our own desire on topology on top
+of the physical topography of the internet by using
+the active network paradigm. But the key properties that
+you want to have for applications that you want
+to build using the active networks paradigm is that
+the applications should be expressible and it should be
+compact and it should be fast and it should not
+rely on all the notes being active. These are
+key things to note in building applications that live on
+top of the active networks. So all of these
+suggest once again what I said already and that is
+it is for providing network layer functionality
+not end application functionality. So what you want
+in the network layer that is something
+that again orchestrate using the active networks paradigm.
+
+## L05d-329: Active Networks - Pros and Cons of Active Networks ##
+
+So having talked about the vision and the practical
+implementation details of active networks let's talk about the
+pros and cons. The pro is something that we
+have been stressing all along and that is the flexibility
+from the point if you have an application perspective
+that fact that you can ignore the physical layout
+of the network and slap on your own visualization
+of what you want to accomplish for your netowork flow.
+On top of the physical infrastructure is
+the key selling point for active networks. But
+this selling point comes at the cost of perhaps certain cons. What are all the
+cons? Well one concern could be protection threats. What I mean by that is that
+eroding infrastructures carrying network flows. Not really mine
+but yours and the third person and so
+on and so forth. And just like in an
+operating system when we have a process we want to make
+sure that that process is not doing anything malicious
+to other processes in the same node. Same way my
+network flow should not do anything that is detrimental
+to your network flow on the internet. So that's what
+we mean by protection threats. So there are some
+safeguards in the ANTS toolkit to address these protection threats.
+The first is the run time safety of ANTS
+program that is running on a router node. And
+the way they ensure that is by first of
+all implementing ANTS itself in Java and using Java
+sandboxing technique on the router node so that anything
+that a router code is doing for capsule processing
+Is limited to the Java's hand box that is
+executing in. And so it cannot effect the flows
+of other network flows that are flowing through
+the same routing fabric. That's the first thing. The
+2nd protection thread is whether there could be
+code spoofing that can happen. We are talking about
+cold being injected into the router and of
+course there was a good reason for doing that
+that I wanted a certain behavior to be
+observed by the network routers in response to packets
+flowing through the network that belongs to me. But
+I want to be sure that the code that is
+being executed is the code that I wrote not
+some malicious code that is being spoofed to that node.
+Well here here the safeguard is making sure that
+you have a robust a robust fingerprint associated with the
+code. And so what you do is you generate
+a tight field for the capsule that is a crytographically
+strong finger print of the original code. And it
+always matching when you get the code from a
+previous known In response to your requst you're goint
+to compute the fingerprint once more. Check it against the
+fingerprint that is contained in the capsule ensure that
+there is no code spoofing happening. That's how you can
+overcome this protection threat. And the third concern can
+be integrity of the soft state. And what I mean
+by that is the soft store that's available
+at an ordered node is limited in size and
+you don't want any particular network flow to
+arbitrarily consume all of the soft state. And yet
+again there is a restricted API that is
+provided in ANTS that's the safeguard. For this protection
+threat. So these protection threats are concerns. But at
+least in the ANTS tool kit they offer solutions
+to ensure that these protection threats are
+not show stoppers for active networks. The second
+concern that one might have is Resource
+Management threats. Now what I mean by that
+is Because we are executing code at a router the result of that code execution
+could be that I proliferate packets in the
+internet. I'll give you an example of resending
+a message to my siblings I send one message
+and at some point That one message becomes n
+message. So in some sense we can start flooding
+the network with capsule processing. Is that a threat?
+Well it is but internet is already susceptible to
+this kind of resource management threat and yes capsule
+adds to it but it is not anything new
+that it is adding in terms of resource management threat.
+On the other hand we can ask the question at
+each node is it going to consume more resources than
+it should. And this again comes back to the safegaurd
+that they have in the ANTS toolkit that the api is
+a restricted api and therefore the amount of resources that
+you can consume at a node It's fairly restricted so
+there is sort of a mixed answer to this resource
+management concern. At a given node the resource management concern doesn't
+quite exist so long as you adhere to the restricted API of ANTS. And the second
+concern that the capsules may flood the network
+can happen but it already happens we all
+experience spam on The internet so this is not adding any new problem but it is
+perhaps exasterbating an existing problem. So having looked
+at division and looking at division and the practicality
+of active networks time for a quiz.
+
+## L05d-330: Active Networks - Roadblocks Question ##
+
+In your opinion what can be roadblocks
+to the Active Network's Vision? And I'm going to
+give you multiple choices. And you can pick more than one choice if you think it
+fits the answer to this question. The
+first choice is that the active network's vision
+needs buy-in from the router vendors. Router vendors
+are vendors like Cisco. Who make the routing
+fabric and the first choice is saying it
+need you you need buy in from the router
+vendors the second choice is saying that because
+the routing was active network is happening in software
+the software routing speed cannot match the throughput
+needed in the internet core. That's the second choice
+the third choice says that. It makes the internet
+more vulnerable and the fourth choice says that it
+makes the router more susceptible to code spoofing.
+
+## L05d-331: Active Networks - Roadblocks Solution ##
+
+The right answers are the first two boxes here. And
+let's talk through this. Now clearly if we want to
+do anything in the router we need buy in from
+the router vendors. So this is a big challenge and
+convincing the router makers that yes please open up the
+network so that I can dump some code in it
+and execute. The code so that is a big challenge.
+The second is also a big challenge and that is
+if you look at the traffic on the internet
+today it's just humongous. There's so much traffic on
+the internet and this is the reason why routers
+are dumb animals. All that the do is when a
+packet comes in it's all happening in hardware they
+do a table look up to figure out. Given the
+destination what is the next stop that I send
+this package to? So the internet core the routing fabric
+is operating at huge speeds because even at the
+edge of the network today we are already seeing gigabit
+speeds. Which means that the core of the network you
+have several hundreds of gigabytes of packet processing that needs
+to be done and therefore it is important that
+the core of the network be blazingly fast. And software
+routing is not going to be able to match the speed
+that is needed in the core of the network for
+packet processing. So these two choices are good
+choices. Now does active network's make the Internet
+more vulnerable? Not really because the internet is
+already vulnerable. Perhaps it adds to it but not
+particularly making it more vulnerable than what it
+is already. And the last choice regarding code spoofing
+so long as we make sure that the
+fingerprint that we generate to associate with the code
+that is going to be used for processing the capsule when it
+arrives at a node. Is cryptographically strong then we can make
+sure that this code spoofing does not happen so I would
+say these are the two choices that apply for this question.
+
+## L05d-332: Active Networks - Feasible ##
+
+So let's talk about the feasibility of the
+vision of active networks. The reality is router
+makers like Cisco are loath to opening of
+the network. So while the idea of active networks
+is very fascinating that we can be frugal
+about the resources that we use in the Internet
+for different network flows and we can actually
+virtualize the physical infrastructure by slapping on. Our own
+idea of what should be the the kind of
+network flow that I want for my packets seems very
+attractive but really it's not going to be feasible given that
+we have to open up the network. So it's going to
+be feasible only at the edge of the network.
+Secondly when we are using active networks we are talking
+about executing code in a router in order to determine
+the routing decision at that node. Or in other words
+we're doing software routing. Software routing cannot match the hardware
+routing because at the core of the network there's so
+much of traffic being handled that you really want to do
+this in hardware and doing this at software speed is
+not going to match the hardware speed of packet processing in
+the core of the network. So once again this argues
+that active network is only feasible at the edge of
+the network and finally there are social and psychological reasons why
+active networks is maybe a little bit hard to
+digest. It is hard for the user community to
+accept arbitrary code executing in a public routing fabric.
+If my traffic is flowing through the network and if
+the router is going to actually execute some code in
+order to do the processing of my packet that
+worries me. Already we talk a lot about privacy
+and the fact that in corporate networks in university networks
+we are losing a lot of privacy. People
+are watching what's going on. And now saying that
+the routers are going to do something intelligent a smart
+processing packets that might be a socially and psychologically
+unacceptable proposition. So these are reasons why it would
+make it difficult to sell the idea of active
+networks to the wide area internet. On the other
+hand the idea of virtualizing the network flow is
+very appealing. And if you put together the two thoughts that I had
+one is the idea that we can virtualize the network and the second that
+active networks is only feasible at the edge of the network that brings up
+a very interesting proposition which I am
+going to mention in my concluding remarks.
+
+## L05d-333: Active Networks - Conclusion ##
+
+Active networks was way ahead of its time and there was not a killer app to
+justify this particular line of thought. Further active networks focused more
+on safety and less on performance so in the 90s it seemed more like
+a solution looking for a problem. But
+difficulties with network management rise of virtualization
+the right hardware support and data center and cloud computing have all
+given active networks a new lease of life in the form of Software Defined
+Networking or SDN for short. Specifically
+cloud computing promotes a model of utility
+computing where multiple tenants by that I
+mean businesses can host their respective corporate
+networks simultaneously on the same computational
+resources of a data center. Not that
+this is going to ever happen but
+imagine Coke and Pepsi corporate networks running
+on the same data center resources. What this means is there is a need
+for perfect isolation of the network traffic of one business from another
+even though each of the network traffic is flowing on the same
+physical infrastructure. This calls for virtualization
+of the physical network itself and hence
+the term software defined networking. You will learn more about SDN if you
+take a companion course on networking that is offered in this same program.
+

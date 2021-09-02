@@ -1,0 +1,190 @@
+## X01-255: Barrier Synchronization - Introduction ##
+
+Hello and welcome. In this module you will implement
+several bare synchronization algorithms in the context of both
+shared memory and distributed systems. We will also provide
+you with results from our implementation for you to analyze.
+If you haven't already I highly recommend reading the
+paper by Mallory Crohn and Scott provided in the instructor
+notes and watching Professor Ramachandran's lectures. As part of
+your implementations you will need to use the OpenMP and
+MPI libraries. The written instructions for the project will guide
+you through any setup you need to do on your
+virtual machines and will provide links to the documentation. Although
+the videos are intended to point you in the right direction
+it will be also be helpful to look at example
+code and have the documentation handy as you program. It is
+important that your implementations be both correct and fast. Correctness
+you should be able to test on a single core machine.
+If you have access to a shared memory machine with eight or more cores by
+all means use it to test the speed of your programs as well. If you do
+not have access to such a machine Then
+just use your intuition and understanding of the
+memory hierarchy to reason about your program and
+its performance. This should give you good results.
+
+## X01-256: Barrier Synchronization - Barrier Semantics ##
+
+We'll start with a quick reminder of Barrier Semantics. Let's suppose that
+I have several threads running the same code in my program. And I
+want all of them to get to a certain point before any
+of them are allowed to continue then I want to put a barrier
+in my code at this point. That way if this thread reaches
+this barrier first he stops. In fact all the threads stop when they
+reach the barrier. And wait for the others to arrive. Once all
+the threads have reached the barrier they are free to continue. That is
+how barrier's are supposed to work. We experience barriers like this in
+the real world when we go to a restaurant with friends. First we
+will all wait for each other to arrive before we get seated.
+And once we're seated we start looking at the menu. We all wait
+for each other to pick out our food. Before we place the
+order with the waitress and then the cook starts cooking. The waitress waits
+for all the food to be prepared before bringing it out and
+then we begin eating. We all wait for each other to finish eating
+before we leave the restaurant.
+
+## X01-257: Barrier Synchronization - Open MPs Interface ##
+
+Probably the most popular shared memory programming model today
+is the OpenMP library which is especially popular in scientific
+computing. It works with C C++ and 4tran and uses
+pragma statements to direct the compiler on how to generate
+the multi-threaded program. This allows
+compile time optimizations and additional
+flexibility that would at least be awkward to achieve with
+just a Pthreads library. Part of the goal of this
+project is to get you to familiarize yourself with OpenMP.
+You may find the links and the instructor notes useful. And
+I encourage you to walk through a few example programs that you
+may find on this page. Here we have the outlines of
+the most basic program using a barrier in OpenMP. We use a
+pragma directive to start a parallel section. And use the curly
+brackets to set off the code we want to run in parallel.
+A pragma barrier directive creates a barrier. Your task in this part
+of the project is to replace the pragma directive with a call
+to gtmp-barrier. Of course the open MP version benefits
+from knowing that this is a parallel section of code.
+So much like open MP sets off the parallel session
+with the pragma statement and the curly brackets will also
+set off this parallel section of codeuUsing gtmp-init to
+start an gtmp-finalize with an end. We'll show you using
+open mp here but just need to tell the orlive
+barrier library that this is a parallel section of code.
+
+## X01-258: Barrier Synchronization - OS Interface ##
+
+So unless you're familiar with OS level programming you may find
+yourself in unfamiliar territory as
+you implement these algorithms. For instance
+in some cases it will be important that one thread be
+able to test and change the value in memory without being
+interrupted by another thread. Think of the case where we need
+to test the value and decrement a global variable. For this
+I suggest that you look at the synch and fetch family
+of functions. Remember also that memory is broken down into cache lines.
+The granularity at which memory caching operates. This has important
+implications for the memory layout of your program. Suppose that these
+two important variables are stored in the same cache line. One
+is important for the thread running on the left processor. And
+the other one is important for the thread running on
+the right. Thenwhen one of these memory locations is written to
+it ends up invalidating the cache for the other processor. That
+means that the other processor has to reread the whole cache
+line from memory. And because he's reading from this memory
+that means another process can't write to it and this contention
+can lead to a slower barrier. One solution to this problem
+is to place all the spin variables at the beginning of
+a cache line. You might also reserve an entire cache line
+if you want to be sure that no other variable invalidates
+the line of the variable you are spinning on. You can
+achieve these goals using the
+posix_memalign function and the macro LEVEL1_DCACHE_LINESIZE.
+Keep these ideas in mind as you do your implementation.
+
+## X01-259: Barrier Synchronization - Implement Counter Question ##
+
+Your first task is to implement a simple counter algorithm the pseudo
+code from the MCS papers is provided in the comments. Good luck.
+
+## X01-261: Barrier Synchronization - Implement MCS Question ##
+
+So next you're to implement the four-way
+tree up and two-way tree down algorithm
+proposed by Miller Cromey and Scott. Again
+their pseudocode is provided in the comments.
+
+## X01-263: Barrier Synchronization - Optimize Tree Question ##
+
+For this next part of the assignment we've given you a
+suboptimal implementation of the tree based
+algorithm described in the MCS paper.
+Your task is to identify the parts that make it slow and
+to correct them. Explain in your comments what you changed and why?
+
+## X01-265: Barrier Synchronization - Analyze SMP Results Question ##
+
+Now I want you to imagine that a colleague sends you an
+e-mail asking for your thoughts on some results that he obtained by running
+some experiments comparing several barrier synchronization
+algorithms on shared memory machines. There
+isn't necessarily a correct answer here
+just give a coherent and thoughtful response.
+
+## X01-267: Barrier Synchronization - Distributed Barriers ##
+
+Until now our threads have told each other that they have
+reached a barrier by changing some variable in shared memory. We
+had one thread spinning on a variable and another would come
+along and write a different value to that variable. In a
+distributed system by contrast there's no shared address space no shared
+physical memory. We have separate processes running on separate processors. And
+each processor has its own memory associated with it. So instead
+of changing the variable memory we send message to a standard
+message passing interface called MPI. You will have to
+adapt algorithms from the original presentation. But this should be
+pretty straightforward. Receiving a message is analagous to spinning
+on a variable. And sending a message is equivalent to
+setting a variable that another thread is spinning on.
+In fact in many ways your implementation will seem easier
+because the MPI procedure calls are hiding a lot of
+the details that were exposed in our shared memory implementation.
+
+## X01-268: Barrier Synchronization - MPIs Interface ##
+
+As with the first part of the project part
+of the goal is for you to familiarize yourself
+with the software library. In this case openMPI. This
+time the correspondence between openMPI's interface and ours will be
+even cleaner. In MPI we start a parallel section
+of code with the MPI_Init I mean end it with
+an MPI_Finalize. Once sets the barrier using an MPI_Barrier
+method and specifying the channel off of which you want
+to communicate this global channel will suffice for all our purposes. Once
+again we're going to replace this the built in barrier algorithms with our own
+in this case we just a call to gtmpi_barrier. And once again
+we will call our own init and finalize methods surrounding the parallel code.
+
+## X01-269: Barrier Synchronization - Implement Dissemination Question ##
+
+Your first task is to adapt
+the Dissemination Algorithm to the distributive context.
+
+## X01-271: Barrier Synchronization - Implement Tournament Question ##
+
+Next you are to adapt the tournament algorithm to the distributed context.
+
+## X01-273: Barrier Synchronization - Optimize Counter Question ##
+
+Here I have provided a sub-optimal counter based barrier. Optimize the
+program as best you can. Justify your solution in the comments.
+
+## X01-275: Barrier Synchronization - Analyze Distributed Results Question ##
+
+Now I want you to imagine that a colleague sends you an email this time asking
+for your thoughts on some results he obtained
+while running some experiments on distributed machines. He has
+coded up the algorithms for the Mellor-Crummey Scott
+Paper and run some experiments on them. He
+wants your input. There isn't necessarily a correct
+answer here just give a coherent and thoughtful response.
+

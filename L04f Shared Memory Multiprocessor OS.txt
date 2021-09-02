@@ -1,0 +1,1429 @@
+## L04f-234: Shared Memory Multiprocessor OS - Introduction ##
+
+Thus far we've seen how to design and implement
+scalable algorithms that go into the guts of an
+operating system for a parallel machine. Now it is
+time to look at a case study of an operating
+system that has been built for a shared memory
+multiprocessor. This operating system is called Tornado. And the
+purpose of this case study is to understand the
+principles that go into the structuring of an operating system
+for a shared memory multi-processor. Thus far
+we have covered a lot of ground on
+parallel systems. And as a reminder I want
+to tell you that you should be reading
+and understanding the papers by Merigram and Scard
+on synchronization. Anderson and others on communication issues
+in parallel systems Skilante and others on scheduling
+federal loans scheduling. To get the full benefit
+of all the lectures you've seen already you definitely should
+read and understand all those papers. And all these papers
+are listed in the reading list for the course anyhow.
+And what we're going to do now is look at how some
+of the techniques that we've discussed thus far gets into
+a parallel operating system. So I'm going to look at one
+or two examples of parallel operating system case studies so
+that we can understand these issues somewhat in in more detail.
+
+## L04f-235: Shared Memory Multiprocessor OS - OS for Parallel Machines ##
+
+Modern parallel machines offer a lot of challenges
+in converting the algorithms and the techniques that
+we have learned so far into scalable implementations.
+Now what are some of these challenges? Well
+first of all there's a size bloat of
+the operating system. And the size bloat comes
+because of additional features that we have to
+add to the operating system and so on.
+And that results in in system software bottlenecks especially
+for global data structures. And then of course we
+already have been discussing this quite a bit that
+the memory latency to go from the processor to
+memory is is huge. All the cores of the processor are on a chip and if you go
+outside the chip to the memory that latency is
+huge. 100 to one ratio is what we've been talking
+about and that latency is only growing. The
+other thing that happens in parallel machines is the
+fact that this is a single node. And
+we're talking about the memory latency going from the
+processor to the memory. But in a parallel machine it's typically constructed
+as a non-uniform memory access machine. And that is you take
+individual nodes like this that contains a processor and memory and
+put all them together and connect them through an
+interconnection network. And what happens with this NUMA architecture
+is that access there's differential access to memory whether
+this processor is accessing memory that is local to it
+or it has to reach out into the network
+and access some memory that is farther away from
+where it is. In addition to the NUMA effect
+there is also the memory hierarchy itself is very deep.
+We already talked about the fact a single
+processor these days contains multiple levels of caches before
+it goes to the memory. And this deep memory
+hierarchy is another thing that that you have to
+worry about in building the operating system for a
+parallel machine. And there is the issue of false
+sharing. And false sharing is essentially saying that even
+though programmatically there is no connection between a piece
+of memory that is being touched by a
+particular thread executing on this core another thread
+that is executing on on this core. The
+cache hierarchy may make the block that contains the
+individual memory touched by different threads on different
+cores to be on the same cache block. So
+programmatically there's no sharing but because of the
+fact that the memory that is being touched by
+a thread on this core and a memory that
+is being touched by a thread on this core happen
+to be on the same cache line they appear
+to be shared. That's what is false sharing. False sharing
+is essentially saying that there is no programmatic sharing
+But because of the way the cache coherence mechanism operates
+they appear shared. And this is happening more and more
+in modern processors because modern processors tend to employ larger
+cache blocks. Why is that? Well the analogy I'm
+gong to give you is that of a handyman. If
+you're good at doing chores around the house then
+you might relate to this analogy quite well. You probably
+have a tool box if you're a handyman. And
+if you want to do some work let's say a
+leaky faucet that you want to fix what you
+do is you put the tools that you need into
+a a tool tray and bring it from the tool box
+to the site where you're doing doing the work. And basically what
+you're doing there is you know collecting the set of tools
+that you need for the project so that you don't have to
+go running back to the tool tray all the time. That's
+the same sort of thing that's happening with caching and memory. Memory
+contains all this stuff but what I need I want to
+bring it in. And the more I bring in from the memory
+the less time that I have to go out to
+memory in order to fetch it. That means that I want
+to keep increasing the block size of the cache in
+order to make sure that I take advantage of spatial locality
+in the cache design. And that increases the chances that
+false sharing is going to happen. The larger the cache line
+the more chances are that memory that is being touched
+by different threads happen to be on the same cache block
+and that results in false shading. So all of
+these effects the NUMA effect the deep memory hierarchy
+and increasing block size leading to false sharing all
+of these are things that the operating system designer
+has to worry about in making sure that the
+algorithms and the techniques that we have learned when
+it is translated to a large scale parallel machine
+it remains scalable. So that's really the challenge that
+the operating system designer faces. So some of
+the things that the OS designer would have to
+do is work hard to avoid false sharing work
+hard to reduce write sharing the same cache line.
+Because if you write share the same cache
+line then it is going to result among different
+cores of the same processor then it's going to
+result in the cache line migrating from one processor
+to another. And even within the same core
+and even within the same processor multiple cores
+and across processors that are on different nodes
+of parallel machine connected by the interconnection network.
+
+## L04f-236: Shared Memory Multiprocessor OS - Principles ##
+
+So we can think about some general principles that one has to keep in
+mind as an OS designer in designing
+operating systems for earlier machines. The first principle
+is of course cashe conscious decisions. What
+that means is you want to pay attention
+to locality. Exploit affinity to caches in
+scheduling decisions for instance. And you want to reduce
+the amount of sharing of data structures. If you reduce
+the amount of sharing of data structures you're reducing contention. So
+limit the amount of sharing to system data structures. We've
+seen this when we talked about different synchronization algorithms. We talked
+about how we can reduce the amount of sharing of
+the system data structure so that we can limit the amount
+of contention that's important to do and the other thing that
+you want to do is you want to keep the memory
+accesses local to every node in the multiprocessor as
+possible and basically what that means is you're reducing
+the distance between the accessing processor and the memory.
+Already the distance is pretty big when you go
+outside the chip and access the memory over here.
+But the distance is even more if you have
+a traverse interconnection network. And reach into a memory
+that is on a different node of the multiprocessor.
+So keeping memory access local is another important principle that
+you want to adhere to in designing operating system for multiprocessors.
+
+## L04f-237: Shared Memory Multiprocessor OS - Refresher on Page Fault Service ##
+
+So let's understand exactly what happens during a
+page fault service. So when a thread is executing
+on the CPU it generates a virtual address and
+the hardware takes that virtual page number and looks
+up the TLB to see if it can translate
+that virtual page to a physical page frame that
+contains the contents of that page. Now the TLB
+look up fails that's a miss in the TLB.
+At that point the hardware if the hardware is doing
+the page table lookup it'll go to the page table
+and look up the page table to see if the
+mapping between the virtual page and the physical page is in
+the page table. And this would have been there if
+the operating system has already put the contents of the
+page in physical memory. But if the operating system has
+not brought in that page from the disk into physical memory
+then when the hardware goes and looks into into the page
+table it may not find the mapping between the virtual page
+and the physical frame. And so that will deserve a page
+table miss. And that miss is the point at which you have
+a page fold. So you have a page fold now that
+says that I don't have the page in physical memory. And so
+what the operating system at that point in the handler what
+it has to do is to locate where on the disk that
+particular page which were pages residing on the
+disk and as part of the page fold
+service the operating system has to allocate a
+physical page frame because it's now missing in
+physical memory. And do the I/O to move the virtual page from the disk into the
+page frame that is allocated. And once it has done the I/O the I/O is complete.
+Then at that point the operating system can update the
+page table to indicate now it has a mapping between
+that virtual page and the physical frame number which was
+missing in the original scheme of things and that's the
+reason that we have this fault. And we handle the
+fault by bringing in the missing page from the disc
+into physical memory. And we update the page table to
+indicate that the mapping is now established between the virtual
+page and the physical frame number. And then
+we can update the TLB to indicate that
+now we have the mapping between VPN and
+PFN and once the TLB is also been updated
+the page fault service is complete and life
+is good. So that's the whole workflow in taking
+a virtual page and mapping it to a
+physical frame when there's a miss. Now let's analyze
+this picture and ask the question where
+are potential points of bottlenecks? Now what
+I'm showing you here is thread specific. A thread is executing on the CPU. And
+looking up the virtual page advance leading
+that to physical frame. It's entirely local
+to a particular thread and local to
+the processor on which that thread is executing.
+No problem with that. No serialization at that point.
+Now moving over here once the page fault has
+been serviced updating the TLB to indicate that there
+is a mapping now a valid mapping between the virtual
+page number and the physical page number that is
+done on the TLB that is local to a
+particular processor and therefore it processes a specific action
+that's going on in terms of updating this TLB. Now
+let's come to the middle structure here. This is
+where all the problem is. So what we have
+here is the situation where we have to first
+allocate a physical page frame. That's an operating system function
+in order to allocate a physical page frame. You
+have to update the page table to indicate now that
+the IO has been complete and now we can
+have a mapping between virtual plane and physical frame. And
+I told you that the page table data structure
+is a common data structure that might be shared by
+the threads in which case all of these things what
+I've shown you here can lead to serialization. So this
+is what we want to avoid. We want to avoid
+the serialization that is possible in allocating data structures allocating
+physical resources in order to serve as a page fault.
+So what we are seeing here is entirely lookup and
+that can be done in parallel. No problem with that.
+Reading is something that you can do in parallel. And similarly
+what is happening over here is we are updating the
+tlb but it is local to a processor. There's no serialization
+that's going to happen here. But here we can have serialization
+if you're not careful. So as an OS designer and designing
+this particular service page fault service this is what you
+have to focus on to make sure that you avoid serialization.
+
+## L04f-238: Shared Memory Multiprocessor OS - Parallel OS and Page Fault Service ##
+
+So if we look at the parallel operating system
+and page fault service the easy scenario for the
+parallel operating system is what I call as a
+multiprocess workload. And here what we're seeing is yes you
+have threads executing on all the nodes of the
+multiprocessor but these threads are completely independent of one
+another. Think of this as a separate process this
+as an independent process. Maybe you have a web browser
+here a word processor here and so on. So they
+are completely independent processes. And if that is the case
+if there's a page fault that has incurred on on
+this node simultaneously a page fault on another node they can
+be handled completely independently. Why? Because the threads are independent.
+The page tables are distinct. And therefore you don't have
+to serialize the page fault service as I told you
+the parallel operating system is going to have a page fault handler
+that's available in each one of these nodes. So the
+work can be done in parallel so long as there is
+no data structures that are shared among these different units of
+work that the operating system has to do. And so long
+as page tables are distinct which is the case in
+a multi-process workload there is no stabilization. And life will be
+good. The hard scenario for a parallel operating system is a
+multi-threaded workload. Now what I mean by a multi-threaded workload is
+that you have a process that as multiple threads
+so there is opportunity for exploiting the concurrency that's available
+in the multiprocessor by scheduling these threads on the
+different nodes of the multiprocessor. And to make it concrete
+what I'm going to show you is two notes
+N1 and N2 and let's assume that there are two
+cores available in each one of these nodes. In that
+case what I can do is the operating system may
+have chosen to put T1 and T3 on node N1 and T2 and T4 on node
+N2. So you have a multithreaded workload now
+executing on different nodes of the multiprocessor. And there
+is hardware concurrency because there are multiple cores
+available. So in principle all of these threads
+can work in parallel and if they incur a page fault it is in incumbent on the
+operating system to see how it can ensure
+that there is no serialization of the work that
+needs to be done to service the page faults.
+So if we want to naiively think about what the
+parallel operating system would be doing in this scenario
+the address space is shared and therefore the page
+table is shared. And since the threads are executing
+on different processors The TLBs will have shared entries
+in the process of TLBs because they are accessing
+the same address space. So that'll be the scenario. Now
+if you think about it what we would want
+is to limit the amount of sharing in the operating
+system data structures when they are executing on different
+processors. In particular for this particular mapping that I've shown
+you that T1 and T3 are executing on N1 and
+T2 and T4 are executing on on N2 what we
+would want is the operating system data structures that they have to
+mess with T1 and T3 have to mess with should be distinct
+from the operating system data structures that T2 and T4 may have
+to mess with. And that will ensure that you can have scalability.
+
+## L04f-239: Shared Memory Multiprocessor OS - Recipe for Scalable Structure in Parallel OS ##
+
+So popping a level what we can learn from
+the example that I just gave you with page
+fault service is in order to design a scalable
+operating system service in a parallel operating system. You
+have to think about what is the right recipe.
+For every subsystem that you want to design first
+determine functionally what needs to be done for that
+service. Now you've got parallel hardware and therefore the functional
+part of that service can be executed in
+parallel in the different processors that are available. That's
+that's the easy part but in order to
+ensure concurrent execution of the service you have to
+minimize the shared data structures. Only if you
+minimize the shared data structures will you really be
+able to execute the functional part of that service
+concurrently on the available processors. So less sharing will
+result in more scalable implementation of the service.
+Now the problem is it is easy to say
+avoid sharing data structures but it is hard
+to practice. Because it is always not very clear
+how in designing the subsystem we can limit
+the amount of sharing of shared data structures. Now
+coming back to the example of the page fault
+service the page table data structure that the operating
+system maintains on behalf of the process it is
+a logically shared data structure. But if you want
+true concurrency for updating this data structure it is
+inappropriate to have a single data structure that represents a
+page table for a process. Because if you have
+a single data structure that represents a page table for
+a process in order to do the function of
+page fault service you have to lock the data structure.
+That leads to a serial bottleneck. But at the
+same time if we say well you know let's
+take this page table data structure and replicate it
+on all the nodes of the multiprocessor that probably
+is not also a very good idea. Because then
+the operating system has to worry about the consistency
+of the shared data structure copies that are existing
+on all the processors and making them up to
+date all the time and so on. So we can now quickly see what the dilemma is
+of the operating system designer. So as an
+operating system designer we want the freedom to think
+logically about shared data structures. But later depending
+on the usage of the data structure we want
+to replicate or partition the data structure so
+that we can have less locking and more concurrency.
+That's the real trick. The trick is you
+want to think logically. Yes it's a shared
+data structure but based on the usage we'll
+replicate or partition the system data structures so
+that you have more concurrency and less locking
+for those shared data structures. So we'll keep
+this recipe and the principles we talked about
+in mind and talk about one particular service
+namely the memory management subsystem and how we can avoid serial
+bottlenecks using the techniques that are proposed in one of the papers
+that I've assigned you for reading which is called the Tornado
+System. The key property is less sharing leads to more scalable design.
+
+## L04f-240: Shared Memory Multiprocessor OS - Tornados Secret Sauce ##
+
+The secret sauce in Tornado for achieving the
+scalability is the concept called clustered object. The idea
+is that from the point of view of
+all the pieces of the operating system executing on
+the different nodes there's a single object reference.
+The object reference is the same. But the object
+reference under the covers may have multiple representations.
+So for instance n0 may have a represenatation that
+it is lookating at different from n1 different
+from n2 but the object reference is the same.
+So there is an illusion of a single object. So that's what I meant when I said
+logically the operating system designer. I think of
+a shared data structure's logically the same thing. But
+physically it may be replicated under the covers. Course
+who decides to replicate it that's the decision of
+the operating system as well. We'll see that in a minute. This is where the idea
+of clustering comes about. The na the name
+clustered object. The degree of clustering that is the
+replication of a particular object it's an implementation choice of
+the service so as a designer of the service you make a decision whether
+a particular object is going to have a singleton representation
+or is going to be one per core in the machine or one per cpu meaning
+it is shared by all the cores that may be there on a single cpu. Or maybe one
+representation of an object for a group of
+processes. So these are all design decisions that is
+left up to the implementor of the service. But
+when designing the service you can think abstractly about
+the components of the service containing objects and
+each object is giving you the illusion that it
+is single object reference. But under the covers
+you might choose to implement the object with different
+level up replication and of course if we
+are talking about replicated objects you have to worry
+about the consistency of the replicated objects and
+this is were the suggestion in the tornado system
+is to maintain the consistency of the objects.
+Through protective procedure call that is implemented under
+the colors in the operating system. So in
+other words as a designer of the service you
+are going to orchestrate the sharing of the
+data structures that are replicated and you orchestrate
+maintenance of the consistency of the share data
+structures. Through protective procedure call that you execute across
+these replicas and don't use the hardware coherence
+mechanism in order to maintain the consistency and
+the reason for that is the hardware cache
+coherence it can be indiscriminate about how it does
+the hardware cache coherence whenever you touch a
+shared memory location. If it is present elsewhere it
+is going to update that. And that's the
+reason we don't want to incur the overhead of
+the hardware cache coherence and replicate it. But if
+you replicate it then the hardware is normal. And
+therefore you have to worry about keeping these copies
+consistent with one another. But of course when in doubt
+use a single representation. And that way you have
+the hardware cache coherence as a security blanket when you're
+not sure yet about the level of clustering that
+you want in order to reduce the amount of contention
+for shared data structures. All of these may seem
+a little bit abstract at this point of time
+but I'll make it very concrete when we talk
+about a simple example namely the memory management subsystem.
+
+## L04f-241: Shared Memory Multiprocessor OS - Traditional Structure ##
+
+Just to put our discussion in perspective let's look
+at a traditional structure of an operating system. In
+the traditional structure of the operating system there is
+something called a page cache which is in DRAM and
+this page cache is supporting both the file system
+and the virtual memory subsystem. And the file system has
+opened files explicitly from the storage and they live
+in the page cache that is in the physical memory.
+And similarly processes are executing in the virtual memory
+and the virtual memory of every process has to
+be backed by physical memory. Therefore the page cache
+in DRAM contains the contents of the virtual pages.
+And of course all these virtual pages are in
+the storage subsystem. So let's for the purpose of
+our discussion we will focus only on the virtual
+memory subsystem. And in the virtual memory subsystem the
+data structures that are kept per process
+in a traditional structure is there is a
+PCB there is a process context block or
+process control block that contains information specific to
+that particular process in terms of you know
+in terms of memory management the memory footprint
+of that process. And a page table that
+describes the mapping between the virtual pages that
+is occupied by the process and the physical
+memory that has been allocated in the DRAM by
+the operating system for backing the virtual pages
+of that process. And if the operating system is
+also managing the TLB and software then there
+will be a global data structure that describes the
+current occupancy of the TLB for that particular
+process. So these are the things that it has
+per process and of course all the virtual pages
+for the process are resident on the storage subsystem
+so that if there is a page fault the
+missing virtual page can be brought from the storage subsystem
+into the page cache for future access by the
+process. So this is your traditional structure. And what we
+want to do is for scalability we want to
+eliminate as much of the centralized data structures as possible.
+That's the key thing that we're going to look at. How we
+can do that so that the operating system service will be scalable.
+
+## L04f-242: Shared Memory Multiprocessor OS - Objectization of Memory Management ##
+
+Now using object as a structuring mechanism let's talk
+about objectization of the memory management function. We first start
+with the address space of the process. The address space
+of the process is shared by all the threads and
+there's gotta be representation for the address space and
+that is your process object. And it is shared by
+all the threads that are executing on the CPU. So
+we can think of this process object as somewhat equivalent
+to the process control block in a tradition
+setting. Now what we wanted to do is
+we're going to take this address space. Remember that
+I mentioned I don't want a centralized data
+structure that describes the address space. Because intuitively
+if you think about the multi-traded application the
+different trade of the application maybe accessing different
+portions of the address space and therefore there is
+no reason to have a centralized data structure in the
+operating system to describe the entire address space of that process.
+So what we're going to do is we're going to take the
+address space. And break it into regions. So there's a green
+region here and a purple region here. So the green
+region is a portion of the address space. The the purple
+region is another portion of the address space. Logically they are
+all part of the operating system data structure of the page
+table but what we have done is we have
+sort of detonated the page table data structure essential
+data structure and said that well there is a
+portion of this page table data structure The green region
+another portion is the purple region and of course
+these regions have to be backed by files on the
+storage sub system so we will call them these
+objects as File Cache Managers so similar to breaking up
+the address space into regions we are going to carve up the backing store also
+into what we call File Cache Manager that backs each one of these regions so
+for instance This FCM1 is a piece of the storage subsystem that
+backs this region R1 and similarly FCM2 backs this region R2.
+Of course for any of these threads to do their work the
+regions that they're executing in They have to be
+in physical memory so that they can actually get
+to the instructions and data corresponding to that portion
+of the address space and therefore we need a page
+frame manager and the page frame manager is also
+going to be implemented as an object a DRAM object and
+this DRAM object is the one that serves page
+frames so when You when the page fault service needs
+to get a page frame it contacts a page
+frame DRAM object in order to get a physical
+page frame so that it can then move the
+contents of this backing file the file cache manager
+for that particular region and bring that from the
+storage subsystem Into the DRAM for future use by
+a particular thread. So that is another object and
+of course you have to do the input output
+in order to move the page from the back in store into DRAM and so
+we going to declare that there'll be another object
+which we'll call the cached object representation COR
+and this is the one that is going to be responsible for knowing The location of
+the object that your looking for on the backing store and do the actual page IO.
+
+## L04f-243: Shared Memory Multiprocessor OS - Objectized Structure of VM Manager ##
+
+So we end up with an objectized structure of
+the virtual memory manager that looks like this. That you
+have a process object that is equivalent to a PCB
+in the traditional setting. And of course there's a TLB
+on the processor that's going to be maintained even in
+hardware or software depending on the architecture. Because architectures do
+it in hardware some architectures leave it up to the
+software to manage the TLB. And the region object Is
+as they said a portion of the
+address piece. So essentially the page table data
+structure is split into these region objects.
+And the regionobjects there is a file cache
+manager that knows the location of the
+files on the backing store that corresponds to
+the a particular region. So the file
+cash manager is responsible for backing this region.
+And this file cache manager interacts with the
+DRAM manager in order to get a physical
+frame because when there is a page fault
+in a particular region the file cache manager has
+to contact the DRAM object in order to
+get a physical page frame. And once it gets
+the physical page frame it kicks off this
+COR which we said is the cached object representation.
+Of a page. It [UNKNOWN] this COR object to say well here is a page frame for
+you and here is the page on the disk. Go do it. And it is the responsibility of
+the cached object representation to populate the physical page
+frame by doing I/O with the disk in order
+to move this page from the disk representation into
+a memory representation. So this is sort of the
+structure of the objectized virtual memory manager and
+depending on the region of the virtual memory space
+that you're accessing the path that a particular
+page fault may take will be different. if you're
+accessing a page that is in the green
+region then this is a path that is going to
+be taken by the page fault handler and
+similarly... If the page fault happens to be in
+the purple region then this is the path that's going to
+be taken by the page fault handler. So logically given
+the structure let's think about what is the work flow
+in handling a page fault with this objectized structure of
+the virtual menu manager. The third T1 is executing poor
+guy and it incurs a page fault. And when it
+incurs a page fault it goes to a process object.
+And the process object is able to say say given
+the virtual page number what region is that
+particular page fault falling into? So that's the
+region that we want to go to in order
+to service the page fault. So that region object
+is then going to contact the file cache
+manager. That corresponds to this region object and
+to the file and the file cache manager
+is going to do two things. One it's going to see
+what exactly is the backing file for that particular
+virtual that is missing. So it may be that it
+is a file that contains multiple pages. And so it's
+going to say file and offset. And that is going
+to be the information that has to be passed
+on to the COR object. Saying that here is a
+file and here is the offset in the file. And
+that's where the faulty page content can be found on
+the storage device. And of course FCM has to get a physical frame. So it
+contacts the DRAM object in order to get a physical frame. And so once it
+has the physical frame and it has the actual location of the file
+then the COR object can preform the IO and pull the
+data from the disc into the DRAM. And so
+now the p frame the page frame that has
+been allocated for backing this particular virtual page has
+now populated because of the I/O being complete. So
+the green arrows is showing you the completion of the
+I/O. As a result of that you've got the
+page frame containing the contents of the virtual page
+that was missing in the first place. And once
+that is available then the FCM can indicate to the
+region that your page fault service is complete. And
+at that point the region can go through the
+process object in order to update the TLB in
+order to indicate that now there is a mapping
+between the virtual page and the physical frame that
+is being populated in physical memory And now the
+process can be resumed. So this is the the
+flow of information in order to make the process
+runnable again which faltered on the first place on a
+on a virtual page that is missing in physical memory.
+So now that we have this flow and we also
+mentioned that the cluster object has a single representation. When it
+is a region it's a region. Now how do we
+replicate a region object? Should this be a singleton object
+should we replicate it should this region object be a
+singleton object should it be replicated? If you're going to replicate it
+should it be replicated for every core or a
+set of processors of of a group of processors and
+so on? These are all the design decisions. That
+the operating system designer has to make. So let's look
+at the process object. The process object is mostly
+read-only and you can replicate it one per CPU. It's
+like a process control block and you can make it
+one per CPU. And all the cores on the CPU
+can share this process object because ultimately The
+TLB is a common entity for the entire
+processor and since the processed object is updating
+the TLB we can have a single processed object
+that manages the TLB. What about the region
+object? Well let's think about this. Now region
+represents a portion of the address space. Now
+a portion of the address space Maybe traversed by
+more than one thread. So a set of threads
+that are running on a group of processors may
+actually access a portion of this address space. And
+we don't know a priori how many threads may
+actually access a particular region. It's something that may
+have to evolve. Over time but it is definitely
+a candidate for partial replication. That is it is
+in the critical path of a page four so let's
+partial replicate the region not one per
+processor but maybe for a group of processors
+because a group of processors may be running
+threads that are accessing the same portion of
+the address space and so we will
+replicate this region object one... For every group
+of processors. And the granularity of replication decides
+the exploitable concurrency from parallel page fault handling.
+Now the interesting thing to notice is that the degree
+of replication and the design decision that we take for
+how we cluster the degree of clustering that we choose
+for every one of these objects is independent of one
+another. So when we talk about the process object we
+said that well the process object can be one per
+CPU. And I said for region object could be applicated
+for a group of processes. Now what about the FCM
+object FCM object is backing A region. There
+may be multiple replicas of this region but
+all of those regions are backed by the same FCM. And therefore what we can do
+is the portion of the address space that
+is being backed by a particular FCM can
+be partioned. So we can go for a
+partioned representation of this FCM. Where competition represents
+the portion of the agro space that is managed
+by this particular FCM. So you can see that there
+is a degree of freedom in how we choose
+to replicate process object how you we choose to the
+region objects. Of course we're partitioning the region objects
+but once we've partitioned it how we have replications for
+each each of these partitioned regions is something that
+is up for grabs as an OS designer. And similarly
+for the file cache manager because it's backing
+a specific region we can go for a partitioned
+representation of the FCM. And what about the
+COR the Cached Object Representation now? Now this object
+is the one that is really dealing with
+physically entities. It is actually doing the IO from
+the disk into the physical memory. And since we
+are dealing with physical entities it may be appropriate
+to have a true shared object for cached
+object representation. And the all the I/O is
+going to be managed by this cached object
+representation. Even though I'm showing you two different boxes
+here in principle it could be a singleton
+object that is managing all of the I/O
+activity that corresponds to the virtual memory management.
+And what about the DRAM object? Now the DRAM
+object you can have several representations for the
+DRAM object depending on how the physical memory
+is managed. For example we may have at
+least one representation of the DRAM object for every
+DSM piece that you have in a single node's portion of the physical memory. So in
+other words We can break up the entire
+physical memory that's available in the entire system into
+the portions that are managed individually by each
+processor. And there could be a DRAM object that
+corresponds to the physical mapped memory that is managed
+by each of those. processors but you can go
+even finer than that if it is appropriate but
+it is a design decision that is up to
+the designer. So we come up with an replicated
+process object a partial replication for the region object
+a partitioned representation for the FCM object
+and maybe a trued shared object for COR
+and several representations - For the DM object.
+So this is one way of thinking about
+it but the nice thing about this objectized
+structure is that when we designed the objectized
+structure we did not have to think about
+how we could replicate it when we actually
+populate these objects. That is a level of design decision that could be...
+[INAUDIBLE] because of the secret source that's
+available in tornadoes is a cluster object.
+
+## L04f-244: Shared Memory Multiprocessor OS - Advantages of Clustered Object ##
+
+Clustered object offers several advantages. First of
+all the object reference is the same on
+all the nodes so that's very very important.
+Regardless of which node a particular server is
+executing they all have the same object reference.
+But under the covers you can now have
+incremental optimization of the implementation of the object.
+According on the usage pattern you can have
+different levels of replication of the same
+object so it allows for incremental optimization. And
+you can also have different implementations of
+the same object depending on the usage pattern.
+And it also allows for the potential
+for dynamic adaptations of the representations. The advantage
+of course of the replication is that the
+object references can access the respective replicas independently.
+And this means that you have less locking of
+shared data structures. Let's think about the process object
+as a concrete example. So if you think about
+the process object it's one per CPU and with
+mostly read only. And and therefore page fault handling
+can start on all of these different processors independent
+of one another. And if they touch different regions
+of the address space then the path taken by the
+page fault handling for all these different threads can be
+different. So what that means is that page fault handling
+for instance will scale in this case using this as
+a concrete service with the number of processes. It'll scale to
+the number of processes. And this is important because page
+fault handling is something that is going to happen often and so
+you want to make sure it scales with the number of
+processes. On the other hand if we want to get rid
+of a region then the destruction of region
+may take more time because the region may
+have multiple representations and all of the representations
+of that particular region has to be gotten
+rid of. And so destruction of a region
+may take more time but that's okay because
+you don't expect region destructions to happen as
+often as handling page faults to service the ongoing
+needs of the thread. So the principle again is to make sure
+that the common case is optimized the common case is page fault
+handling. Region creation region destruction. All of those things happen
+more rarely and it is okay if those functionalities take a little bit more time.
+
+## L04f-245: Shared Memory Multiprocessor OS - Implementation of Clustered Object ##
+
+Let's now talk about the implementation of clustered
+objects. Given an object reference there is a
+data structure in the operating system called the
+translation table and the translation table maps an
+object reference to a representation in memory. So
+when you have an object reference presented to
+the operating system that can pointed to the
+particular representation. Remember that the reference itself is common
+the same object reference may be pointing to this replica
+on a particular processor a different replica on a different
+processor and so on. That's a function of the translation
+table so on each CPU this is what happens. When
+an object reference is presented the operating system converts it
+to a representation. And this is a normal operation. Now
+you present an object reference but that object reference may
+not be in the translation table yet because this object
+has not been referenced so far. In that
+case you'll have a miss in looking up the
+translation table. And if a miss happens then
+there is another data structure in the operating system
+called the miss handling table. And the miss
+handling table is a mapping between the object reference
+that you are presenting and the handler that
+the operating system has for dealing with this missing
+object reference. Because if an object reference is
+missing then the operating system has to find some
+way to make this reference point to a
+representation. So that's the focus of this object miss
+handler. What this object miss handler does is
+it knows the particular representation for this reference. And
+it is also going to make a decision.
+Should this object reference point to a representation that
+is already existing or should it create a
+new representation for it? All of those decisions are
+going to be taken by this object miss handler.
+Once it takes the decision it creates a representation
+for this object reference and it installs the
+mapping between this object reference and this representation in
+the translation table. So that subsequently when you present
+the object reference it'll go to the particular representation
+for that particular object reference. So that's the
+work done by the object miss handler. And
+so this happens on every translation miss. And
+the object reference is locally resolved in this case
+because the object miss handler is locally available
+and it can handle that. But it can happen
+that the object miss handler is not available
+locally. Now how will that happen? Well the idea
+is that the miss handling table itself is
+not a replicated data structure. It's a partitioned
+data structure. Remember that all of these are
+things that are being done under the cover
+to implement the idea of a clustered object.
+So if you think about the region object
+that we talked about. The region object is
+something that is not going to be accessed
+on every processor because depending on the threads
+that are executing in a particular region those
+are the threads that need to access the
+region object. And therefore this miss handling table is
+a partition data structure that contains the mapping
+between object references and the miss handlers that
+correspond to those object references. So in this
+particular example that I give you the miss handling
+table happens to contain the miss handler for
+this particular object reference. It is possible that
+when an object referenced is presented in a
+particular processor the object miss handler is not local
+because the miss handling table is a partitioned
+data structure. What happens in that case? Well
+that's why you have a notion of a global miss handler and the idea here is if
+the miss handling table does not have
+the miss handler for that particular object reference
+then you go to a global miss handler. This is something that is replicated on
+every node. Every node has its global
+miss handler. And this global miss handler knows
+exactly the partitioning of the miss handling table.
+So it knows how this miss handler table
+has been partitioned and distributed on all the nodes
+of the multi-processer. And so if an object reference is
+presented on a node the translation table will say well
+you know this particular object reference we don't know how
+to resolve it because the object miss handler doesn't
+exist here. And therefore we're going to go to this
+global miss handler. And the global miss handler because it
+is replicated on every node it says oh I know
+exactly which node has the miss handling table
+that corresponds to this object reference. And so it
+can go to that node. And from that node it can obtain a replica and once it
+obtains a replica it can populate it in
+the translation table for this particular node. And once
+it populates it then we are back in
+business again as in this case. So the function
+of the global miss handler is to resolve the
+location of the object miss handler for a particular
+object reference i. So given an object reference i
+if you have no way of resolving it locally
+then the global miss handler that is present on
+every node can tell you the location of the
+object miss handler for this particular object so that
+he can resolve that reference get the replica for it
+install it locally populate the translation table
+then you're back in business again. So what
+this workflow is telling you is how incrementally
+the Tornado system can optimize the implementation of
+the objects. So depending on the usage pattern
+it can make a determination that I used
+to have a single replica it is now
+accessed on multiple nodes. Maybe I should really
+replicate it on multiple nodes. So that's a decision that can be taken
+during the running of the system on the usage pattern of the different objects.
+
+## L04f-246: Shared Memory Multiprocessor OS - Non Hierarchical Locking ##
+
+So let's return to our memory management subsystem.
+And of course the whole idea of objectization
+of the memory management subsystem or any subsystem
+for that matter is to increase the concurrency for
+system services that we're going to offer for
+the threads that are executing on the processors.
+So in the memory management subsystem the main
+service that we're offering is the page fault service.
+And let's say that in this example there are
+two threads T1 and T2. Let's assume that they've
+been mapped to the same processor which means with
+the objectization that I described to you they are sharing
+a process object. So if T1 incurs a page
+fault it's going to through the process object to the
+region that corresponds to this particular page fault. And
+now let's think about what needs to happen in order
+to service this page fault. We might do hierarchical
+lockings or for instance if I want to do
+some modifications to the region object to indicate that
+I'm modifying the data structure that corresponds to this
+portion of the address piece I might say that
+well let's lock the process object. Let's lock the
+region object that it corresponds to. Let let's lock
+the FCM object that is backed by this region.
+And let's lock the COR object that are actually going to
+do the I/O for me. If I do this and now
+let's say the operating system is incurring a page fault
+for this second thread P T2. And let's say that this
+page fault because it is happening on the same processor
+it shares the same process object but maybe this page fault
+is not for this region but it is for a
+different region let's say region 2. But if we have locked
+the process object in servicing this page fault
+then we cannot get past this process object because
+the lock is held on behalf of servicing
+this particular page fault. And therefore the operating system
+cannot process this page fault even though you
+may have multiple cores on the processor. And these
+threads are executing on different cores of the same
+processor. You don't have the concurrency that you wanted.
+So this hierarchical locking kills concurrency and that's a
+bad idea. So what you don't want to do is
+do this hierarchical locking. But it seems like in order
+to service this page fault if I want integrity for
+these objects I want to be able to lock
+the critical data structures. But if the path that is
+taken by this page fault is different from the path
+that is taken by this page fault why lock this
+object in the first place? So we don't have to
+lock this object because the path taken by the page
+fault service is different from this and so hierarchical locking
+is a bad idea. It kills concurrency. But you do need
+integrity of this process object and in particular if the
+reason why we locked this process object is in some sense
+to ensure that this process object doesn't go away. How
+can it go away? Well one of the things that can
+happen under the covers while page fault service is
+happening there could be a decision to migrate a process
+from one processor to another processor. And if that
+happens then the process object may be migrated. And that's
+the reason that you have to worry about the
+integrity of this process object. When something is happening that
+is going to modify something in this process object you
+don't want this process object to go away. That's actually
+to do with existence guarantee. So what we're
+going to do is we're going to associate a
+reference count with the object and rather than
+do hierarchical locking what we're going to do is
+put an existence guarantee. Every time this object
+is being used there's a reference count that is
+associated with that and the reference count is
+a way of guaranteeing the existence of this object.
+So let's come back to this example again. So if T1
+has a page fault it first go to this goes to
+this process object before it goes to the region object because
+this particular page fault is going to be serviced through this region
+object path but it is not going to hold lock on
+this object. What it is going to do is it is
+going to increment a reference count for this object saying that
+this object is in use please don't get rid of it. And
+subsequently if this page fault happens accesses the same
+process object it's also going to increment the reference count.
+It is not going to lock this object because
+its path is different. It is going through this path
+in order to service its page fault which is
+for a completely different page. The whole point of having
+a reference count is now if let's say some
+other entity in the operating system such as a process
+migration facility that says I need to balance the
+load on this multiprocessor by moving some process from
+this processor to a different one. If it looks
+at this process object and it will say well
+I cannot touch this process object because its reference
+count is not zero. Which means that this process
+object is currently servicing some requests locally. And that
+is the way we can we can ensure the
+existence guarantee for this objects and integrity of
+this of this object. And that can allow
+us to get rid of hierarchical locking and
+promote concurrency for service activities that can be
+provided by the operating system for the same
+service but where there is concurrency that is
+possible. In this case page fault service that
+can be happening in parallel for independent regions of
+the address space touched by the threads that are running on the
+same processor but executing on different cores perhaps of the same processor.
+
+## L04f-247: Shared Memory Multiprocessor OS - NonHierarchical Locking Continued ##
+
+So essentially what the reference count and
+the existence guarantee is giving you is it
+is giving you the same facility without
+doing the hierarchical locking that was what we
+really wanted. What we really wanted in
+this hierarchical locking is the existence guarantee of
+this process object to guarantee the integrity
+of this object. We're getting that. We're getting
+that by associating a reference count and making
+sure that this particular object is not gotten
+rid of until the reference count goes to
+zero. So we're achieving the effect of hierarchical
+locking without losing concurrency for operations that can
+go on in parallel. Of course if these
+page faults for T1 and T2 are accessing
+the same region of memory you have no choice
+except to go to the same region object. But there
+again this is something that the operating system can monitor
+over time and see if even though it is the
+same region maybe this region itself can be carved up into
+sub regions and promote concurrency. And the limit you can
+have a region for every virtual page but that might
+be too much right? And that's the reason that you
+don't want to have a detonation of a page table into
+such a fine grain partition. But you might want to think about what is the
+right granularity to promote concurrency for services like this to go on
+in the multiprocessor. So coming back again
+to the hierarchical locking. The key to
+avoiding hierarchical locking in Tornado is to
+make the locking encapsulated in individual objects.
+There's no hierarchical locking. Locking is encapsulated in
+the individual object and you're reducing the scope
+of the lock to that particular object. So
+if there's a replica of this region then
+a lock for a particular replica is only
+limited to that replica. And not across all
+the replicas of a particular region. That's important
+it reduces the scope of the lock. And therefore
+it limits the contention for the lock. But of course it is l incumbent on the
+service provider to make sure that if a
+particular region is replicated then the integrity of
+that replication is guaranteed by the operating system
+through a protective procedure called mechanism that keeps
+these regions consistent with one another because you
+made a replica of that. Even if the hardware
+provides cache coherence there's no way to guarantee that these replicas
+will be consistent. Because they are dealing with different physical memories
+and therefore it is the responsibility of the operating system to
+make sure that these regions are kept consistent with one another.
+
+## L04f-248: Shared Memory Multiprocessor OS - Dynamic Memory Allocation ##
+
+Dynamic memory allocation is another important service that
+is part of memory management. It's important once
+again to make sure that memory allocation scales
+with the size of the system. And in order
+to do that one possibility is to take
+the heap space of the process and break it
+up. So this is the logical address space
+of a multi-threaded application. And in the logical address
+space everything is shared. But what we're going to do
+is we're going to take this heap portion of the
+address space and break it up into the portion
+of physical memories that are associated with the nodes on
+which these threads are executing. Suppose the mapping of
+the threads of this particular application is such that
+T1 and T2 are executing on N1. And T3
+and T4 are executing N2 and it's a [INAUDIBLE] machine
+so there's a physical memory that is local to this
+node N1. And therefore what I'm going to do is dynamic
+memory allocation requests. If it is centralized it'll be a
+huge bottleneck. Instead we're going to break up the heap and
+say that this portion of the heap fits in the
+physical memory that is close to N1. This portion of
+the heap fits in the physical memory that is close
+to N2 so dynamic memory allocation requests from these threads
+satisfied from here. From these threads satisfied from here. That allows for
+scale-able implementation of dynamic memory allocation.
+The other side benefit that you
+get by breaking up the heap space into these distinct physical memories
+that it can avoid full shading across nodes of the paddling machine.
+
+## L04f-249: Shared Memory Multiprocessor OS - IPC ##
+
+So similar to microkernel-based operating system
+design that we have discussed before functionalities
+in the Tornado operating system are contained
+in these clustered objects. And these clustered
+objects have to communicate with one another
+in order to implement the services. Because
+it's not a monolithic kernel anymore it's
+a micro kernel where the functionalities contained
+in these objects. And so we need efficient
+inter process communication via object calls that go between
+an object that can be a client can can be thought of as a client and an
+object that can be thought of as a
+server. For instance The FCM object may need to
+contact the DRAM object in order to get a page frame. So in that case the FCM
+object is a client and the DRAM object is a server that is serving the request.
+And the way the request is satisfied is through the IPC realized by a protective
+procedure call mechanism. And if the calling object
+and the called object the client and the
+server they are on the same processor then
+Tornado use this handle scheduling between the calling
+object and the called object. It's very similar
+to what we discussed in the LRPC paper on
+how we can have efficient communication without a context
+switch. So local protected procedure call you don't have
+to have a context switch because you can
+implement this by handoff scheduling. Between the calling object
+and the called object. On the other hand if
+the called obgject is on a remorte processor then
+you have to have a full context switch
+in order to go across to the other processor
+and execute the protective procedure call. And this
+ICP mechanism is fundamental to the tornado system. Both
+for implementing any service as a collection of
+cluster objects and even for managing the replicas of
+objects. So for instance I mentioned that you might
+decide based on usage pattern that I want to have
+replicas of the region object which represents a particular
+portion of the address space. If you have a
+region object that is replicated it's equivalent to a
+page table has mappings between virtual pages and physical
+pages. If I replicate it then I have to
+make sure that the replicas remain consistent. Whose job
+is it? It is a job of the clustered
+object implementation to make sure that replicas are kept consistent.
+So when you modify one replica you have to make
+a particular procedure called the other replicas to deflect the
+other changes that you made In the first replica. So
+all of these are things that are happening under the
+collar so the key thing that you'll notice is that
+all of the management of replicas and so on is
+managed in software we're not relying on the hardware cache
+coherence because the hardware cache coherence only works on physical memory.
+Now if it replicated. The physical memory is not the same
+anymore. But is a replica that is known only to the
+software. The system software. So to the management of the replica
+that is that has to be managed by the operating system.
+
+## L04f-250: Shared Memory Multiprocessor OS - Tornado Summary ##
+
+So to summarize the Tornado features it's an object oriented design
+which promotes scalability. The idea of cluster objects in the proce protected
+procedure call is mainly with a view to preserving locality
+while ensuring concurrency. And we also saw how reference
+counting is used in the implementation of the objects
+so that you don't have to have hierarchical locking of objects. And the locus
+of locks held by an object is confined to itself. And doesn't span
+across objects or its replicas. That's very
+important because that's what promotes concurrency and
+that also means that careful management is
+needed of the reference count mechanism to
+provide existence guarantee and garbage collection of objects
+based on reference counts. And multiple implementation are possible
+for the same operating system object. Now for
+instance you may have a low-overhead version when scalability
+is not important. And then you might decide
+to know this particular operating system object I am
+experiencing a lot of contention for this. I
+want to go for a more scalable implementation of
+this particular operating system object. So this
+is where incremental optimization and dynamic adaptation of
+the implementation of objects comes into play
+and the other important principle that is used
+in Tornado is optimizing the common case.
+I mentioned that when we talked about page-fall
+handling that is something that happens quite often.
+On the other hand destroying a portion of
+the address based because the application does not
+need it any more that is called region
+destruction. That happens fairly infrequently so if it
+takes more time that's okay So that's where the
+principle of optimizing the common case comes in.
+And no hierarchical locking through the reference counting
+mechanism. And limiting the sharing of operating system
+data structures by replicating critical data structures and managing
+the replicas under the covers is a creep
+up property in Tornado to promote scalability and concurrency.
+
+## L04f-251: Shared Memory Multiprocessor OS - Summary of Ideas in Corey System ##
+
+The main principle in structuring an operating
+system for a shared memory multiprocessor is to
+limit sharing kernel data structures. Which both
+limits concurrency and increases contention. This principle finds
+additional corroboration in the Corey operating systems
+research that was done at MIT. Which wants
+to involve the applications that run on top
+of the operating system to give hints to
+the kernel. So let's talk about some of the ideas
+in the Corey System that is built at MIT the
+ideas are similar to what we saw in Tornado namely
+you want to reduce the amount of sharing. That's the
+key thing. If you reduce the amount of sharing it
+allows for scaling. And one of the things that is
+in Corey System is his idea of address ranges in
+an application. And basically this is similar to the region concept
+in Tornado. The region concept in Tornado is
+under the covers. The application doesn't know anything about
+it. It knows that An application has an address
+space and the operating system decides that well this
+application has its address space but the threads of
+this application are accessing different regions and therefore I'm
+going to partition this data structure the global data structure
+called. The page table into regions and that way
+I can ensure that there is concurrency among the
+page fault service handling for the different regions that
+that the operating system has to deal with. Similar
+idea except here the address ranges are exposed to the
+application. So in other words a thread says that
+this is a region in which I'm going to operate
+and if the kernel knows the address range in
+which a particular thread is going to operate in then it
+can actually use that as a hint in saying well
+where do I want to run this thread. If a
+bunch of threads are touching the same address range maybe
+you want to put it on the same processor. And these
+are the kinds of optimizations that the operating system can
+do. If this hint is provided by the application. Similarly
+shares is another concept and the idea here is that
+an application thread can say that here is the data structure
+here is a system [INAUDIBLE] that I'm going to use
+but I'm not going to share it with anybody. An
+example would be a file. A file by definition
+for a process is an operating system entity once
+the process opens that file. That file descriptor is
+a data structure that the operating system maintains and
+now if you have multiple threads in the same
+application all of the threads have access to that file
+descriptor but if a thread of that application opens
+the file and it knows that it's not going
+to share that file with anybody else. It can
+communicate that intent through the shares mechanism. Through the
+shares mechanism it can communicate that intent to the
+operating system. Saying that here is a file that
+I've opened but I'm not going to share it
+with anybody else. That hint is useful once again
+for the kernel to optimize shared data structures
+and in particular if you have a multi-core
+processor and if I have threads of an
+application running on multiple cores I don't have to
+worry about the consistency of that file descriptor
+across all these cores. That gives an opportunity for
+reducing the amount of work that the operating
+system has to do in managing shared data structures.
+Another facility that is there in Corey's dedicated cores
+here the idea is that if you have a multi-core
+you have lots of cores might as well dedicate
+some of the cores for kernel activity. And that way
+we can confine the locality of kernel data structures
+to a few cores. And not have to worry about
+moving data between the cores. So all of these
+techniques that are being proposed in the Corey system is
+really trying to attack the fundamental problem that
+there is a huge latency involved when you
+have to communicate across cores. Or when you
+have to communicate outside of the core into
+the into the memory subsystem and so on.
+And all of these facilities are trying to
+reduce the amount of inter-core communication and core
+to memory communication and so on and so forth.
+
+## L04f-252: Shared Memory Multiprocessor OS - Virtualization ##
+
+Through this lesson I'm sure you have
+a good understanding and appreciation for the hard
+work in the implementation of an operating
+system on a shared memory multiprocessor that ensures
+capability of the basic mechanisms like synchronization
+communication and scheduling. And this is not done
+just once. It has to be done a new for every new parallel architecture that
+comes to market that has a vastly different
+memory hierarchy compared to its predecessors. Can we
+reduce the pin point of individually optimizing every
+operating system that runs on a multi-processor? Now
+what about device drivers that form a big part of the code base of an operating
+system? Do we have to reimplement them for
+every flavor of operating systems that runs on a
+new machine? Can we leverage third party device
+drivers from the OEM's to reduce the pain point?
+
+## L04f-253: Shared Memory Multiprocessor OS - Virtualization to the Rescue ##
+
+To alleviate some of the pain points that I just mentioned what we want to ask
+is the question can virtualization help? We've seen
+how virtualization is a powerful technique for hosting
+multiple operating systems images on the same hardware
+without a significant loss of performance. In the
+context of a single processor. Now the question
+is can this idea be extended to a multiprocessor?
+And this is the thought experiment that was carried out at Stanford in the
+cellular disco project. Cellular disco combines the
+idea of virtualization. And the needs for
+scalability of parallel operating system commensurate with
+the underlying hardware. So there is a
+thin virtualization layer which is the cellular
+disco layer. And the cellular disco layer manages
+the hardware resources namely CPU the I/O
+devices memory management and so on. Now
+the most hairy part in dealing with any operating system is the IO management.
+Even in a desktop environment and a PC environment most of the code is
+really third-party code that is device driver
+code that is sitting inside the operating system.
+And so that is the thing that is
+one of the hairy parts. Managing the IO subsystem.
+So in this start experiment what cellular disco
+does is to show by construction that you can
+alleviate some of the pinpoints in building an
+operating system especially with this I/O management. So I'm
+going to focus on just the I/O management part and on how IO is handled with the
+cellular disco sitting in the middle between the
+virtual machine that is sitting on top. And
+the the physical hardware sitting at the bottom.
+So this particular thought experiment was conducted on
+a machine called the Origin 2000 from SGI.
+It's a 32 node machine. And that was
+the shared memory multiprocessor on which this thought
+experiment was conducted. And the operating system is
+a flavor of a UNIX operating system called
+IRIX. That's the host operating system running on
+top of the Origin 2000. The VMM layer
+cellular disco sits in between the guest operating
+system and the. Host operating system and the
+way visualization is done is a standard virtual
+machine trick and that is trap and emulate.
+And what they've done is shown the construction that
+it is possible to do this and do this efficiently. And let's just walk through
+what happens on an I/O request. The guest
+operating system makes an IO request. And this
+results in a trap into the VMM layer cellular disco. Cellular
+disco rewrites this request as coming from it rather
+than from the guest operating system. And. Makes the actual I/O request
+this is the virtual request coming from the guest
+operating system so this is the actual I/O request
+that is passed down to the host operating system
+Irix in this case. And the Irix operating system
+does its own thing the whatever the device travel
+is going to do and carries out that operation And
+once that operation has been scheduled it might indicate
+that yes I've scheduled it. Let's say it's a
+DMA operation. So it might say that yes I
+scheduled it sends it up to them the Host
+Irix operating system. And the Host Irix operating system
+passes it to Cellular Disco passes it to the
+Guest Operating System. So this is the path of
+dispatching an IO request. Now what happens when the
+I/O request actually completes? This is where the trick
+comes in of trap and emulate. Because Cellular Disco
+has made it appear that this request is really coming from it it is installed
+when it gave this I/O request it installed in it The place that needs to
+be called in the VMM layer. So
+when the completion interrupt comes in normally in
+any vanilla operating system completion interrupt will go
+to the host operating system. But Cellular Disco
+has faked it When it passed the request
+to say that when a completion request comes in
+call me. That's what was the magic that
+was done in the forward path. And therefore when
+the completion request happens it really calls the
+VMM layer and the VMM layer does what it
+needs to do and Makes it appear as though
+it's a normal interrupt coming from the device back
+to the host Irix operating system and the host
+Irix operating system in turn passes it back to
+Cellular Disco and then onto the Guest operating system.
+So this is the trick by which it does the
+trap and emulate for dealing with every I/O subsystem
+so there's no need to change Any part of
+the I/O subsystem in the host operating system everything
+is being managed by this trick of trap and emulate
+that is happening in the cellular disco layer.
+So the standard virtual machine trick of trap
+and emulate is being used extensively in providing
+the services that you need. In a guest
+operating system that is running on a multiprocessor. So the start experiment
+was was really to show by construction how to do this
+idea of developing an operating system for a new hardware
+without completely rewriting the operating system by
+exploiting the facilities that that maybe their already
+In the host operating system. Once again this
+should remind you of another thing that we've
+seen before when we discussed operating system
+structures and that is lead case showing by
+construction. That a microkernel design can be as
+efficient as a monolithic design. Similar to that
+what these folks have done is that by
+construction they have shown that a virtual machine
+monitor can manage the resources of a multiprocessor
+as well as a native operating system. And they
+showed it by construction. This cellular disco runs
+as a multithreaded kernel process on top of the
+host operating system. Irix in this case. And
+the other thing that they have shown the construction
+is that the overhead of doing it this
+way providing the services that is needed for
+the desktop operating system. Through this cellular disco
+virtualization layer can be kept efficient keep the overhead
+low and the virtualization can be efficient and
+they've shown that it can be done within 10%
+for many applications that run on the guest
+operating system. So that's the proof of the pudding
+is of course the ED. And so what they have shown is that the
+virtualization overhead can be kept low by
+really showing how applications can be run
+on a guest operating system and through the services provided by the VMM layer
+cellular disco they show that the drop in performance can be kept fairly low.
+
+## L04f-254: Shared Memory Multiprocessor OS - Conclusion ##
+
+So that completes the last portion of this
+lesson module where we visited the structure of parallel
+operating systems and in particular looked at tornado as
+a case study. This completes the second major module
+in the advance operating systems course namely parallel systems.
+I expect you to carefully read the papers we
+have covered in this module which I've listed in
+the required readings for the course and which served
+as the inspiration for the lectures that I gave you in this module. I want
+to emphasize once more the importance of reading
+and understanding the performance sections of all the
+papers. Both to understand the techniques and methodologies
+therein even if the actual results may not
+be that relevant due to the dated nature
+of the systems on which they've been implemented.
+

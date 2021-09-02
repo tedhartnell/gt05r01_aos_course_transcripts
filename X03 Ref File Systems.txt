@@ -1,0 +1,626 @@
+## X03-033: Ref File Systems - Introduction ##
+
+Hello and welcome to this unit on file systems. We'll talk about
+what a file system is about how application developers interact with it
+and then see what an OS is doing behind the scenes and
+discuss some common optimizations that make
+file systems faster. I hope you enjoy.
+
+## X03-034: Ref File Systems - File System Concept ##
+
+Most any time that you use a computer
+you're going to interact with a file system.
+Here you see me navigating the file
+system on my computer to find this presentation.
+There it is.
+I started off at my Home folder inside of there I
+went to Pictures. And then the filesystems and there I found
+this image that I was looking for. This is really convenient.
+In my case the data I was looking for was on
+the hard disk of my local machine. But I didn't have
+to remember physically where the data was i.e. the platter the
+track the sector number et cetera. Instead I was able to
+access the data through a very intuitive interface provided by a file
+system module of the operating system. There are at least
+three key abstractions at work here. The first is the notion
+of the file itself. In reality the data may not
+be placed next to each other on a disk orl in
+the right order. But an application developer the author of
+the sketchbook program I'm using for instance gets to create the
+data of a file as one big long contiguous string of
+bytes. Second is the filename. I don't have to remember any
+of the physical information about how my file is
+stored the sector number where it starts for instance. Instead
+I get to assign my file an intuitive name in
+my case Image001.tif. Third is the notion of folders or
+directories as we will call them. These are containers for
+other files or directories that help keep things organized. The
+idea is that we have an electronic version of what
+was once the more common physical filing system. We put
+folders withing folders to help us keep things organized. So
+in this machine then I don't just have a pictures
+folder but also a documents folder. And within there I
+have a folder for advanced operating systems. And maybe there's
+another one for software development process etc. And even this
+home directory sits inside a larger directory for all users
+which then sits inside of a directory called root. Which
+then contains folders for the operating systems and other things.
+This directory is called the root because if we
+think of this directory structure as an upside down tree
+then this all encompassing directory would be the root or
+the base of the tree. Indeed the structure will always
+be a tree just by the nature of directories
+or the nature of physical file folders for that matter.
+We call the directory immediately above another directory its parent.
+File systems for instancce is the parent directory of image001.tif.
+Pictures is the parent director of File Systems
+et cetera. Together these three abstractions provide a
+convenient and almost universal interface for storing and
+retrieving data from mass storage. In this lecture
+we'll talk about how this interface is implemented
+and some of the common optimizations. We'll focus
+on the disk medium but many of the
+ideas we discuss apply to other media as well.
+
+## X03-035: Ref File Systems - Access Rights ##
+
+As soon as one thinks about letting multiple users access
+a file system it becomes clear that we will need
+some notion of access rights. Looking at our directory tree
+here again it should be clear that Alice should not be
+able to see guest's or Bob's file unless they say
+it's okay. And we certainly don't want to let just any
+user access the operating systems files. Ultimately for each user
+file pair we need to know what permissions that user has.
+That is which of the basic actions of reading writing
+and executing the file is he allowed to do? Conceptually we
+can think of this as a giant matrix with users
+for the columns and files as the rows for instance. And
+we could store the information that way but it would
+be pretty inefficient. Think about how many files would have the
+exact same set of values. UNIX like operating systems achieve efficiency
+by assigning an owner and a group to each file. Here
+I'm displaying this information as the OS command would
+show in the terminal. The owner or user of the
+file is typically the creator of the file and the
+group might be faculty or staff or students or something
+like that in a university setting. We have separate read
+write and execute bits for the owner or user the
+group and then another set for everybody else. This gives
+us a total of nine bits instead of 3 times
+the number of users on the system. Permissions on directories
+make the system even more complicated. The basic rule is that
+reading affects your ability to see what's in the directory. Running
+affects your ability to create delete and rename files in the
+directory. Both of these are intuitive if you think about
+a directory as a file itself containing the names of the
+files and subject directories in it. Execute permissions are a little
+more confusing as they control whether you can pass through the
+directory and access it's contents in ways other than just
+manipulating the file names. For cases where more detailed permissions
+are needed access control lists are sometimes used on various
+operating systems. These make it possible to create arbitrary row
+values in our permissions matrix by granting permissions to individual
+users or other groups defined in the file system. I
+encourage you to explore some more on your own. Some
+good places to start are provided in the instructor notes.
+
+## X03-036: Ref File Systems - Permissions Error Question ##
+
+Let's suppose that when I list the current directory
+I see the following - a directory dir owned
+by me with these permissions and a file foo.txt
+owned by some other user with these permissions. And
+if I look inside this dir. director I see
+that there's a file bar owned by me and
+having these permissions. Notice that I used the super
+user privileges to list the files in this directory.
+Access to this metadata requires passing through the
+directory in a way that is only allowed if
+we have execute permissions on. So my question to
+you is which of the follwing Unix commands will
+result in a permissions error. Cat I should
+say is just reading the file and printing it
+to a standard app. And touch is trying to
+create a new empty file. Check all that apply.
+
+## X03-037: Ref File Systems - Permissions Error Answer ##
+
+The answer is these last two. We'll go through
+these one by one. In the first case the
+owner of the file is another user and I'm
+not in the group either so I fall into
+the other category. The other category has read permissions
+so I can read the file and the command
+succeeds. Now let's see what happens when I try
+to read dir/bar.txt. I am the owner of bar
+and the owner has read permissions but to get
+there I have to pass through the directory dir and
+since I don't have execute permissions on dir this generates
+an error. The same thing happens for touch. Writing to
+the directory file is okay but actually creating a
+new file in the directory requires the ability to pass
+through. It is interesting to note what would have happened
+if I had reversed the permissions on dir. Then cat
+dir/bar.txt would have worked since I just need to pass
+through the directory. The touch command would not have worked
+however as I would need to add the new file
+name to the directory and I don't have write permissions.
+
+## X03-038: Ref File Systems - Developers Interface ##
+
+To have a good understanding of a file systems we need
+to know how application developers interact with it. There are two
+main ways of doing this. One way keeps track of a
+position or cursor in the file and as we read or
+write to the file we move the cursor around. The other
+way allows us to treat a file as though just a
+block of memory. Let's cover the position-based strategy first. We begin
+by opening the file with the open procedure specifying how we intend
+to use it with some flags. Notice that I'm using the
+lower-level system calls rather than C's built-in procedures like fopen which
+sometimes use an extra layer of buffering. It's not that the
+extra layer's a bad idea I just want to interact more
+directly with the operating system. Having opened the file we can
+then call read or write as we wish. Write I should
+say overwrites instead of inserting as the cursor does by default
+in most editors. And as we read and write we move
+the cursor through the file. If we want to move
+the cursor without reading or writing we use the lseek
+command. Which repositions the cursor in the file. And finally
+when we're done with the file we should close it
+so that the file system knows we're done. Now I've
+skipped over most of the details here because I thought
+it would be a lot more fun for you to
+learn them on your own with a little programming exercise.
+
+## X03-039: Ref File Systems - Sabotage Question ##
+
+Here's the scenario. We've obtained access to a file belonging
+to some enemy and we want to do some sabotage.
+The files stores a table of key value pairs both
+of them ints and the whole file is in binary.
+It just goes key value key value key value all
+the way through. Your task is to write a program
+that will change the value associated with a particular key.
+So the perimeters to your program will be file name
+the key who's value we want to change and the new value we want
+to associate with that key. Now our
+enemies engineers weren't very clever. So the
+keys in the file are in no particular order. You just have to search
+there. Consult the man pages for open
+read write Lseek and close. And Good luck.
+
+## X03-040: Ref File Systems - Sabotage Answer ##
+
+Here's my solution. I begin by opening the file with
+read and write permissions and then I read from the file.
+Remember it goes key value key value. So this first
+read will represent a key. I check to make sure that
+I read in as much as I intended and assuming
+that that goes okay I enter this loop here. I first
+check the key to see if it's the value that
+I'm looking for. If it's not then I simply move the
+cursor past the associated value and then read
+in the next key. If it does match
+however then I want to overwrite the value with
+the new one close the file descriptor and exit
+with success. If I ever reach the end of the file or if a read fails for
+any reason I can simply print that the
+key is not found and then exit with failure.
+
+## X03-041: Ref File Systems - MMap ##
+
+So far we've seen how a developer might interact with the
+file system to the positioned based or cursor based aisle. It's
+also possible however to interact with a file in a way
+that let's us treat it just like memory. As before we
+begin by opening a file with the open procedure. Instead of
+using read and write on the file however we call mmap.
+This returns a pointer to a region of memory that we
+can manipulate in our code. And eventually whatever changes we make
+to the memory get reflected in the file. When we're done with the file we
+call munmap which syncs the contents of memory with the file and then frees up
+the memory. And lastly we can close
+the file as before. Again I'm skipping over
+most of the details here so that you
+can learn them through a little programming exercise.
+
+## X03-042: Ref File Systems - Shuffle Question ##
+
+The scenario here is that you're given a binary file
+with arbitrary contents. And the goal is to break it up
+into pieces of some fixed size and then shuffle those
+pieces around in some random order. So the parameters will just
+be the file name and the size of the pieces.
+The code to do the shuffling in memory is provided. You
+just need to open close map and unmap the file in
+order to use it. Consult the bin pages and good luck.
+
+## X03-043: Ref File Systems - Shuffle Answer ##
+
+Here's my solution to the shuffle program. I begin by
+opening the file with read and write permissions and then
+to figure out how long the file is I call
+lseek putting the cursor at the end. This then will
+return how much the cursor was moved which I store
+in this variable len. Then I put the cursor back
+to the beginning. Knowing how long the array needs to
+be I can now end that with these flags here.
+And then check to make sure that that succeeded. If it failed we'll just
+exit. So now that I have the contents of the file in memory I can
+call memshuffle on it that'll rearrange it as desired. And then I can unmap
+it close it it'll get written to the disk and I can exit with success.
+
+## X03-044: Ref File Systems - Allocation Strategies ##
+
+Next we will discuss strategies for allocating space on
+mass storage devices to a file. Just like caches
+work in terms of units of cache lines or
+cache blocks and virtual memory works in terms of pages
+file systems work in terms of blocks also sometimes
+called clusters. In the case of a disk a
+block address would need to identify the physical location.
+There are different vocabularies here. We'll refer to platter track
+and most specifically sector. The block address identifies the
+starting sector and the block itself might cover several more
+sectors all blocks are of the same size. There are
+several strategies for keeping track of which blocks are free
+and which are used one easy way is to keep
+a list of free blocks. Another is to use a
+bit vector where each bit indicates whether a block is
+free or not. There are more complex strategies as well.
+Which is more appropriate will depend on the strategies for
+assigning new blocks to a file as it grows. We won't
+go into those details here. Instead we will focus on
+how a file system keeps track of which blocks belong to
+which files and of the ordering of these blocks within
+the file. Ideally we would want a file system that allows
+for simple and fast creation and deletion of files. The
+simplicity here will help maintain consistency in the face of crashes.
+We want flexibility on size that is we ant to
+be able to handle file sizes large as well as
+small and of course we want an efficient use of
+disc space and we want fast access. Sequential refers to reading
+a file in sequence from start to finish and random
+access refers to jumping around in a file. Specifically we'll
+look at the file allocation table strategy which was widely
+used in the DOS era and is still used on many
+USB devices. And we'll also look at the extended
+file format which is the long time Linux standard.
+
+## X03-045: Ref File Systems - File Allocation Table ##
+
+The File Allocation Table format was originally used in
+the late 1970's on floppy disks and became the
+standard in DOS and early Windows machines. It is
+still commonly used on solid state and flash memory devices
+like this one. As these storage technologies have evolved
+it has gone through many iterations but the two key
+ideas have remained the same. The first is that
+each filed is represented as a linked list of blocks.
+Normally when we think of a link list we think of
+the links as being part of the nodes in the list.
+May the last part of the block would give the ID
+of the next block. Here however the links in this list
+are represented in the final allocation table which is indexed by
+block number. Given the starting block number of the file I
+can find the next block with a constant time access to
+the file allocation table. A special value negative one in this example
+indicates that a block is the last in the chain.
+This file allocation table also contains a bit to say whether
+a block is free or not. In this example our file
+starts with block two. Looking at the table I see that
+the next block is six. Looking at six in the table
+I see that the next block is three. Again going back
+to the table I see that the next block is five.
+And when I look at five in the table I see
+that its next has the special value indicating that
+we've reached the end of the file. It's important to
+realize that the file allocation table or FAT for short
+stores all the links for all the files. For instance
+there appears to be another file occupying block four
+and only block four since that's the end. And also
+one occupying block one. So the file allocation table tells
+us how to glue the blocks of a file together.
+But it doesn't tell us where to start these
+chains of blocks. That is the function of the directory
+tables. Directories as I should say are indeed treated as
+files. And they use something called a Directory Table Format.
+Entries in the table all have the same width
+and contain the essential information including the file name the
+starting block and any other metadata associated with the file
+such as permissions. The root file directory has a fixed
+address on the disk. So we always know how
+to get started. Let's say that I wanted the content
+of a file / foo / file.txt. I would first
+consult this root directory table. It would tell me that
+there is indeed a directory named foo and give me
+the starting block of that file. I would then access
+that file on the disc and since it's a directory
+I would look through there for the file name .txt.
+And it would tell me that the starting block is two. I can then chain together
+the blocks on disk as we did earlier
+using the file allocation table. To summarize then the
+FAT or file allocation table serves as the
+glue that chains the blocks of a file together.
+The directory files capture the hierarchy and the
+starting blocks for the files and all the metadata.
+
+## X03-046: Ref File Systems - Values in the FAT Question ##
+
+Here's a question to help solidify our understanding of the
+file allocation table. Given the values in the table which
+blocks are the starting blocks of some file? You should
+assume that this is the whole table. Check all that apply.
+
+## X03-047: Ref File Systems - Values in the FAT Answer ##
+
+The answer is that the starting blocks are
+the busy blocks that don't have any other
+blocks pointing to them. Right away then we
+can eliminate the blocks that aren't busy. And then
+I'll just read these next pointers and eliminate those blocks as well. So this
+eliminates 6. This is an ending block so he's not eliminated. This
+eliminates 1. And this eliminates 2. So
+we are left with 3 5 and 1 as starting blocks. Just for
+good measure let's go ahead and build the chains as well. We'll start with 3
+and he then would seem to point to 1 who then points to 6
+when he then is done. 5 just sits there all by himself and 7
+would seem to point to 2 who
+then is the last one. So there are the 3 files captured by this fact.
+
+## X03-048: Ref File Systems - File Allocation Table Continued ##
+
+So now that we understand how the FAT format works let's
+consider its strengths and weaknesses. It is easy to create a
+new file so we just need to adjust the directory table
+of the parent directory and set the busy bit in the
+FAT for the starting block. Growing a file is as easy
+as adjusting the next field of the FAT. Space usage is
+efficient too. If a block is free then it can be
+used and it doesn't matter whether the adjacent blocks are being
+used or not. This means that the system won't suffer from what
+is called external fragmentation. As for access it will behave much like
+a linked list. It will be great for sequential access as we
+quickly find and follow the links. But poor for random access since
+we have to walk through half the links to get to the
+middle of the file and all of the links to get to
+the end. This isn't as bad as it might seem at first
+because we keep the FAT in memory. But it's still not ideal.
+Overall then FAT is a poor choice for situations where random access to large
+files is necessary. Hence it has fallen out of favor. It's still a good choice
+for removable storage however where one is
+mostly just copying data from one machine to
+another and hence only using sequential access.
+And its space efficiency makes it especially attractive.
+
+## X03-049: Ref File Systems - Inode Structure ##
+
+Another popular system file format is the extended format commonly
+used in Linux. Each file on the disk has a
+data structure called an Inode associated with it. The Inode
+is fixed length. It contains the metadata for the file and
+it serves as the glue linking the data blocks together
+in the right order. It is this gluing function that
+is the most interesting. The inode stores 15 data block
+addresses or pointers. The first 12 of these point directly to
+the first 12 data blocks of the file. This makes
+the strategy efficient for small files. The thirteenth of these
+addresses points to a block that consists of a table
+of addresses for the next blocks in the file. This
+vastly increases the number of blocks that we can use
+in a file. The downside is that we've introduced a
+layer of indirection. If this doesn't give the file enough
+space then we use this fourteenth pointer and not one but
+two layers of indirection giving us even more space.
+And if this isn't enough we have a fifteenth pointer
+which uses triple indirection for more space still. Juts
+like in FAT directories are treated as files. Only instead
+of mapping a file name to the first file
+block they map a file name to its inode. That
+path for accessing slash foo slash file.txt would look something
+like this. We'd start at the inode for the root
+directory and then following its data pointers
+we find the data for the root directory.
+There we find that foo maps to
+another inode following that address we consult that
+inode and find that address for its data block. Looking in there we find the
+contents of slash foo. That's a directory. So
+it's going to map the file name file.txt
+to the appropriate inode. And then using that inode structure
+we're able to peace together the data that we need.
+
+## X03-050: Ref File Systems - Data Blocks Question ##
+
+Now for a question to test your understanding of inodes. Suppose that
+the disk blocks are of size 4 kilobytes and that an indirection block
+can store 1024 entries. What is the maximum file size that does
+not use the double-indirect pointer in the inode? Give your answer in kilobytes.
+
+## X03-051: Ref File Systems - Inode Structure ##
+
+Having understood inodes and the basic characteristics of the
+extended file system let's now consider its merits and compare
+it with FAT system. File creating means grabbing an inode
+and updating the parent directory. This is not substantially different
+from FAT. File growth just means grabbing a new
+data block and updating the inode no big deal. We
+are still efficient in terms of space. There's a little
+waste in potentially unused fields in the inodes and the
+indirection tables are space that would not be used if the
+file were stored in a FAT system but this is usually
+going to be small compared to the whole size of a file.
+As for access time it is true that the inodes add
+an extra layer of indirection as we go through the directory
+tree. A directory points to the inode for a file rather
+than to the first state of the block. Because inodes are
+cached in memory however this performance cost is minimal. Much more important
+is that the inodes link the data blocks together in a treelike
+structure with a high branching factor as many as an indirection table can
+hold. This makes for much better random access than one gets from
+the linked list chaining of the FAT format at least for large files.
+
+## X03-052: Ref File Systems - Buffer Cache ##
+
+Now that we've seen how file systems work we turn
+to several optimizations that help make it fast since most storage
+devices tend to be slow. We'll first discuss some software
+optimizations and then turn to hardware. If you're first reaction is
+let's use a cache then you're on the right track.
+Indeed most operating systems do use free portions of main memory
+as a cache for the much slower mass storage device. Statistics
+vary on this sort of thing over time as technologies changes
+but by most measurements memory is as much as 100000
+times faster than disk for random access. Would use the
+portion of memory used as a cache for disc the
+unified buffer cache a name it earned for some obscure historical
+reasons. The terminology here can be a little confusing. So
+I'm going to emphasize that we're talking about in memory caching of
+the contents of the disc not the RAM on the
+disc controller that the device controller here might use. When data
+is read from disc is stored in this unified buffer
+cache so that subsequent reads can find it there. Instead
+of having to bother the disk again because disk access
+is often sequential. It is common also to read ahead in
+a file loading up subsequent blocks to main memory so
+that is there when the application needs it. Writing to
+disk is usually done with the write back policy. The
+change is made only in the unified buffer cache at first.
+And the page is marked as dirty. The slower operation
+of writing the data to the disk is postponed until
+some more opportune time. New files can also be created
+and stored in the unified buffer cache. If a file has
+a very short life span writing to the disk might
+not be necessary at all. The existence of the end memory
+cache. Means that a call to write isn't a guarantee
+that the data is changed on the disk and will persist.
+The changes are only reflected in memory. The advantage is
+that the program gets to resume faster and get on with
+its work. The downside is that if the system crashes
+before the write has been made to disk then changes will
+be lost. If you really do want to make sure that
+changes are reflected on disk need to call fsync or msync
+to flush out the unified buffer cache. The write-back policy of
+the buffer cache is also the reason that operating systems will
+warn you not to move storage devices without
+ejecting it first. It needs a chance to
+flush the buffer cache and any dirty pages
+so that changes will be reflected on the device.
+
+## X03-053: Ref File Systems - Journaling ##
+
+There are some dangers that come with the write-back policy
+of the buffer cache a sudden system rash or power failure
+would mean that all the changes made in memory only would
+be lost. If the storage device is removal it could just
+be that the user unplugged it before ejecting. It would be
+a nice idea if we could periodically copy all the changes
+reflected in memory to the disk. Maybe we could do this
+when some fixed number of dirty blocks is reached. The trouble
+is that the dirty blocks will likely be scattered all
+over the disks and we have to spend an inordinate amount
+of seek time just putting the right head of the disk
+in their correct place. Indeed it's the seek time that makes
+random access to a disk so slow in general. Sequetial
+access can be thousands of times faster than random access. It'd
+be so much easier if we could just write everything to
+one contiguous block. This is the idea behind journalling file systems.
+They reserve a contiguous portion of the disk for this
+express purpose. We write the changes to the journal quickly
+and mark the dirty box in memory as clean. Then
+at a more opportune time we apply all these changes stored
+in the journal to the appropriate files on the disk.
+The name journal comes from the analogy to a diary that
+one might write in every day to record the changes
+in one's life in time sequential order. Here we are recording
+the changes to the file system. Of course this does complicate
+reading from the disk somewhat. Any time we read from the disk
+we need to check the journal to see if there are any
+changes to apply. Total time spent on writing is slower. After all
+we are doing two writes instead of just one. The key
+is that the write to the journal is faster and that is
+the one we're doing at the critical time when we found that
+we found we had too many dirty pages or blocks in memory.
+Journalling also has the advantage that it helps with crashes.
+Problems typically occur when the right to summon important data
+structure like an inode is interrupted by some system crash
+or power failure. Let's consider what happens when a write
+from the journal to the rest of the disk is
+interrupted first. Well in that case the change that we
+need to apply will still be in a journal and
+so we can just reapply it on restart. No problem.
+The other write to worry about is the write to the
+journal itself. A failed write to the journal however can be detected
+by a checksum. And then the change can simply be ignored
+again leaving the important data structure on disk in a consistent state.
+
+## X03-054: Ref File Systems - Direct Memory Access ##
+
+There's one last optimization that I want to mention and
+this is a hardware one. One might expect that the CPU
+had to execute all of the store instructions needed to move
+data along the bus from memory to disk and vice versa.
+This would work but it would be very slow. Instead streaming
+devices like a disk have their own controller that is capable
+of sending along the bus itself. Through the bus the CPU
+tells it the length of the chunk it's supposed to copy
+the device address on the disk the memory address the
+command whether it's a read or a write and then
+tells it to go. The CPU then goes on about
+its business while the device controller uses the memory bus
+to either read or write the data. Now the CPU
+and the device controller are in competition for the use
+of the bus here. But because the CPU is going
+to find most of its data in the cache it's not
+using the memory bus all that often leaving it
+for the device controller. This phenomenon is sometimes called
+cycle stealing as the device controller is able to
+steal cycles on the memory bus away from the CPU.
+
+## X03-055: Ref File Systems - Fill in the Table Question ##
+
+Now let's do a question to help summarize the
+optimizations we just talked about. Check the box if you
+think the optimization given has the merit provided in the
+column. Most of these should be pretty clear. The tricky
+one is whether journaling helps improve overall performance. And it
+really depends on what one considers the alternative to be.
+If the alternative is leaving changes in memory for longer.
+Then no it doesn't improve performance. But if the alternative
+is spending lots of seek time trying to backup in memory changes to the disk
+then obviously it does help. Let's assume the latter so that this one is true.
+
+## X03-056: Ref File Systems - Fill in the Table Answer ##
+
+Let's first consider which of these optimizations reduces the
+number of writes to disk. The use of the buffer
+cache does because short lived files which are common
+in when compiling code for instance need never be written
+to disk. Journaling actually increases the number of writes
+to disk. So this is false. And direct memory access
+only gets involved when there is a write so it
+doesn't change anything. Next we ask which of these improve
+overall performance. And the answer is that they all do.
+The basic caching principle was the main motivation for the buffer
+cache since main memory is so much faster than disk and
+other mass storage. The advantage of journaling we already went over.
+If the data must be written to disk quickly better
+to do it sequentially. And lastly we saw how DMA sped
+up performance through the cycle stealing phenomenon giving more time for
+the CPU to do other work. Lastly we have the improvement
+for recovery. And the only optimization that had any
+effect here was the journal. Which reduced the recovery
+problem to just applying the changes from the journal
+to the rest of the disk something done routinely anyway.
+
+## X03-057: Ref File Systems - Conclusion ##
+
+We've covered a lot in this lesson from a high level view of why
+a file system is useful down to
+implementation details and optimizations used in today's
+sophisticated systems. If you keep these ideas
+in mind you've become a better programmer
+and appreciate the complexity behind the systems
+we use every day. So long for now.
+

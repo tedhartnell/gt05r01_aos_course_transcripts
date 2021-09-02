@@ -1,0 +1,793 @@
+## X04-000: Ref Memory Systems - Course Introduction ##
+
+>> Hello and welcome to this review course
+which is a prep for my graduate course on
+operating systems. When I teach graduate students on campus
+at Georgia Tech I often find that there's a
+gap between the knowledge they have of operating
+systems at the start of the course and what
+they really should know in order to get the
+full benefit of my graduate class. This is not
+being judgmental. But it is just that not
+all undergraduate operating systems courses are the same.
+And you may have taken a course on
+undergraduate operating systems a long time back. Or
+maybe you were not that enthusiastic about operating
+systems at the time that you took the
+course. This review course is not meant to
+be a substitute for an undergraduate education in systems.
+Rather it cover the topics many students have expressed that they
+wished they had it before starting to take my class. Helping
+me with this review course is Charles Brubaker a PhD graduate
+from Georgia Tech now turned into a course developer for Udacity.
+>> Hi there. With this course I'll try to give you concise
+explanations that will quickly put you
+into a better position. To fully understand
+the vectors and complete the projects of the advanced
+operating systems class. With these goals let's get started.
+
+## X04-001: Ref Memory Systems - Introduction ##
+
+The most important resources in a computer are space
+and time. Space in memory for storage and time
+on central processing unit for computation. We may tend
+to think about these things separately but there are important
+interactions between the two. And just as understanding the
+relationship between space and time is important for any good
+physicist. Understanding the relationship between efficient use of memory
+and then the CPU is important for any good program.
+This interaction will be the subject of this lesson as we
+look at cache systems and that all important abstraction of virtual memory.
+
+## X04-002: Ref Memory Systems - Naive Memory Model ##
+
+In your first programming class computer memory may have been
+explained to you with a picture that looks something like this.
+We have the CPU where your instructions get executed and these
+instructions may read or write to either main Memory or to
+Disk. Main memory is Fast and you can access any element
+in the same amount of time. That's what we mean by
+Random Access. And it is Temporary in the sense that when
+the program exits or if power is lost all the information
+stored in it disappears. The hard disk by contrast is
+slow. It uses Sequential Access since you have to actually
+spin the disk to the right place. And what you
+write to the disk is permanent. It will still be there
+when the program exits or if power is lost. In
+this lecture we're going to refine this picture in two ways. First
+we'll look at Cache Systems which allow the CPU to
+access the same information that is in main memory only faster.
+Understanding how cache systems work will help you optimize your
+code when you need to. Second we will explain the Virtual
+Memory system. As you write your application and compiler compiles it
+to generate addresses for all your variables and your code you
+don't have to worry about other programs and what memory
+addresses they might be using. In fact there's often an illusion
+that having even more main memory then exists in the system
+and that your application has them all to yourself. W'll see
+how the operating system maintains this abstraction
+to the virtual memory system. The details are
+essential to understanding operating systems optimizations. And how
+the need to share resources affects program performance.
+
+## X04-003: Ref Memory Systems - Cache Motivation ##
+
+To help us see the need for caches we'll examine
+this little snippet of code. From an application programmer's perspective
+a statement like this one the sum plus equals a
+of i would seem to happen in one step. Even
+in assembly it would only take a few instructions. In
+terms of time on the clock however not all of
+these instructions are the same. Sum being a local variable
+is most likely stored in a register in the CPU
+therefore there is almost no cost to retrieving its value. a
+of i however is in main memory and retrieving its value
+can take 100 CPU cycles. And even then the bus bandwidth
+might only be able to pass back two bytes a cycle
+or thereabouts to get the data back. Trips to main memory
+are expensive and this trend has only become worse over the
+past few decades with hardware advances. The solution to this problem
+has been to place a smaller faster set of memory made
+with faster technology closer to the CPU. We call this
+memory a cache. And here we're looking at a latency of
+about ten cycles. So when the CPU wants the contents
+of some memory address it looks in the cache first. If
+it finds the data it needs great we've just achieved
+a factor of ten speedups. We call this a cache hit.
+If the data it wants is not in the cache then
+we have to go to main memory. We call this a
+cache miss. The key is keeping these cache meshes
+infrequent so that on average time spent accessing is more
+like the time it takes to access the cache
+than it is like the time to access main memory.
+
+## X04-004: Ref Memory Systems - Data Costs Question ##
+
+To illustrate the power of the cache as well
+as the importance of high hit rates. We'll do
+a few calculations in the form of a question.
+Suppose that retrieving data costs 4 cycles on a cache
+hit but 100 cycles on a cache miss. Then
+how many cycles does it process with a 99% hit
+rate spend on average? And then we want to
+compare that to one with only a 90% hit rate.
+
+## X04-005: Ref Memory Systems - Data Costs Answer ##
+
+For the first calculation we have that 99% of
+the time it only costs four cycles and 1%
+of the time it costs 100 cycles. For a
+total of 4.96. And for the second we have that
+90% of the time it costs four cycles and
+10% it cost 100 cycles. Giving us a total
+of 13.6. This may be a little bit counterintuitive
+to see that a relatively small change in the percentage
+can have such a dramatic change in the speed. And
+the key is to think about the fact that it's actually
+really the miss rate that matters here. We're improving it
+by a factor of ten with having a 99% hit rate.
+
+## X04-006: Ref Memory Systems - Memory Hierarchy ##
+
+Probably the most important consideration in cache design is the
+trade off between speed and capacity. To help understand the impact
+of this trade off I'd like to visualize requests from the
+CPU to Main Memory like this where the orange lines represent
+the requests to the CPU. We would like the cache hit
+rate to be high and the speed to be fast. These
+goals however are somewhat contradictory. We can have a small but
+fast cache and just accept that this would have a low
+hit rate being only able to intercept quickly a few of
+the requests from the CPU. Or we could have a large
+cache but this would be slow there. Either because the physical
+limitations like the speed of light or because of the high cost
+of fast hardware. So we intercept more requests from the CPU.
+But we aren't able to return them as quickly. What is
+the right trade off? Well it's hard to say. But fortunately
+we don't have to make just one choice. We can trade off
+side versus speed multiple times at various levels within
+something called the cache hierarchy. What is not in
+the CPU registers we look for in an L1
+cache. What's not in an L1 cache we look
+in the L2 cache. A multicore processors there might
+be even a third level of cache. What's not
+there finally we look for in main memory. Even
+main memory however we can think of as a
+cache for what is on disk. Or we can also think
+about maybe main memory as a cache for what's on the file
+system. Notice here that the top is smaller faster and costlier
+per byte. And as we go down the hierarchy we get things
+that are bigger slower and cheaper per byte. And if we
+do a good job of keeping the data that we're going to
+access next in the higher levels of the hierarchy. That is if
+we can keep our hit rates high then making at the speed
+of the top part of the pyramid that has the capacity in
+the overall cost per byte of the lower end of the pyramid.
+
+## X04-007: Ref Memory Systems - Locality and Cache Blocks ##
+
+As we've seen in order for a cache to be effective
+the hit rate must be high. That is we need to
+be able to anticipate what data the process will need next.
+Ideally we would be able to look ahead in the code and
+plan ahead but so far this has proved impractical. Instead we
+used the heuristic of locality. That is we assume that if an
+application accesses one memory address then it will need nearby addresses
+soon. Sort of like how a psychologist says that the best predictor
+of future behavior is past behavior. Experts like
+to distinguish two types of locality. Temporal and spacial.
+Temporal refers to the tendency to refer to the
+same memory close and time. The spacial refers to
+the tendency to access memory that is close
+together in terms of address. Typical cache policies exploit
+both kinds. It exploits temporal locality by putting the
+data in the cache right after you use it
+thinking that you're likely to use it again soon.
+It exploits spatial by putting not just the memory
+address that you access but putting the whole block
+into the cache. Blocks I should explain are a division
+of memory by relatively small amounts often 64 bytes.
+This one block is from zero to 64. Another
+from 64 to 128 etcetera. If we access the
+memory location 87. Then we reason that we are likely
+to use addresses close to this one. And so we put
+the whole block from 64 to 128 in the cache. Now you
+may ask yourself why do we put the block of memory into
+the cache instead of something more consistent? Say maybe the previous 32
+bytes and the next 31 bytes or something like that. After
+all with blocks sometimes most of the data we pull in will
+be higher in the address space and sometimes most of it will
+be lower. Well the answer is that it makes it much easier
+to figure out what is in the cache and where. The size of the cache
+block is always a power of two so we can read which cache block we
+belong to just by looking at the
+higher-order bits. The lower-order bits are called the
+offset And tell us where within a given cache block the data we want is.
+
+## X04-008: Ref Memory Systems - Direct Mapping ##
+
+Next we turn to the problem of mapping. That is given an
+address how do I find out whether the data is in the
+cache and how do I retrieve it? We'll start with a direct
+mapped cache and a little notation. Let's suppose that we have two
+to the m addresses that our cache block or cache line is
+two to the n bytes. And that our cache has space for
+two decay entries. All of these are always the power of two.
+With these definitions we'll call the lowest n bits the offset. They tell
+us where within a given cache block the memory we want
+is. And the rest of the bits tell us the block
+number. But how do we know where to look for this
+block in the cache? We need some kind of hashing function.
+Well the easiest hashing function just looks at the lower order
+bits and that is exactly what a direct mapping does. The
+next k bit's the address tells the right index to look
+for our data in in the cache. Of course this means
+that multiple addresses will get hashed to the same location
+within the cache. Given that our cache had to be
+small this was inevitable. But we need a way to
+distinguish them. The solution is to use the tag or the
+higher order bit to the address as a kind of
+confirmation. Let's do a quick example. Suppose that we have an
+m bit address space. And our cache block is two
+bytes long so we just have one bit for the offset
+and that there are four entries in our cache. So
+we want two bits for our index. Then a direct mapping
+would look something like this where all the blue addresses would
+get mapped to the blue block of the cache. The green
+addresses would get mapped to the green and so forth. We
+can tell which of the color blocks is actually in the
+cache by consulting the tag associated with the data in the
+cache. In this example the tag for the blue is zero
+because it's the 0th blue block that's in the cache.
+Similarly the tag for the green block is one. Because
+it's the oneth green block that's in the cache and
+the same principle holds for all the other colors as well.
+
+## X04-009: Ref Memory Systems - Fill in the Table Question ##
+
+Okay. So let's do quick exercise here. Suppose a 5 bit address
+space and the cache contents given in this table here. Fill in this
+table for each address indicate whether it's a hit or miss in
+the cache and if it's hit provide the value provided by the cache.
+
+## X04-010: Ref Memory Systems - Fill in the Table Answer ##
+
+Okay here are the answers that I came up
+with let's go over this together. As in our example
+we have one bit for the offset and then
+the next two are the index. So this here I'm
+going to look at these two bits see index 00 and then go over and look at the
+cache. I see there that the tag is 0 1 and oh that does not match my 1 0 tag of
+the part of this address here so that's a
+miss. For the next one again I begin by consulting
+the index that's 11 so I go over here and
+I find that the tags part of my address and
+of the cache match. So that looks like a
+hit. Which of these two's values is it? Well for
+that I'd look at the offset and I'd see that
+it's the second one. So I write the value 99.
+For the third one again the index is here 1 0. I go and look at that in
+my table. I see I have a tag1 0
+and oh that matches the tag part of this address.
+So it's another hit. Which of these two values
+is it? Well I go look at the offset that's
+zero so it's this first one 5 7. And
+lastly again we'll start by looking at the index That's
+one one and up the tags do not match so that's a miss.
+
+## X04-011: Ref Memory Systems - How Many Bits Question ##
+
+Okay here's another question. Suppose a 22 bit address space a 512
+byte cache and a cache block size of 64 bytes. And
+I want you to tell me how many bits are used
+for the index and how many bits are used for the tag.
+
+## X04-012: Ref Memory Systems - How Many Bits Answer ##
+
+Alright? Here are my calculations. I saw that we had
+512 byte cache and the block size is 64 bytes.
+So how many entries could there be? Well we just
+do the division. We find there are eight. So that's
+2 to the 3rd which means that I only need
+three bits worth of index. And then to calculate how
+many bits are used for the tag. I start out
+with all 22 bits. I remember that three are used
+for the index and since we have 64 byte cache lines I say that
+there are six used for the offset and that leaves me with 13 left over.
+
+## X04-013: Ref Memory Systems - Set Associative Mapping ##
+
+It's possible to get unlucky using direct mapped caches in
+that different blocks that are important to your application might get
+mapped to the same index in the cache. For instance
+if an application happens to access two cache lines that have
+the same index maybe this one and this one here
+then they will constantly be evicting each other from the cache.
+And it it will be essentially useless. This of course is
+rather silly given that there are all these other entries in
+the cache that aren't getting used at all. The
+fundamental problem is that the address any one of these
+here is only associated with one location in the
+cache. We can mitigate these effects by associating an address
+with more than one block in the cache. One
+strategy is to treat all the red lines as blue
+ones and all of the orange lines as green ones.
+If we do this then we'll have twice as many
+places in the cache to store a blue line of memory.
+Actually it's more convenient to think about the blue lines in
+the cache being together. And in this way we can say
+that we have simply decided to ignore the most significant bit of
+our previous index but to allow a cache block to now
+be stored in two possible places. Hence this would be called a
+two way associative cache. The downside is that we have to
+check two tags now to see if we have a cache hit.
+But we are less likely run into a problem where
+we are constantly evicting the memory we need from the cache.
+If we decide this isn't good enough we can halve the
+number of indices again to create a four way associative cache.
+Returning to our general notation we now say that we have
+2 to the j associativity. This means that we only have
+two to the k minus j indices into our cache and
+the index is really only k minus j bits long now.
+This greater associativity also gives the cache
+some choice about replacement. Whereas with the
+direct mount cache there was only one block in the cache where the data could
+be stored. We now have a set of possible locations. Just two in our example
+but maybe more. Typically we choose to
+evict the entry that was least recently used.
+
+## X04-014: Ref Memory Systems - 2 Associative Example ##
+
+Now let's see a two-way set associative cache in action.
+We will assume a 5-bit address space with a 2 byte
+cache length. Notice that I've added a valid bit to
+our cache here so that we can tell whether data has
+ever been loaded up to a line in the cache.
+Uninitialized caches are called coal. Let's say that 0 is the
+first address. In most systems that's not allowed but it's fine
+for our example. The second bit here tells us the index
+for the cache. So we'll need to put this
+in the 0 set somewhere. We put it in here
+flipping the recently used item to say 1 because
+that would be our preferred place to write the next
+cache line with index 0. Maybe after this I
+have an address that looks like this one. The index
+here is 1 so we want to put it in this
+group and again I'll put it in the first line
+setting the valid bit writing the data and marking
+the least recently used bit. Our next address has
+index 0 so it gets written there. Notice that
+I chose this slot because the LRU had been one
+and I flipped it back to zero because this
+is now the least recently used item in this
+part of the cache. Next we have an address
+with index 1. We checked the tag and we see
+that it's a hit. Oh my goodness. Notice that this address is a hit even
+though we didn't read the exact same address
+before. But we did read an address belonging
+to the same cache block. Next we have
+another address with index 0. So he comes
+in here and evicting one of the previous
+entries. This one because of the LRU bit.
+
+## X04-015: Ref Memory Systems - 2 Associative Question Question ##
+
+Actually let's make the next address a question.
+Is this address a hit or a miss?
+
+## X04-016: Ref Memory Systems - 2 Associative Question Answer ##
+
+The answer is that it's a miss. We find the index one we're look in here and
+up the tags don't match. It does match this
+tag up here but that has the wrong index.
+
+## X04-017: Ref Memory Systems - Fully Associative Mapping ##
+
+Now we follow the idea of associativety to the extreme
+and let any cache block be put anywhere in the
+cache. Returning to our example if this was a direct
+map cache where every block has only one place to go.
+And this was a set associative cache where there was
+a small set of places that a block can go. Then
+this is a fully associative cache where all cache blocks
+are treated alike and can be put anywhere in the cache.
+Looking at a more general notation then we see
+that full associativity means we don't interpret any of
+the address as index anymore. It's all tag. This
+means that when we ask if a particular address is
+stored in the cache. The hardware has to check
+tags for every cache entry. Or at least do
+it sequentially really really fast. This fact generally limits
+fully associative caches to sizes between 64 and 256 entries
+
+## X04-018: Ref Memory Systems - Write Policy ##
+
+So far we have focused mainly on reading data. But what
+happens when we want to write to memory? Here we'll consider
+a single core system. I'll refer you to an architecture class
+for a shared memory system where keeping a cache consistent becomes a
+challenge. We need to consider both what happens on a hit
+when the block we want to write to is already in
+the cache. And what happens on a miss when it isn't.
+On a hit the most obvious thing to do is to write-through
+to memory. That is we'll write to the cache and then
+also write to the main memory to copy the data and
+keep the cache and main memory consistent. As long as I
+don't have to worry about some other entity needing an updated
+version from memory however there's actually no need to write everything
+this instant. This is the insight behind the write-back policy which
+only writes to the cache. After all that's where we'll look
+first if the same processor tries to read the data or
+write to it later. Only when the cache block gets
+evicted sometime later does the data really need to be
+written to main memory. And then it'll be the whole
+cache block. This lazy approach can be beneficial when the same
+cache block is written to many times before [INAUDIBLE]. For
+cache misses we also have two strategies. The first is
+write-allocate which first reads the current value in memory into
+the cache. Then it behaves as though it were a hit
+using either of the two hit strategies. Lastly we have
+the no-write allocate policy where we just write the data
+to memory and don't bother with the cache at all.
+The interactions among these policies can be subtle particularly when
+there are multiple cache levels. It is worth pointing out
+however that some of these policies share certain assumptions and
+are therefore often paired together. The write back policy is
+betting that there will be subsequent writes to the same
+cache block. That's why he is bundling up all the
+changes he is making for one trip to memory when the
+block gets evicted. Write allocate is also betting on subsequent
+writes to the same block. That's why he loads the data
+up into the cache. On the other hand write-through is
+betting on the cache block being evicted sooner rather than later.
+He does his writes to memory up front so that
+he can quickly evict the cap block from the cache later
+if he has to not having to worry about any
+writes to the disk. Similarly the no-write allocate policy is
+also betting on that same cached block not being used
+again soon. It doesn't even bring the data into the cache.
+
+## X04-019: Ref Memory Systems - The Virtual Address Abstraction ##
+
+The chief goal of a virtual memory system
+is to provide a process with the abstraction that
+it has an address space all to itself
+typically organized like this. We have addresses for the
+program code. We have addresses for variables that
+are initialized literals constants things like that. Space for
+uninitialized global variables that we expect to change over
+the course of the program. Space for the heap
+which is dynamically allocated and might grow or shrink over
+the course of the program and space for the user
+stack the procedures local variables all that sort of thing.
+There are also addresses reserved for the kernel we'll see
+how this improves efficiency later in the lesson. The advantage
+of this abstration are best seen from the compiler's perspective.
+The compiler can choose an address for a local variable
+or code for the body of a procedure without having
+to worry about what other processes might be running on the
+computer at the same time as the application is compiling. And what
+physical memory those applications might be using. He gets to pretend that
+the application and the OS will have the computer entirely to themselves.
+
+## X04-020: Ref Memory Systems - Address Translation ##
+
+The key to maintaining the virtual memory abstraction is
+a layer of indirection. Without this layer of indirection two
+processes couldn't use the same address for a variable
+because then they would end up overwriting each other. This
+would make life very difficult for programmers and compilers.
+So we play one of the classic computer science tricks
+and introduce a layer of indirection. Inside the operating
+system each process has something called the page table that
+acts like a phone directory or a dictionary. Giving for
+each virtual address the physical address that it corresponds to.
+Usually this will be a place in memory but when
+space in main memory is low it might also be on
+part of the disk called swap in many systems. And
+when a program is first starting up you usually don't
+load the whole application into memory first thing but rather
+leave part of the program that might not always be needed
+on the disk. This indirection allows us to accomplish
+several things. First it allows us to have an address
+space that is bigger than physical main memory. This is
+convenient when main memory itself isn't big enough and we
+need to use the disk or when we want
+to map other storage devices and treat them like memory.
+Second it provides protection between processes as mentioned earlier without
+indirection the applications might find
+themselves overwriting each other's data.
+With the operating system properly managing the page tables
+however these two virtual addresses can be pointed to different
+physical addresses. Thirdly it can allow for sharing. Even
+different virtual addresses can be made to refer to the
+same physical address again just by properly maintaining the
+page tables. Lastly I should point out that because kernel
+addresses are the same for each process they get
+their own page table that is shared among the processes.
+This is called the global page table.
+
+## X04-021: Ref Memory Systems - Paging ##
+
+Recall how for caches we divided memory into blocks
+or cache lines. And this's the granularity at which
+caching operates. Similarly for a paging system we divide
+up our physical address into pages often 4k long.
+Pages are the granularity at which we grant memory
+to processes. The higher order bytes determine the page
+number also called the physical page frame. And the
+lower order bytes determine the offset into the page.
+Correspondingly the virtual address space is similarly divided into
+pages. Again lower order bytes determine the offset within
+a page. The higher ones determine the virtual page
+number. The number of bytes in the offset always match
+that's because virtual page sizes and physical page sizes
+aren't necessarily the same. But the number of bits involved
+in the virtual page number need not match the
+number of bits used to identify the physical frame number.
+That's because as we said before it's possible to have more virtual pages
+than physical pages. Since we're mapping
+page for page between virtual and physical
+addresses the offsets stay the same. We do need to translate page numbers
+however. And for this we use a data structure called the Page Table.
+
+## X04-022: Ref Memory Systems - Virtual Page Numbers Question ##
+
+Here's a quick question to make sure we're on
+the same page so to speak. Consider a 16-bit virtual
+address space and a 512 byte page size. How many
+virtual page numbers are there? You can assume byte addressing.
+
+## X04-023: Ref Memory Systems - Virtual Page Numbers Answer ##
+
+Here's how I write to my answer. The fact that we have a
+512 byte page size implies that we have 9 bits used for the offset.
+This leaves us with 7 bits for the virtual page number and that
+gives us 128 possible pages since two to the seventh is equal to 128.
+
+## X04-024: Ref Memory Systems - Page Table Implementation ##
+
+Now we consider the implementation of the all-important page
+table data structure which needs to translate virtual page numbers
+into physical page frames. Virtual page numbers start at
+zero and then go up by one. So the most
+straightforward way to do this would be to create
+a giant array that is the number of pages long.
+Let's see how this strategy might work. Suppose that we
+have a 48-bit virtual address and 32-bit physical address and
+let's say pages of sizes 4K. We've used up 12 bits for the offset leaving 2 to
+the 36 possible virtual page numbers. That means
+that we need an array 2 to the 36
+long each entry probably having 4 bytes to
+specify the physical address which brings us to a
+total of about 256 gigs. Which is more memory
+than most machines have in RAM. And of course
+almost all of it is wasted since most virtual addresses
+aren't used. Even with just 32 bit virtual addresses we
+would still need a page table with 2 to the
+20th entries. And that would put us on the order of
+several megabytes. And of course we need one page table
+per process. So instead page tables are done in a hierarchical
+way. In our 32-bit example the highest order 10 bits
+are used as an index into a top level page table.
+The contents of this page table then give us
+the base address of another page table. We use the
+next 10 bits as the index into that lower
+level page table. And the contents of that page table
+then give us the physical page number. Why does
+this help us use less memory? Well recall our virtual
+address space. We use addresses at the bottom and
+we use addresses at the top. But there's a vast
+empty region in the middle. Many of these
+unused addresses will have the same 10 higher order
+bits. And for these we won't even have a
+secondary table. Thus we end up using not too
+much more memory for the page table than we
+really need to. The particulars of the actual page
+implementation vary greatly. Some have three levels others have
+four. But they all use this basic hierarchical strategy.
+
+## X04-025: Ref Memory Systems - Accelerating Address Translation ##
+
+So far we've described the address translation process like this.
+The offset from the virtual address simply gets copied to
+the physical address. And in order to translate the virtual
+page number we do a look up in the page table
+which is in memory to find the physical page frame.
+Now you may be asking yourself won't going to memory for
+the page table every time we access a memory address
+be slow? In fact we'll have to go multiple times for
+our hierarchical page table. Well indeed it would
+be. Thankfully the page tables themselves may end up
+in our cache which can help considerably. But
+architects have also created a special purpose cache for
+storing page table entries called the table lookaside
+buffer. Or TLB for short. Instead of going through
+these slower traditional memory mechanisms we're taking a special
+shortcut. Whereas the caches we talked about earlier are
+usually indexed by physical address the TLB is indexed
+by virtual address. After all its job is to
+translate virtual page numbers to physical ones. This is
+extra tricky because one virtual page number may be mapped
+to a physical address in one process but it
+might be invalid in another or mapped to different
+location. There are two ways to handle this problem.
+Some systems simply flush the TLB on every context switch.
+That is every time the address space switches. This is
+a main reason that context switches are considered so costly. Alternatively
+the TLB can use an address space identifier field in the
+table to make sure that the translation in the table is
+meant for use in the current context. I should point out
+too that the kernel sometimes get's special treatment in the TLB.
+Because the kernel addresses our constant across processes there is no
+need to flush them from the TLB on a context switch.
+Sometimes too part of the TLB is reserved for kernel addresses.
+
+## X04-026: Ref Memory Systems - Page Table Entries ##
+
+Now I want to consider the contents of the page table
+entries at least the entries at the leaves of the hierarchy. In
+our example where we had a 32-bit physical address space it
+would be typical to have a page table entries also of 32
+bits. With 4k pages only 20 bits would be needed for
+the physical page frame. What do we do with the other 12
+bits? Well it turns out that there's lots of other information worth
+storing in the page table. Some of the more important are things
+like access control. Do we have read write or execute
+permissions on this memory? If we don't then when we
+come to this page entry an access violation or segmentation
+fault will occur. Another essential piece of information is whether
+the information associated with the virtual address is actually in
+memory at the moment. It may be the data that
+we need was not loaded on the application's start-up or
+it may have been swapped out to disk. In either
+of those cases the valid or the present bit would be
+zero. When a process tries to access a page with a valid
+bit of zero it creates a page fault and let's the OS
+try to bring the needed data into memory. We'll look at the
+page fault handler next. One of these bits also indicates whether
+the page is dirty. That is has it been written to since
+it was loaded for disk? If not then if it becomes necessary
+to evict this page from memory there is no need to write
+it to disk if it's already there. A nice
+optimization. Sometimes a bit or two will also control
+how caching of this page is done. Page table
+entries corresponding to virtual addresses that were never mapped
+to a physical address by the OS usually have
+physical frame numbers of zero. The physical frame number
+of zero is rather like a null pointer. Everybody
+knows that that's an invalid physical frame number and a
+segment fault will be generated.
+
+## X04-027: Ref Memory Systems - Page Fault ##
+
+Next we turn to the page fault and ask the
+question: What happens when an application requests a virtual address
+that's not mapped to physical memory but is somewhere on
+disk? I'll represent a user's process like so and at
+some point he uses a virtual memory address that's not
+actually mapped to physical memory at the moment. Yikes! Actually
+it's not that big a deal. An exception is raised
+which sets the running process back to be ready to repeat
+the instruction that created the the fault. Meanwhile
+the operating systems page fault handler takes over to
+address the problem. He checks to make sure the
+request is actually valid and sends sends a segfault
+if it isn't. Then he loads the desired page
+into memory gets everything ready and then tells the
+scheduler that the process is ready to resume. The
+process will execute its memory move or read or
+whatever it is again and this time it will succeed because
+the page has been loaded into memory and it can continue
+running. That's the high-level picture. Let's talk a little bit more
+about what the page fault handler does. So assuming that the
+page we want really does reside on disk the first thing
+the page handler does is to find a physical page frame
+in memory to load the data into. The best scenario is
+that one is free. The handler keeps a list of free pages.
+If this is not empty then he can just pop one off.
+Okay? And that makes us very happy. If he doesn't have a
+free page however then he must choose a page for replacement. There
+are many possible page replacement algorithms. We won't go into them here.
+For our purposes it suffices to say that a page handler will
+pick a page that it doesn't think is likely to be used
+soon. This page is saved to disk and then its physical memory
+can store the page that was created by the page fault. So
+one way or another we now have a free physical page in memory to which
+we can write the data we need from disk. Then we update the process's page
+table and any other data structures that
+are page fault handler needs to keep track
+of and then we're ready to restart the process and let it continue on to a
+
+## X04-028: Ref Memory Systems - Putting it all Together ##
+
+At this point we've covered all of the essential pieces of
+the memory system. Now let's step back and put it all together.
+To help us do this I've written some pseudocode that captures the
+strategy for loading data into the CPU. You can imagine that we're
+writing an emulator if you like. The first thing that needs
+to happen to a virtual address is for it to be converted
+to a physical address. We'll postpone that until later. Then if the
+data is in the cache we simply read from the cache otherwise
+we read from memory. Note that whenever we read from memory
+we also write to the cache evicting some block if necessary.
+This process is is what we talked about in the first
+half of the lesson. The second half of the lesson was
+largely concerned with address translation. The first place we check is
+the tlb. If the physical page frame is there then we're
+done. If not then we need to consult the page table.
+Notice that none of these procedures that access the page table
+should use the load procedure as it's defined here. The
+top level page table cannot be in a paging system itself.
+Otherwise load would call translation which would then end up
+calling load again which would end up calling translation and so
+forth. We can imagine a fixed page being assigned to
+store the top level of page table another good reason for
+making this small. I've made the check for the access
+violation explicit here because it's in the page table that this
+is most likely to happen. It's possible that we would get
+an access violation in the tlb if we try to read
+a kernel page. But for the most part the page simply
+won't be there. If the present or valid bit isn't set
+in the page table entry that means that the page we
+want isn't in memory. So we raise a page_fault. This will
+then be caught by the page handler up here and then
+we can re-run the load procedure and this time we will
+find that it's in memory. And so we won't raise the page fault again. Obviously
+this pseudocode has its limitations. By using just
+software we can't capture the interaction between the
+OS and the hardware and we're abstracting away
+many of the details. Nevertheless if this makes
+sense to you then you have a good
+high-level idea of how a memory system operates.
+
+## X04-029: Ref Memory Systems - Virtually Indexed Physically Tagged Caches ##
+
+You can't resist talking about one final optimization. Looking at
+this load method notice how the translation to the physical
+address and cache look-up happen in sequence. We could speed
+up our implementation if we could find a way to do
+this in parallel. At first this might seem impossible. After
+all the cache is indexed by the physical address We don't
+know this until we've done the translation. Recall however that
+only the higher order bits are changed when we go from
+the virtual address to the physical address. The offsets
+within the page stays exactly the same. Which bits are
+important for extracting data from the cache? Well it's
+these middlest bits that come after the offset for the
+cache block. As long as the index bits for
+the cache don't extend beyond the offset for the page
+this little red line here then we can extract data
+from the cache. Before we know the full physical address.
+Conceptually we're going to do something like
+this where the virtual page number
+goes to the TLB and the page offset goes to the cache. The
+tag or tags in the said associative case then gets compared with
+the page frame number from the TLB and the correct data is returned.
+
+## X04-030: Ref Memory Systems - Number of Entries in a Virtually Indexed Physically Tagged Cache Question ##
+
+Here's a question to test your understanding of the virtually indexed
+physically tagged cache. Suppose 32-bit
+virtual and physical address spaces. Pages
+are four kilobytes and cache blocks are 64 bytes. What is
+the maximum number of entries in a virtually indexed physically tagged cache?
+
+## X04-031: Ref Memory Systems - Number of Entries in a Virtually Indexed Physically Tagged Cache Answer ##
+
+Here's my answer. The 4k page size implies a 12 bit page offset. The
+64 byte cache block implies a 12 bit cache block offset. Therefore we have
+6 bits left for the index leaving us 64 in this use for the cache. Actually
+the size of the virtual and physical address spaces don't matter at all.
+
+## X04-032: Ref Memory Systems - Conclusion ##
+
+This completes our lesson on memory systems and if
+you followed along you now have an advanced understanding
+of how memory systems work. This should make you
+a better programmer and put you in a good
+position to think about some of the complex trade-offs
+involved in CPU scheduling and maintaining cache coherence especailly
+in the context of shared memory machines where there
+are multiple CPU's. There is always plenty more to learn.
+

@@ -1,127 +1,105 @@
-## L01b: Hardware Resources ##
+## L01b-012: Hardware Resources - Introduction ##
 
-### All Links
-
-Udacity: https://classroom.udacity.com/courses/ud189
-Playlist 01: https://www.youtube.com/playlist?list=PLAwxTw4SYaPkKfusBLVfklgfdcB3BNpwX
-Playlist 02: https://www.youtube.com/playlist?list=PLAwxTw4SYaPm4vV1XbFV93ZuT2saSq1hO
-Playlist 03: https://www.youtube.com/playlist?list=PLAwxTw4SYaPk5-YaXFkWY4UXdv6pVdiYg
-Playlist 04: https://www.youtube.com/playlist?list=PLAwxTw4SYaPmfaiuzJcK3tNoeKlvRR990
-
-01. https://youtu.be/zZM3095mPQU
-02. https://youtu.be/TbiQCFteAPE
-03. https://youtu.be/abbmT9CR2q4
-04. https://youtu.be/_hunEF_HNmA
-05. https://youtu.be/gXwpdYGChOs
-06. https://youtu.be/QYwFW7rMyvY
-07. https://youtu.be/1tk2c2DRGz8
-
-### Video 01
-https://youtu.be/zZM3095mPQU
-
-After that fun review of the power of abstractions, next we will take a
+After that fun review of the power of abstractions next we will take a
 look at the hardware resources being managed by the operating system.
 
-### Video 02
-https://youtu.be/TbiQCFteAPE
+## L01b-013: Hardware Resources - Hardware Continuum Question ##
 
-As we will see, one of the operating system's role is to control access of the
+As we will see one of the operating system's role is to control access of the
 applications to physical hardware. So a basic understanding
 of hardware components and how they interact is
 essential to the course. Let's do a quick
 review. What better way to start the review
 than by a fun quiz. Now in this
-quiz, I'm showing you the hardware continuum that exists
+quiz I'm showing you the hardware continuum that exists
 today in terms of the devices that you and I are using on an everyday basis.
 Smartphones all the way to the cloud and
-a lot of data points inbetween. There are tablet's,
+a lot of data points inbetween. There are tablet's
 and laptops. There are desktop computers. There are
-servers. And of course, the cloud computing itself that
-you may have heard of, that is being
+servers. And of course the cloud computing itself that
+you may have heard of that is being
 enabled by data centers. So this is a hardware
 continuum that you're looking at. And the question that I'm posing to
-you is, is the internal organization of computer system in this continuum,
+you is is the internal organization of computer system in this continuum
 going all the way from smartphone to the cloud. Is this vastly
 different? That's the question. And it's a binary answer. Yes or no.
 
-### Video 03
+## L01b-014: Hardware Resources - Hardware Continuum Solution ##
 
-The right answer is no, and since this might seem a bit counterintuitive
-given this huge range of the hardware continuum, let's reason
-it out. Basically, the hardware inside a computer
-system consists of the processor, memory. And
+The right answer is no and since this might seem a bit counterintuitive
+given this huge range of the hardware continuum let's reason
+it out. Basically the hardware inside a computer
+system consists of the processor memory. And
 implode the devices. And the organization of these hardware elements
-within the computer system, whether we are talking about
-smart phone or cloud, is not going to change tremendously.
+within the computer system whether we are talking about
+smart phone or cloud is not going to change tremendously.
 
-### Video 04
-https://youtu.be/_hunEF_HNmA
+## L01b-015: Hardware Resources - Hardware Resources in a Computer System ##
 
-So we have this hardware continuum from cell phones and PDAs to laptops,
-to tablet's, to desktop computers, all the way to nodes in
+So we have this hardware continuum from cell phones and PDAs to laptops
+to tablet's to desktop computers all the way to nodes in
 a data center that is providing cloud computing services. Regardless of these
-different manifestations and sizes, the organization
+different manifestations and sizes the organization
 of the hardware inside the computer
 system is pretty much the same. You've got a CPU. And the CPU is connected to
-a conduit, which we call the bus. And
+a conduit which we call the bus. And
 you've got memory that has the instructions and
-data that is needed for the CPU to execute. And the CPU can use it's conduit,
-namely the bus, to access the memory. And
+data that is needed for the CPU to execute. And the CPU can use it's conduit
+namely the bus to access the memory. And
 you need storage for persistance of files and
-other data that your produce during the computation. And, once again the CPU can
+other data that your produce during the computation. And once again the CPU can
 access stuff on the student's device through
 a controller that is also connected to
-this conduit. And you may have other peripheral devices, like a microphone and a
-camera. All of these devices, of course,
-are accessible for the CPU through this conduit,
-which is the bus. And of course in this day, and age a device has to be
-able to communicate with the outside world. You have a network, and once again
+this conduit. And you may have other peripheral devices like a microphone and a
+camera. All of these devices of course
+are accessible for the CPU through this conduit
+which is the bus. And of course in this day and age a device has to be
+able to communicate with the outside world. You have a network and once again
 the network is interfaced through a controller to the CPU via
-this conduit. So this conduit for communication Which is the BUS,
+this conduit. So this conduit for communication Which is the BUS
 serves the purpose of connecting the CPU to the
 memory as well as all the iode devices that
 it may need to interact with in order to
 do whatever the intent is of the user and
 the application that they want to run on the
 computer. And depending on the sophistication of the device
-that we're talking about, and the speed of the
+that we're talking about and the speed of the
 device that we're talking about. These controllers that I'm
 showing you may have different capabilities. So for instance a
 network controller may have the ability to
 move the data directly from the memory into
-the network, or from the network into the
+the network or from the network into the
 memory and this As you may have learned
-in a computer organization course, is called direct
+in a computer organization course is called direct
 memory access for the controller to move data
 swiftly between memory and the IO device. And
 similar DMA facility may exist in the controllers
-of other high speed devices, this is the high
+of other high speed devices this is the high
 speed device. So that's the capability that you got
 for some of these controllers. Some of these controllers
-may be slow enough, for instance a keyboard or
-a mouse, that the CPU can directly query new
+may be slow enough for instance a keyboard or
+a mouse that the CPU can directly query new
 data that is coming from the controller that is
-associated with slow speed devices, and move it into
+associated with slow speed devices and move it into
 memory or use it in any fashion that it wants.
 
-### Video 05
-https://youtu.be/gXwpdYGChOs
+## L01b-016: Hardware Resources - Organization With I O Bus ##
 
 Here are the more elaborate organization of the hardware resources inside a
-computer system with an I/O Bus and a system Bus, and usually the system
-Bus, is a synchronous communication device between the CPU and the memory.
+computer system with an I/O Bus and a system Bus and usually the system
+Bus is a synchronous communication device between the CPU and the memory.
 The I/O bus is primarily intended for the devices to communicate with the CPU.
-And the intent is that the individual needs of each of these devices, in terms
-of the communication bandwidth that they may need,
+And the intent is that the individual needs of each of these devices in terms
+of the communication bandwidth that they may need
 is less than the cumulative bandwidth that may
 be available for the CPU to communicate with
-the memory. Or in other words, the system
+the memory. Or in other words the system
 bus has a communication bandwidth that is much
 more than the communication bandwidth that's available in
 the I/O bus. So the system bus is a high speed bus and it connects via a bridge
-to the I/O bus. And this bridge itself, could be a specialized IO processor
+to the I/O bus. And this bridge itself could be a specialized IO processor
 for scheduling the devices that need to communicate
-with the memory for instance, if it is
+with the memory for instance if it is
 a DMA device or need to communicate with the CPU if it's a slow speed device.
 So the role of the bridge is like a processor in itself. Controlling
 who has access to this I/O bus among the set of devices that
@@ -132,56 +110,55 @@ than the higher speed system bus. And the cumulative
 bandwidth that is needed in the system bus is
 usually much higher because it has to cater to
 all the clients that may want to access the
-memory, either from the CPU or from any of
+memory either from the CPU or from any of
 these devices coming through this bridge. There may be
-other high-speed devices, for example, a frame buffer, of
+other high-speed devices for example a frame buffer of
 a graphics display that may also be hanging off of
 the system bus due to the need for refreshing the screen in a rapid manner from
-the memory. So in a nut shell, if you look at the internal organization of a
+the memory. So in a nut shell if you look at the internal organization of a
 computer system that are going to be one or
-more CPUs, whether it is a single-core machine
+more CPUs whether it is a single-core machine
 or multi-core machine or parallel machine and so
 on. You're going to have one or more CPUs and
 youre going to have a bunch of memory that the CPUs can access and there's
 going to be a whole number of input-output devices. And device controllers that
-allow these devices to communicate with the CPU, or
-directly with the memory. And there are conduits, system bus and I/O bus,
+allow these devices to communicate with the CPU or
+directly with the memory. And there are conduits system bus and I/O bus
 for connecting these controllers to the CPU as well as
-to the memory. Basically, these conduits allow ferrying data from the CPU to the
-devices, or from the devices to the CPU, and between CPU and the memory,
+to the memory. Basically these conduits allow ferrying data from the CPU to the
+devices or from the devices to the CPU and between CPU and the memory
 as well as from the devices to the memory. This is why I mentioned
 earlier that there is no difference in
-the organization, regardless of the platform specifics,
-the form factor may be different, or the intended use may be different
+the organization regardless of the platform specifics
+the form factor may be different or the intended use may be different
 of a particular platform. But the internal
 organization is pretty much going to look as
 I've shown you here in terms of the hardware elements that are going to be
 there as well as the connectivity that
 you might see among these hardware elements.
 
-### Video 06
-https://youtu.be/QYwFW7rMyvY
+## L01b-017: Hardware Resources - The Specifics ##
 
-The specifics, such as the computational power,
-the memory capacity, and the number and
-types of input, output of devices, may vary from one manifestation of a computer
-system, to the next. For example, commensurate
-with it's intended use, a cell phone
+The specifics such as the computational power
+the memory capacity and the number and
+types of input output of devices may vary from one manifestation of a computer
+system to the next. For example commensurate
+with it's intended use a cell phone
 or a pda may have very limited
-input/output capabilities such as a graphics display,
-speakers and microphones. But on the other hand, a high end supercomputer
+input/output capabilities such as a graphics display
+speakers and microphones. But on the other hand a high end supercomputer
 used for running large scale scientific applications may employ thousands
-of CPUs, incorporate several terabytes of memory and be connected
+of CPUs incorporate several terabytes of memory and be connected
 an array of disks with storage capacities on the order of several parabytes.
 
-### Video 07
-https://youtu.be/1tk2c2DRGz8
+## L01b-018: Hardware Resources - Conclusion ##
 
-In summary then, the organization of a
+In summary then the organization of a
 computer system is consistent enough that many of
 the key operating system concepts apply to all
 of them regardless of size and capacity. On
-the other hand, these differences should not
+the other hand these differences should not
 be ignored and advances in hardware have helped
-drive innovation in operating systems, so that we
+drive innovation in operating systems so that we
 can get the most out of their capabilities.
+

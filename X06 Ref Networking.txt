@@ -1,0 +1,814 @@
+## X06-091: Ref Networking - Introduction ##
+
+Welcome to this unit on networking. It covers how
+computers communicate from the very simple connections in a machine
+cluster to the architecture of the internet which makes it
+possible to reach most any willing computer around the world.
+We will assume a basic familiarity with technologies and terms
+such as anyone working with or programming computers would acquire
+today. And we'll focus on how all these pieces fit
+together. To make network communication possible and so simple for
+its end users.
+
+## X06-092: Ref Networking - Interconnection Layers ##
+
+The Internet is an extraordinarily complex creature using a
+wide variety of hardware and communication protocols. To help
+make sense of it all most any discussion of
+networking begins with the notion of interconnection layers an idea
+that captures the most important relationships among the Internet's
+components. Several attempts have been made to formalize these most
+notably the seven-layer OSI model and the four layer
+Internet protocol suite. We use a hybrid model here and
+try to keep the discussion intuitive. The physical layer
+refers to hardware that actually creates and transmits the
+electronic and optical signals as well as the protocols
+for interpreting these signals as bits. This would include
+the network interface card inside your computer the modem
+that your Internet service provider gave you or recommended
+that you buy. For ethernet cable connecting your modem
+to your computer and even submarine fiber optic cables that
+stretch across the world's oceans. Protocols are interpreting the
+signals sent across these media include physical ethernet and sonnet.
+The link layer covers the communication between peers on a
+local network. The most trivial topology for a local network
+is just point to point where there is a
+permanent link between two end points. We can also have
+more complex topologies however where multiple nodes are all connected
+to the same medium and feel all each other's signals.
+The challenge here becomes making sure that they don't
+all talk at the same time. The link layer also
+encompasses switching where connections between nodes are made on an
+as-needed basis to reduce the potential for crosstalk. The network
+layer is responsible for end-to-end communication on the internet. When
+you request a page from the Udacity website the data
+doesn't come directly from our servers but goes through several
+intervening machines. This process of routing the data or figuring
+out what path the data should take belongs to the
+network layer. Unlike other layers which have evolved to include many
+different technologies the network layer is governed almost exclusively by
+the Internet protocol and the system of IP addresses. Now once
+data reaches your machine there has to be some way
+of knowing which application it is intended for. Also communication isn't
+perfect so we need some mechanism for detecting when data goes
+missing arrives out of order or when the connection is overloaded.
+Coping with these situations is the job of the
+transport layer. And lastly at the highest level we
+have the application layer which includes application specific protocols
+such as HTTP for web SMTP for mail etc.
+The relationship between these layers is mostly one of
+using. The link layer uses the physical layer to
+accomplish its goal of enabling point-to-point communication across a
+shared medium. The network layer uses the link layer
+to accomplish its goal of end-to-end communication between two
+machines on the internet. The transport layer uses the network
+layer to accomplish its goal of reliable end-to-end communication
+between applications. And the application layer uses the transport layer
+to accomplish its goal whatever it may be whether
+it's fetching a website sending an email or streaming a
+movie. The plan for this lesson will be to
+start at the bottom layer and move our way up.
+
+## X06-093: Ref Networking - The NIC and The OS ##
+
+Since our concern in this course is with operating systems I'm going to
+leave you to explore most of the physical layer on your own
+and focus on the part that has implications for the operating system
+at the edge of the network and end users like you and
+me. The most important piece of hardware for us then is the
+network interface card or NIC. This typically is a direct memory access
+or DMA device. Meaning that once connected to the memory bus it
+has the ability to read and write from memory on its own
+independent of the CPU. Typically the CPU specifies through the
+bus the range of memory it wants to be sent whether
+it's a read of write and then sets the go
+bit to let the NIC begin. The NIC then tries to
+copy the data as requested. Because the NIC controller puts
+all of the copy instructions on the bus the CPU doesn't
+have to. He can go about his business to the extent
+that he finds the information he needs in the CPU cache
+there won't be any contention on the memory
+bus. Only when the NIC finishes either sending
+or receiving a packet need he bother the
+CPU with an interrupt. The NIC controller is
+also responsible for putting hardware specific headers and
+footers on the data. For physical ethernet this
+would include an inter-frame gap of silence and
+a special preamble to indicate the startup of frame.
+
+## X06-094: Ref Networking - Link Layer ##
+
+Next we move onto the link layer. If every link between
+computers were a dedicated permanent point to point connection then most of
+us decided that two machines should
+communicate it would be relatively straightforward
+to arrange for them to do so. The challenges here are mostly
+solved by breaking up larger chunks of data into more manageable
+chunks and putting them inside a frame. Which in addition to the
+data payload would contain some metadata its length for instance. And probably
+some kind of check zone as well to see if the data
+was corrupted in transmission. The situation becomes much more
+interesting when multiple nodes all share the same medium. Think
+of the cable line that carries the internet traffic in
+your neighborhood. In that case we have multiple nodes the
+modems in your houses all connected to the same wire.
+This is called a bus topology. Actually the original ethernet
+had this topology with all the cables all connected to
+a common hub making it look like a start topology.
+In reality the hub would simply relay whatever signal it
+got to all the other nodes effectively making all the
+cables one medium. In terms of physical hardware this is
+attractive because we don't have to run wires between every pair
+of machines on the local network. It does however mean
+that messages themselves have to specify who they are for and
+who sent them. In the case of ethernet on a
+local area network like a home office or a server cluster
+nics are usually identified through a unique 48 bit MAC
+address. MAC standing for media access control. If you have
+a router or a modem at home you can probably
+find the MAC address printed on the box. On a Unix-like
+machine you can find your MAC address of your network
+interfaces with ifconfig than pipe it out to grep for ether.
+The MAC source and MAC destination have designated spots in
+the Ethernet frame. When the frame is sent through the medium
+all the nodes will receive it. But only the one whose MAC
+address matches the frame destination should
+pay attention. The rest simply ignore it.
+
+## X06-095: Ref Networking - Collision Avoidance ##
+
+Another important consequence of having several machines share the same
+medium is that two messages can't be sent at the same
+time if they tried the data on the line would likely
+be corrected. We say that there is a collision when this
+happens. These collisions can have an important role in the performance
+of distributed systems where multiple machines connected by a local network
+are used to solve a problem. So understanding how and why
+these collisions occur is important for the study of operating systems.
+We'll discuss three solutions to the collision problem. The
+first is Carrier Sets Multiple Access with Collision Detection
+or CSMA/CD which was used with early ethernet. When
+a node sends a frame it also measures the
+signal on the wire. If it finds what it
+sent then great. If not then it assumes another
+node was trying to send at the same time
+causing a collision. Therefore it sends a special jamming signal
+that helps ensure that all other nodes detect the collision.
+It then waits for an amount of time that is part
+exponentially based on the number of recent collisions it has detected
+but also random so that the nodes don't all just mirror
+each other and keep sending messages at the same time. Another
+solution to the collision problem is token ring or token bus.
+Here the nodes in the network are arranged in a ring
+either through physical connections or
+logically. They then continually pass around
+a token that is empty by default that determines whose
+turn it is. If this node here wants to send a
+message he waits for the token then sends out his message
+and once he's received an acknowledgement he then continues to pass
+the token on around. The next one wanting to send a
+message will grab the token send out his message wait for
+an acknowledgement and then pass the token around some more. This
+system is fair and it does not fail under heavy loads
+but it suffers from more latency than the more
+aggressive CSMA/CD. Where possible both traditional ethernet and token ring
+have been largely replaced by switched ethernet. A switch is
+physically connected to the nodes like the hub but instead
+of broadcasting every frame that comes in like the hub
+it looks at the destination MAC address and routs the
+frames accordingly. The advantage is now that we have fewer
+collisions. For instance two pairs of nodes can communicate simultaneously
+whereas this would have been impossible before. Naturally a switch
+will need a table mapping MAC addresses to the physical
+port it should send the frame out to. One convenient
+way to populate this table is with learning. Whenever a switch
+sees a frame it examines the MAC source and puts
+that MAC address along with the port number in the table.
+Then to figure out where to send it it looks
+in the table and if it finds the appropriate port great.
+If not then it just broadcasts the ethernet frame to
+all the nodes. Once we run out of ports we
+can begin to arrange switches in a hierarchy like so.
+In our top level switch MAC addresses for this subtree
+will all map to port one. Those in this subtree
+will map to port two. And those in this subtree
+will map to port three. Lower down in this switch
+the MAC addresses for these machines will map to their ports.
+And the MAC address for all these other machines in
+the network would map to this switch's uplink since that's the
+path along which the frame would need to travel. Switches dramatically
+increase the number of messages that can be sent over a
+local network. In the simplest topology where all nodes are
+connected to a single switch it's almost as good as having
+a dedicated link between each pair. The only way that server
+one wouldn't be able to send to server 1 is because
+server 2 itself is busy never because the link is busy and even when
+server 2 is busy the switch can cue up frames to be delivered later.
+
+## X06-096: Ref Networking - Fill in The Table Question ##
+
+Now I have a question for you. The rows here are
+the various collision avoidance strategies that
+we have discussed and the columns
+are the merits that these strategies might have. For each column
+check the row if you think that strategy has the given merit.
+
+## X06-097: Ref Networking - Fill in The Table Answer ##
+
+Let's go through these one by one. Under a light
+load CSMA/CD will be efficient because when a frame is
+ready it will be sent. And then you shouldn't expect
+many collisions. The same holds for switched ethernet. Token ring on
+the other hand is not efficient as a node might
+have for the token to pass all the way around the
+ring before he can send his frame. CSMA/CD suffers under
+heavy load. As we are likely to see repeated collisions and
+long back offs much of which will be wasted. Token
+Ring on the other hand will continue to operate as
+usual because of strict rules on whose turn it is
+to access the medium. Switched Ethernet is resilient because the collisions
+are either avoided altogether at the port routing or the
+switch can queue up messages and send them when the machine
+is ready. As to being fair CSMA/CD is susceptible to
+hogging. From one node continues to succeed and sending its frames
+while the others backoff longer and longer because of the exponential
+backoff. Token is designed for fairness that is basically everyone gets
+asked before someone can send another frame. Switched Ethernet is fair
+because pretty much everyone gets what they want all the time
+
+## X06-098: Ref Networking - IP Addresses ##
+
+Having covered how machines communicate across a local area
+network we now turn our attention to how they communicate
+across the internet and the network layer of our
+hierarchy. Whereas other layers use a variety of technologies and
+protocols the network layer really only uses IP which
+is short for internet protocol. Every machine on the internet
+proper gets a unique 32 bit address. Which is usually
+written out as four decimal numbers between 0 and 255.
+So for example 72.14.248.239 is currently the
+IP address for Udacity's home page. Ranges of
+addresses are allocated by regional internet registries. All
+of which are under control by IANA the
+International Assign Numbers Authority. The range of themselves
+are commonly specified by a 32 bit IP
+followed by a slash and then the number
+of bits understood to specify the network ID.
+This is referred to as CIDR notation. The first number of bits of
+the 32 specify the range and then the rightmost bits specify
+the particular host. For example MIT was allocated long ago the
+range 18.0.0.0 slash 8. Meaning
+that any IP starting with 18 belongs to MIT. There are
+about 2 to the 24th of them.
+Georgia Tech has the range 130.207.0.0/16 meaning that
+any IP starting with 130.207 belongs to Georgia Tech. There are about 2 to the
+16th of those because there are 16 unspecified bits in this range. At the time
+of this recording a New Jersey company called
+Linode has been allocated the address range 50.116.48.0/20.
+So this gives them 12 bits of host and the range 50.116.48.0
+to 50.116.63.255. Again about two to
+the 12th IPs. IPs have become a precious commodity these days as most all
+of them have been allocated. And not very
+efficiently. For instance tech savvy as they are
+MIT is probably not using all 2 to the 24th or 16 million of it's addresses.
+One solution to this problem is simply to
+expanded the address space to use more bits. The
+new internet protocol called IPv6 the old one
+is call IPv4 uses 128 bit addresses. The problem
+is that IPV4 is so universal and so
+many other systems depend on it that adoption of
+the new protocol has been slow. And I encourage
+you to read more about this on your own.
+
+## X06-099: Ref Networking - Highest IP Question ##
+
+Now for a question to solidify our our understanding of the CIDR notation. What
+is the highest IP in the range 130.58.0.0/17?
+
+## X06-100: Ref Networking - Highest IP Answer ##
+
+Here's how I came up with the answer. Since
+the first 17 bits are fixed that also means that
+the first 16 are fixed. So I can go
+ahead and write 130.58 in here. Now there's one more
+bit that's fixed. So the one that represents a
+128 here must also be 0. So the biggest that
+I can make this eight bit address while sending
+that top bit to zero is a 127 so I'll
+write that. And then these bits are free so the biggest I can make that is 255.
+Actually this IP would never get assigned to a
+particular computer because the highest in the range usually
+indicates broadcast. That is to say this IP
+means send the data to the whole subnet. Similarly
+the lowest address doesn't get assigned either. This is
+used to refer to the subnet as a whole.
+
+## X06-101: Ref Networking - LANs and NAT ##
+
+One solution to this problem of the scarcity of IP
+addresses is Network Address Translation. This also helps mobile devices quickly
+join and exit Local Area Networks or LANs as would happen
+as you walk by a row of restaurants and coffee shops
+with your phone. To be concrete and simple let's suppose
+that you have a combined modem/router connected to the internet in
+your home. Now within your home you can create a private
+IP network using the network ID reserved for such a situation.
+Specifically anything that starts with
+192.168. Typically the modem/router will allocate
+IPs through a protocol called Dynamic Host Configuration or DHCP. Let's
+say that your computer gets the address 192.168.1.100 and your printer
+gets 192.168.1.101. Your neighbor might also have a local area network with
+a private IP address space and maybe his printer and
+computer get the same addresses. This turns out to be
+okay. Remember that the network layer is dependent on the
+link layer and everything ultimately get sent through the link
+layer protocol. So let's say that your computer knows the
+IP address of the printer but not it's MAC address.
+To find it the computer broadcasts an address resolution protocol
+or ARP package to the whole linked network asking who
+has the IP address 192.168.1.101. The printer will respond with
+its MAC address and then we're good to go. Because
+the ARP is sent by broadcast over the link layer
+network it never exits your private network in your home.
+So there's no possibility of your pictures ending up on
+your neighbor's printer or some such embarrassing circumstance. Of course
+you want to be able to do more than just
+connect to other things around the house. You want to
+be able to connect to cool web sites like Udacity.
+let's connect your modem to your internet and give it the
+IP 98.251.119.249. When you ask your computer to send a packet
+to Udacity's IP your computer will not find the matching IP
+in it's routing table. So it will send the packet to
+the default gateway in this case your router. The router will
+also not find the IP in its table. It will really
+only know about the private IPs. And so it will forward
+the packet onto its default gateway on the wide area
+network the internet. As a parenthetical note here I should say
+that packet is a term we use the network layer for
+discrete chunks of data that get passed around. Eventually the packet
+will reach the Udacity site. But it's not clear how
+Udacity should send the information back. It can't use the local
+IP address because there's no way to tell whether it should
+send information to your computer or to your neighbor's. So instead
+your router actually swaps out your IP address for
+its own. This way Udacity can just swap the
+source and IP addresses and then send that packet
+back along with the data. The modem then just needs
+to change the destination IP back to your computer
+and then route it along the private network in
+your home. This is a little trickier and involves
+changing parts of the transport layer which we'll discuss later.
+
+## X06-102: Ref Networking - Payload Question ##
+
+Okay. Here's a question for you. Is the IP packet
+the payload of the Ethernet frame or is it visa versa?
+
+## X06-103: Ref Networking - Payload Answer ##
+
+The answer is the ip packet is indeed
+the payload of the ethernet frame. The ethernet frame
+needs to be the outer container so that
+the recipients of the frame on the network can
+know how to act. Remember other computers on
+the network need to know whether they are the
+recipient and the ethernet switch needs to know
+how to wrap the frame to the proper recipient.
+
+## X06-104: Ref Networking - Internet Routing ##
+
+Next we turn our attention briefly to internet routing. That is
+what hops a packet will take to get from one endpoint
+to the other. Let's say Georgia Tech student is curious about
+what is going on at the MIT Media Lab. Of course
+there is no direct link so data is going to have
+to take several intermediate hops. The essential data structure here is
+a routing table that translates the IP address to the next
+hop i.e. the address the package should be sent to next.
+Every node on the internet should have a different routing table.
+There is much that is interesting in the shortest path like
+algorithms used to figure out what the next stop should be
+and also in the implementation of the routing table. Should it
+be a hash table? A tri? Etc. Here however I want
+to address the question of the size of the table. In
+a very naive approach the routing table would require almost two
+to the 32 entries one for each IP address on the internet.
+Fortunately this isn't necessary. Because IPs are
+largely allocated based on region similar IPs will
+often take similar routes. For instance consider
+traffic between Georgia Tech and MIT. As mentioned
+earlier MIT owns the 18.0.0/8 address space.
+Meaning that every IP that starts with 18
+needs to go to Boston and MIT campus. All the traffic from Georgia Tech to
+MIT will likely follow the same first hop
+or two then only later split in Boston. Therefore
+Georgia Tech routers don't need 16 million entries for
+MIT. One entry that matches anything starting with 18
+suffices. All the traffic will be correctly routed up
+towards Boston. This principle can be applied more broadly.
+To keep the size of routing tables manageable. To
+see the routing table on your machine run nestat-nr.
+
+## X06-105: Ref Networking - Autonomous Systems ##
+
+Besides the need for routing tables the most important
+thing to understand about the Internet is that it is
+not run by any single entity but by a
+collection of thousands of autonomous systems that share information. Examples
+of these autonomous systems or AS's for short include
+Google MIT Georgia Tech Comcast and so forth. Each of
+these autonomous systems is responsible for routing traffic within itself.
+This is called intra-domain routing. And as you might imagine
+there are some interesting algorithmic problems here that have the
+shortest path-like character. You can explore this further by taking
+a networking class or consulting the links in the instructor
+notes. Inter-domain routing which is
+essential to connecting these often regional
+AS's together gets a little more complex because of the
+various business interests among these entities. They don't share all of
+their routing information with each other but they do advertise
+their ability to reach public IPs with a protocol called BGP
+for Border Gateway Protocol. The essentials of such an
+advertisement are the IP address that they're advertising that they
+can reach. The Next Hop or the address of
+the entry point into the advertising AS. And the AS
+Path which captures the sequence of AS's that a
+packet along the route would need to travel through. And
+AS receiving such a message would incorporate the information
+into its own routing tables so that it knows where
+to forward packets. To take an example suppose Comcast
+wanted to advertise my IP address. Then it would
+send an advertisement to its partners which would include
+let's say a level 3. The AS path on the
+advertisement would just be Comcast's own AS number. And
+the next hop would be the desired entry point or
+gateway into the Comcast network. One of Comcast's partners
+let's say level 3 then might want to advertise my IP
+address to say the Apple AS. And so it
+would send another BGP packet with my IP address
+their gateway as the next hop and the AS
+path of level 3 and then Comcast. That's where all
+this information has been incorporated into the routing tables.
+All the routers in the Apple network know how
+to send the data back to my machine. They
+have their own internal routing before sending it to layer
+3 who does its own internal routing before sending it to Comcast who
+then does its own internal routing to get the message to my house.
+
+## X06-106: Ref Networking - Domain Name System ##
+
+So far we have referred to machines on the internet
+soley by their IP address and then its largely how the
+machines address each other. But IP addresses are not very
+convienant for users like you and me. We much to prefer
+to use host names. The domain name system that makes
+this possible amounts to another layer of indirection within the network
+layer. The host name like www.udacity.com gets translated into an IP
+address which is then used in the ways we've talked about.
+This translation is accomplished with the help of domain
+name services sprinkled throughout the internet. Suppose I try to
+send a packet to www.udacity.com from my computer. To
+get the most authoritative answer my computer would then ask.
+The local DNS server not too far away probably
+on the Comcast network. This in turn would ask the
+root name server where it might find a .com
+name server which would help it with host names ending
+with .com. Having received this response our DNS
+server would then ask this .com name server
+for information about udacity.com. When this IP comes
+back The server then asks where it might find
+www.udacity.com and when it receives this answer it
+then forwards it back to my computer. This should
+be somewhat reminiscent of how a directory system
+works. Importantly however high levels in the tree are
+to the right of the host name. Hence. www.udacity.com
+is sort of like / com/udacity/www. Now of course
+we don't actually make all these requests every time
+we need to find the IP for www.udacity.com my computer
+will cache the answer and so will the local
+name server not necessarily for my sake. But for
+the sake of other clients on the same local
+server who might also need an IP for www.udacity.com and
+they would cache the IPs for the root server and for
+the dot com server as well. You can read more about how
+domain names are acquired and registered and how the severs are
+kept up to date in the links provided in the instructor notes.
+
+## X06-107: Ref Networking - AS Number ##
+
+Now we turn our attention to the Transport layer which
+sits between the Network layer and the Application layer. The
+key contribution of this layer is the notion of ports
+which tells the OS which process the data is intended for.
+On a Linux machine you can see this mapping using
+LSOF-I. Having multiple ports allows more than one application to
+receive data from the network at once something called multiplex.
+Port numbers are 16 bits long and many of them are
+reserved for special purposes. Port 80 for instance is
+typically the one used for receiving HTTP requests like a
+browser would send. In fact we'll use this as an
+example. Let's say we're running Chrome and that we visit
+the Udacity homepage. Then Chrome will ask the operating system
+for a port number that it can use or it'll
+pick one that has been allocated already. Let's say the
+port number is 55804. It sends then sends the request
+in a packet with a source port of 55804 and
+a destination port of 80. When the Udacity server responds
+it will send back a packet whose destination port matches
+the one that we sent. That way the OS will know
+to route the packet to Chrome and not to some
+other program. It is important to realize that the transport
+layer is really only active at the end points at
+the route. The intermediate routers on the internet need only look
+at the IP address to know where to forward the
+packet to. So they never examine the port number. Control starts
+at the Application layer moves through the Transport layer and
+the Network layer and the Link layer and the Physical layer.
+At the first node. Then through these intermediate steps of
+course we need to interpret the signal. Pull off any sort
+of ethernet frame or the like. And then look at the
+IP packet to figure out where the packet should go next.
+We never need to look inside the IP packet at whatever comes in the
+transport layer. And then forward it and
+the same thing happens in the next node
+and then only when we receive it do we need to. Unpack the transport
+layer. Route it to the correct application
+and then let the application interpret the data.
+
+## X06-108: Ref Networking - Addresses and their Purposes Question ##
+
+To review the purpose of MAC addresses IP addresses and Ports I want you
+to match the description on the right to one of the numbers on the left.
+
+## X06-109: Ref Networking - Addresses and their Purposes Answer ##
+
+Okay here's the answer. Determines which process should
+receive a packet. Well that's the job of the
+port so I'll write one here. Determines the
+last step on an Internet route. IP addresses are
+made for Internet routing. So the destination will
+indeed be the last stop. So I can write
+two here and then for the last one it
+is indeed the MAC address that determines which node
+should listen to data sent on a shared link.
+
+## X06-110: Ref Networking - NAT Revisited ##
+
+We are now in a better position to understand the
+details of Network Address Translation. The trick whereby one public
+IP address is able to serve many computers on a
+private network be it a home a business or a
+coffee shop that we discussed earlier. Recalling our earlier scenario
+your combined modem/router has this public IP address and your
+computer has this private IP. When you send a packet
+to the Udacity site the router switches out your IP address
+for its own. This way the Udacity site
+will know where to send the response. The router
+also however changes the port number and the transport
+layer packet and it remembers the translation between. Your
+private IP and port number and this public port
+number that it sent as part of a message.
+This way when Udacity sends a packet back notice
+how he flips the destination and source IP's and
+the destination source ports. Your router then
+can change the IP and port number back
+so that the packet gets routed to your
+computer. Instead of to your printer and to
+the right application. Like this. So the destination
+IP becomes yours and the port number becomes
+the same one that you originally sent so
+the packet gets routed to the correct application.
+
+## X06-111: Ref Networking - Transmission Control Protocol ##
+
+Ports are an important addition to network communication. But if that
+were all the transport layer did the application layer would be
+left to cope with some common problems. Given the terrific complexity
+and scale of the internet it's no surprise that packets occasionally get
+lost or delivered out of order. It sure would be nice
+to have some kind of acknowledgment that the packet got through that
+way we could resend the packet if necessary and achieve more
+reliable communication. And for larger messages that need to be broken up
+into lots of smaller packets it would be nice to
+have some kind of numbering system so that if they arrived
+out of order they can be re-assembled. Moreover we would like
+to know if we are overwhelming the recipient with too many
+packets too fast or if we are causing congestion on
+some link in the route so that we can be a
+good citizen and slow down. All of this functionality is provided
+by the transmission control protocol or TCP inside the transport layer.
+TCP doesn't just start off firing packets towards some
+destination without warning. The conversation begins and ends with a
+polite handshake to mark the beginning and end of
+an exchange. Once the connection is established data can go
+both ways from initial data to recipient and visa
+versa. Let's take a look at an example. I'll use
+some unrealistically small numbers to keep things simple. And
+I'll rename the initiator G T and the recipient udacity.
+At this point the connection is pretty much symmetric. So
+the vocabulary for the handshake becomes confusing. GT issues a
+request and sets a push flag meaning send me your
+data then Udacity begins transmission back. Great but what if
+one of the packets is dropped that is to say
+they don't make it across the internet? In our example
+let's suppose that the first packet doesn't make it. We
+would like a way to detect the situation. Here's TCP solution.
+After the initial handshake packet or segments as they
+are called in TCP parlance indicate how much data
+the other side should have received already and also
+how much data the sender has received. The former is
+called the sequence number and the later the acknowledgement
+number. During the handshake both of these numbers get incremented
+by one. In this scenario TCP will be able
+to detect the dropped packet because the next message thinks
+that nine bites is the amount that should have
+been received. But in reality GT has only received
+the initial acknowledgement. You might think that GT would
+send the packet saying could you resend that please. But
+actually the system works by positive acknowledgements instead of
+request or re-transmission. If the packet had gone through
+the traffic should have looks like this. So even
+though GT doesn't really have anything to say to Udacity
+he should have been sending empty acknowledge packets to
+Udacity indicating that the packets were received. To make an
+analogy to human conversation this is like saying uh-huh periodically
+to let the other person know you are listening. Going
+back to the case where the first packet is
+dropped we now see that upon receiving the second packet
+GT would see that a packed has been dropped and
+simply won't acknowledge the first one or the later one.
+After enough time has passed Udacity will notice
+that it hasn't received an acknowledgment for that first
+packet and will re-transmit it. When GT receives the
+re-transmitted package he can now send an acknowledgment for
+both packets saying that he has received 17
+bytes worth of data. Together this system of acknowledgments
+and sequence numbers helps achieve the first two goals.
+I'll have to refer you to a networking class
+for a more complete discussion of the third goal but I
+do want to briefly discuss the idea of window size. In this
+example udacity has sometimes sent out a packet before it receives
+an acknowledgement of a previous one. This is typical for TCP
+And how much one side is allowed to get ahead of
+himself in the conversation is controlled by a window size parameter.
+A good way to visualize this is by drawing the data
+that needs to be sent as a long bar and then
+dividing it into the packets that actually get
+sent. We have the packets that have been sent
+and acknowledged the ones that have been sent
+but haven't been acknowledged yet and the unsent packets.
+This middle part representing the packets sent out
+but not acknowledged represent the window. And as the
+during transmission the window will slide across to the
+right. The window size puts a limit on how
+a wide this window can get. If the window is too
+small then it can slow the connection down as the sender
+has to stop and wait for an acknowledgement for every packet.
+If the window size is too big then there's a risk that
+it will over flaw the buffers of the recipient or of
+one of the hops along the way resulting in packet loss.
+So it's important to get the window size right. You can
+explore other aspects of TCP's flow and congestion control by following the
+links in the instructor notes.
+
+## X06-112: Ref Networking - User Datagram Protocol ##
+
+Now TCP serves many applications well but others want
+to handle the problems of liability and flow control in
+their own way. For this they often use the
+User Datagram Protocol or UDP which is much simpler. The
+header that gets attached to the payload includes only
+the source and destination ports the length of the data
+and a check sum to help detect data corruption.
+There's no initial handshake or enforced mechanism for the order
+of packets they're just fired across the network. When
+is UDP used? Well if you have a very reliable
+local network then there's no need for the reliability or
+out-of-order protections of TCP. All those acknowledgements would just be
+wasted bandwidth. You would rather have the lower overhead
+of the smaller UDP header and protocol. Streaming applications where
+it is more important to be on time than to
+be right prefer UDP. Think of voice over IP. A
+user would much prefer a temporary degradation in the quality
+of sound to incurring a delay which makes conversation difficult.
+If a packet is dropped we might want to simply
+say that it is too late and not bother trying
+to incorporate its data. Similarly for video a user would
+much prefer an occasional low quality frame to having the
+video intermittently start and stop but with a perfect picture.
+UDP tends to be more popular for these types of applications.
+
+## X06-113: Ref Networking - TCP vs UDP Question ##
+
+Based on the description of UDP and TCP given so far
+check the box if the parameter is included in the Protocol's Header.
+
+## X06-114: Ref Networking - TCP vs UDP Answer ##
+
+Recall that UDP is really bare bones of these it only includes the port
+numbers. TCP on the other hand is
+deluxe. It includes information about the desired
+window size and also uses sequence and
+acknowledgment numbers to detect drop packets and
+out of order delivery. And of course it includes the port information as well.
+
+## X06-115: Ref Networking - Putting It All Together 1 Question ##
+
+Now to put everything current in this lesson together. Let's
+see how a browser running in your home computer might establish
+a TCP connection to the Udacity website. And send along
+an HTTP request for the home page. Along the way I'll
+ask you to help figure out the next step a
+few times. First the browser needs to find Udacity's IP address.
+So it will make a system call. The OS we'll use
+well what will it use to convert the host name www.udacity.com
+to an IP Address? Give the three letter acronym here.
+
+## X06-116: Ref Networking - Putting It All Together 1 Answer ##
+
+And the answer is DNS for Domain Name System.
+
+## X06-117: Ref Networking - Putting It All Together 2 Question ##
+
+Okay so let's suppose that the domain name service
+says that 72.14.248.239 is an IP we can use
+for Udacity. Great. Now the OS is ready to
+establish the connection with Udacity. The actual application data
+will be empty at this point so I'll just
+leave this slot empty. This gets the TCP and
+header attached to it which includes the port numbers.
+And this then gets the IP header attached to it
+which will include the source and destination IP addresses. The
+routing table on my machine will point me toward the IP
+address of my modem/router. If my computer doesn't have the
+MAC address for the router cached it could acquire it through
+an ARP request. But this MAC address It is now
+ready to put the IP packet in an ethernet frame and
+send it over the wire to the modem/router. When this
+router receives the packet he unpacks it from his ethernet frame.
+Looking at the destination IP he recognizes that
+this packet is meant for the wide area
+network. So he strips off the source IP
+and the source port and replaces them with
+his own IP. And a new port number. This changing of the IP address and port
+number that the router does is called what?
+There's a three letter acronym for this too.
+
+## X06-118: Ref Networking - Putting It All Together 2 Answer ##
+
+Network address translation or NAT is what the
+router is doing here. He is allowing all of
+the machines on the private home network to share
+the public IP address to this kind of translation.
+
+## X06-119: Ref Networking - Putting It All Together 3 Question ##
+
+Next in our scenario the modem wraps the packet in
+the appropriate link layer frame and passes it on to the
+wide area network. The packet will then make several hops across
+the Internet. In each phase the IP packet will be wrapped
+in a link layer and sent on. A routing table
+will be consulted to figure out where the packet should go
+to next and then the packet will be wrapped up again
+in the appropriate link layer protocol before being sent along again.
+Eventually the data will reach the Udacity site. Udacity will
+say of course I'm happy to establish a TCP connection.
+So it will send an acknowledgement. And my question to
+you is what is the destination port for this acknowledgment packet.
+
+## X06-120: Ref Networking - Putting It All Together 3 Answer ##
+
+The answer is 61208. The old source port becomes the new destination port.
+
+## X06-121: Ref Networking - Putting It All Together 4 ##
+
+So to give a response then you'd actually just swap the
+source and destination ports and the source and destination IP addresses.
+The path back will feel just like the path forward though
+it's possible that it will follow a different set of hops.
+And of course it will be in the reverse. When the
+packet gets back to the mo router at your house it
+will swap out the IP and port for the correct ones
+as part of the network address translation. It's routing table will
+then tell it the MAC address of your computer so that
+it can be put in a packet in a link layer frame
+and passed back to your computer. Now to complete the handshake
+and establish the TCP connection your computer needs to send back an
+acknowledgement to Udacity. This will be almost exactly the same as
+the first packet with just a small change to the TCP header.
+Indeed all the communication will feel much like this only instead
+of sending packets with no contents Udacity will send each other real
+data with the TCP headers IP headers and then sometimes on and
+off during the transmission the link layer headers and footers as well.
+
+## X06-122: Ref Networking - Conclusion ##
+
+Congratulations. If you followed that last example
+or even better were able to anticipate the
+next step you now really know how the
+Internet works. No small achievement. With this knowledge
+you'll be able to understand strategies for congestion
+control giant scale services and content delivery neworks.
+All of which are becoming increasingly important in
+the world of computing. Good luck to you.
+

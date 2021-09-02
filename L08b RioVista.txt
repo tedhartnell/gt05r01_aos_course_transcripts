@@ -1,0 +1,431 @@
+## L08b-464: RioVista - Introduction ##
+
+The APIs provided by LRVM are designed to remove an important pin point for
+system developers namely system crashes. We know
+that system crashes can come from software errors
+as well as from power failure. That brings up an interesting thought experiment.
+Which is what we're going to discuss next. So how does LRVM do it? Well it does
+it by providing transaction synaptics for
+persistent data structures. It calls itself lightweight
+since it eliminates all the usual heavyweight
+properties associated with transactions which are usually
+called acid properties. And LRVM makes
+transactions light weight for use precisely for
+the intended purpose which is recovery management.
+In LRVM changes to virtual memory are
+written as re-do logs at the end of
+a transaction. And these re-do logs are forced to
+the disk at the end of the transaction as
+common records Of changes made to virtual memory. And
+as it log force that happens at commit point
+is what is called a synchronist IO because the
+application has to wait for the IO to complete
+before proceeding with further execution. So implementation a precise
+implementation of the transaction semantics of LRVM requires a log force to the
+disk to make sure that the redo log that represents all of the changes made to
+virtual memory Within that critical section bound
+by a begin transaction end transaction is
+actually committed and persisted on the disk.
+It is precisely for this reason namely synchronous
+IO that transactions are considered heavy weight
+even though the synantics of transactions have
+been considerably reduced and made simpler in
+the design of LRVM. In other words
+for a precise implementation of LRVM at the commit point it requires at least
+one synchronous disk I/O. The system design
+tend to avoid transaction despite the precise semantics
+of transaction due to the time penalty associated
+with disk I/O. If disk I/O can be
+eliminated then transactions would be cheap. And if
+transactions become cheap then everyone will use it and
+life is good. Rio Vista the lesson that
+we're going to review now asks the question 'How
+can we eliminate synchronous disk I/O?' So in
+other words Rio Vista is going towards a performance-conscious
+design and implementation of persistent memory
+starting from where LRVM left off.
+
+## L08b-465: RioVista - System Crash ##
+
+There are two orthogonal problems that lead to a system crash. One is
+power failure. The second is software failure
+or in other words the application crashes
+for some unknown reason obviously a bug in the application. So Rio Vista poses
+a very interesting rhetorical question. Suppose we
+postulate that the only source of system
+crash is software failure. There are bugs in
+the software and not power failure. How does
+that change the design and implementation of failure
+recovery? Now the question is how can we eliminate
+power failure. Well we can throw some hardware
+at the problem and make power failure go away.
+For example we can get a UPS power supply and connect it to the portion of the
+system that I want to be up even if the power fails. So the idea in
+Rio Vista is if we can take the memory and take a portion
+of that main memory. And make that
+persistent to power failures by adding a battery
+backup. Then even if there's a power
+failure this portion of the memory whatever changes
+you record it here. It's going to survive
+that power failure because it has battery backed up.
+That's the idea if we can throw some
+hardware at the problem and make the problem disappear.
+So that we can then focus on how
+to recover from failure assuming that the only source
+of failure is software crash. So with this
+amendment. Will this make the implementation of transactions as
+defined in LRVM cheap so that designers will
+actually use them? Let's see how this can help.
+
+## L08b-466: RioVista - LRVM Revisited ##
+
+Let's revisit the semantics of LRVM and what it does. So
+this is a time axis the application when it calls the begin transaction
+primitive of LRVN. What LRVN does is it says
+okay the application is going to modify some portion of the memory.
+So let me create a memory copy of the old contents of
+the portion of the memory that this transaction
+is going to modify. And that's what is
+called the in-memory undo record of LRVM. In
+the body of the transaction the program is doing
+normal program writes and they are going into
+the memory. No problem with that because LRVM
+has the undo record already stashed away. So
+all of these are writes to normal memory and
+there is no interaction with LRVM during
+this portion of the transaction code. Then
+the application reaches the end transaction makes
+the end transaction call to LRVM. At that
+point LRVM is going to write a redo record onto the disk when the
+transaction commits because end transaction is synonymous
+with commiting so far as LRVM is concerned.
+And therefore at this point the changes that have been made to virtual memory
+are written out as a redo log record and forced to the disk by LRVM. We know
+disk I/O is slow and the more you do it the slower will be the subsystem
+that is using these LRVM primitives and that's
+why LRVM provides the no-flush option in transaction
+call which allows an applicaiton to tell LRVM write
+it out to the disc but don't stop me
+from progressing further in my computation. In other words
+the applicaiton is hoping that there won't be any failures
+that will result in all the changes that it
+recorded in memory not being forced to the disc. So
+the LRVM is going to write out the redo log
+as the background activity and the hope is that there
+won't be any system crash during the time that it takes for it to do. And this
+is what we called as the window of vulnerability
+when we talked about LRVM. So what the no
+flash option does is to increase the vulnerability
+of the system to power failures in favor of
+performance. And that's a calculated risk an application developer
+is taking if they specify no-flush optimization in the
+end transaction. So on the other hand if
+you are conservative then what you would do is
+you let the end transaction have the normal transaction
+semantic which to say that adding transaction force the
+write of the log into the disc to ensure
+that the log segment has been commmited to the
+disc. And only then allow the application to proceed
+further. And at this point at the commit point
+the other thing that LRVM would do is in
+addition to forcing the log record to the disc
+it will also get rid of the undo record
+because the undo record is no longer needed for
+this transaction since the transaction was successfully committed. And we know
+as a background activity what LRVM does is to update the
+original data segments with the changes that have been recorded in the redo logs
+because as you recall the data segment contains
+a persistent data which are being brought into memory
+and modified during this transaction. And those changes had
+to be eventually persistent. Right now they're sitting in
+the redo log records and what the log truncation
+part of the elarvian library does is to read
+the redo log records and apply them to the
+data segment and get rid of the redo logs.
+So this is the log truncation or clean-up
+of the disk space that is done periodically by
+LRVM. Because in the absence of crashes you have
+to make sure that you clean up the disk
+every once in a while. So the upshot
+of LRVM implementation is there are three copies of
+the VM space done by LRVM to manage persistence
+for recoverable objects. Of course it optimizes log force
+by dealing them at transaction endpoint. But
+in implementing LRVM one of the biggest sources
+of vulnerability is power failure. Because if
+you in fact use at optimization to defer
+writing out the log record to the permanent storage then all the work that
+you did in this transaction may actually be wasted if in fact there is a power
+failure before the log force happens. Now
+what does providing a battery-backed DRAM give you?
+
+## L08b-467: RioVista - Rio File Cache ##
+
+Before we talk about how we can implement
+RVM efficiently with a back to back DRAM. Let's
+first understand how we can use a back
+to back to DRAM to implement a persistent file
+cache. What we mean by that is typically
+file systems use a file cache to hold data
+that is brought from the disk for efficiency
+of manipulation by programs or anything on the processor.
+And when we say it's a persistent file cache
+what we're saying is even if there is power failure
+the contents of this file cache is still available when
+the power comes back up again. And in order to
+achieve that what we're going to do is we're going to
+string a UPS power supply to back this file cache
+which is implemented in DRAM. So the contents of the
+file cache never goes away. And we also postulate that
+there is VM a virtual memory protection. That
+have been built in to the operating system to
+prevent operating system errors such as wild writes
+to the file cache during software crash or power
+failure. Now there are two ways to use
+the Rio file cache. One is when a process
+does file writes actually they are writing to the
+in memory copy of the file. Typically operating system
+buffers the rights that you do to files in DRAM and then write them out to the
+disk in opportune moments later on. And now if these file rights go to
+the file cache which is battery backed then you make sure that
+these file writes are persistent. Normally if an application wants
+to make sure that when it writes a file the contents of
+the file is immediately forced disk the application
+will have to do an Fsync call in
+a Unix system for instance. But if we
+have this battery-backed file cache the application can simply
+do normal file writes and don't worry about
+doing an fsync because writing to the file
+writes to the file cache and the file
+cache is persistent by definition because it is battery-backed.
+And similarly another common operation that is done is Unix allows files to be
+mmaped that is mapped into memory. And if an application maps a file into
+memory and writes to that file using
+normal program writes those normal program writes
+become persistent because these rights are backed
+by the file cache. And the file cache
+is battery-backed and therefore normal program writes
+becomes persistent also. So with the Rio file
+cache that is battery-backed what we get is that file writes by a process as
+well as normal program writes to memory
+mapped files become persistent by definition. In the
+absence of this facility of a persistent
+file cache. If an application were to mmap
+a file and write to that using normal program
+rights then it will have to do what is called
+an msync call in order to make sure that writes
+that it did to virtual memory actually get persisted on
+the disk. But with a file cache real file
+cache that is persistent there is no need to do
+that because by definition we are saying any rights that
+get into this file cache will persist. In other words
+the contents of the file cache will survive
+power failures. So if there is a system crash
+whether it is a power failure or software
+crash the file cache data in memory is going
+to be written onto the disk for recovery.
+And so the upshot is no synchronous rights are
+needed to the disk any more. It also means
+that writeback of files written to by an application
+can be arbitrarily delayed. What that means from the file
+system perspective is that if the lifetime of files is
+very short then those files go away. And so you
+don't have to write it to the disk in the
+first place. And this is common in compilation process for
+instance a number of temporary files are created. And those
+files live in the file cache for a short amount
+of time and when the compilation process is complete those files
+are deleted so you never have to write those files to the disk. So that's a good
+thing about having this idea of a persistent file
+cache. Now let's look at how we can use
+RIO to implement RVM. So we've got this persistent
+file cache and we're going to ask the question
+if we have this persistent file cache how can
+we optimize the implementation of a reliable virtual memory?
+
+## L08b-468: RioVista - Vista RVM on Top of Rio ##
+
+So Vista is the RVM library that has been implemented on top of the Rio file
+cache and let's see how that works. The
+semantics of RVM that is implemented in this
+is exactly the same as what we saw in the previous lesson namely LRVM. It is
+just that the implementation takes advantage of the
+fact that it is sitting on top of
+a Rio file cache. So what we're going to
+do in implementing RVM using the Rio file cache
+is to map the data segment to the virtual
+memory. Exactly similar to what was done in the
+LRVM primitive. So when we map the external data
+segment to virtual memory by definition now this portion
+of the memory becomes persistent because it is contained
+in the file cache and the file cache survives
+power failure because of the battery backup. And
+therefore now we have made this portion of
+the virtual memory that is mapped to the
+data segment persistent. So when we hit the begin
+transaction call in the application what we're going to
+do is make a before image of the portion
+of the virtual memory that we're going to modify
+during this transaction. Remember that in the RVM library
+the set of operations that you do
+to virtual memory between begin transaction and end
+transaction. The user's intent is that those changes
+are for persistent data structures. And the persistent
+data structures that they want to modify they
+would execute a set range call to say
+what portion of that address range needs to
+persistent. So. What we do in this Vista
+which is an implementation of RVM is at
+the point of begin transaction we're going to make
+a before image a copy in-memory copy of
+the portion of the address space that we intend
+to modify during this transaction. That will serve
+as the undo log. Now note that this is
+also mapped to the file cache so the undo log is mapped to the file cache and
+therefore this undo log is by definition persistent
+node. So the undo record that we create
+in memory we back it up on the file cache and therefore this undo log that
+we have created is actually persistent. It'll survive
+failures. So when the program is executing the
+body of the transaction it's doing normal program
+rights to a portion of the virtual address space
+where it has persistent data structures as well.
+So when it does this normal program rights to
+this virtual memory. The portion of the virtual memory
+that is mapped to this external data segment is
+by definition persistent and so these normal programs
+rights actually get into the data segment their being
+persistent automatically because this portion of the virtual address
+space is mapped to this data segment. Which is
+in the file cache and therefore persistent because
+of the battery backing. So all the changes
+that we are making during the execution of
+the body of the transaction code is actually getting
+persisted in the original data segment. For which
+this was an in-memory copy but the in-memory copy
+is actually sitting in file cache which is
+battery backed. Then we reach the end transaction in
+the application code and remember in the end
+transaction is when a change has had to
+be committed. Well you know what? The changes
+are already committed because that is the semantic
+of mapping the latest segment in virtual memory.
+And because the file cache is persistent all
+the changes that we made to the virtual
+memory during these normal program writes are actually reflected
+in the data segment. So the end transaction
+at commit point you don't have to do
+anything other than getting rid of this undo
+log because the transaction is committed and therefore you
+can throw away this undo log and all
+the changes are already in there by design by
+construction. Just as an aside if you think
+about LRV implementation commit point is the point where
+there is heavy lifting to be done. Because
+in LRVM at the commit point the redo
+log which had been created by LRVM to
+reflect the changes to the persistent data structures in
+memory have to be forced to the disk.
+But in Vista which is implementation of RVM
+on a persistent file cashe no work needs
+to be done at the point of end transaction
+for commit because all the changes that the
+application developer intended to be committed to the
+data segment are already in there. And therefore
+at commit point all that needs to be
+done by Vista is to get rid of this undo log. On the other hand if the
+transaction aborts in that case what needs to be done is the undo record that
+we created at the beginning of the transaction the
+before image we are to take that and copy
+it back into the portion of the virtual memory
+that we modified because that is a semantic of RBM.
+That if the transaction aborts we restore the virtual
+memory back to it's original state before the beginning of
+the transaction. So the before image that we saved
+at the beginning of the transaction we copy it back
+into this portion of the virtual memory that
+has been modified during this transaction. And once we
+do that we can throw away the undo log.
+And when we restore the before image into the
+virtual memory that we're also correcting whatever changes we
+made to the data segment automatically. Because remember that
+this picture is just showing the virtual address space
+of the process and this is really the physical
+memory which is being used as a file cache battery backed and a portion of
+the virtual address space is in this battery
+pack file cache rest of the address base
+of the application does not need persistence
+that can be a normal physical memory. Only
+the portion of the application memory that has
+persistence guarantees through the data segment needs to
+be mapped to this portion of the physical memory
+that is battery backed. So just to recap what happens
+at end transaction if it's a commit no work
+to be done except to get rid of the undo
+record. All the changes to persistent data structures are
+already in there in the data segment. On the other
+hand if it aborts restore the old image back
+into the virtual memory I am back in business as
+though these transaction never happened. The implication of
+this Vista implementation which is RVM on top of
+Rio file cache is that there is no disk IO at all. And there is no redo
+log because we directly writing into the data
+segments All the external data segments that we define
+in the initialization of the RVM library on
+the disk they become memory resident when you map
+them into the virtual address space of the
+application. So the external data segments become persistent because
+of being brought into the file cache. And mapped
+into the virtual memory space of the server application.
+
+## L08b-469: RioVista - Crash Recovery ##
+
+What do we do for crash recovery? Suppose the system
+crashes and come back. Treat it just like an abort. Recover
+the old image from the undo log. Remember that undo
+log will survive crashes because it is in the RIO file
+cache. So if the system crashes and comes back up
+you see there is an undo log. Take that undo log
+apply it to the virtual address space that it corresponds
+to. You're back in business again. Could there be a crash
+during crash recovery? No problem with that. Because of idempotency of recovery
+there's no problem in dealing with
+crash that might happen during crash recovery.
+
+## L08b-470: RioVista - Vista Simplicity ##
+
+Vista by virtue of its simplicity by making
+one of the problems go away namely the power
+failure the implementation is very simple. 700 lines of
+code in Vista as opposed to more than 10000
+k lines of code in the original LRVM implementation.
+Why? Because there are no redo logs. All the
+changes that we're making to virtual memory for persistent
+data structure directly get in to the data segments.
+So no redo logs. Correspondingly there is no truncation
+code and check pointing and recovery code is significantly
+simplified and there is no group commit optimizations. The
+upshot of all of these simplifications that comes from
+one simple trick and that is to make a
+portion of the DRam persistent. And implement the file
+cache with that persistent portion of DRAM can get
+rid of redo logs and get rid of truncation
+code and Vista has the simplicity of
+LRVM but it is also performance efficient. I
+encourage you to browse through the performance
+results that are reported in the paper on
+Rio Vista which I have assigned for
+your reading. To see how Vista performs compared
+to LRVM. In particular Vista performs three
+orders of magnitude better than the original LRVM
+because of the simplicity and the fact that there is no disk IO. That
+is the biggest improvement in making Vista perform really well compared to LRVM.
+
+## L08b-471: RioVista - Conclusion ##
+
+Rio Vista is a very interesting thought experiment. It basically shows
+how if you change the starting assumptions for ae problem you can come to
+a completely different design point. In this case the starting assumption was
+that source of crashes was only
+software not power failure. That changes everything.
+
